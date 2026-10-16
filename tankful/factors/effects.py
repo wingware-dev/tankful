@@ -25,6 +25,7 @@ class Effects:
   surface_agitation: ripples and drops on the surface, 0 calm to 1 stormy.
   skittish: 0 calm to 1 fish dart and startle.
   night_light: a dim blue moonlight, 0 off to 1 full.
+  flicker: lightning flicker of the tank light, 0 none to 1 frequent.
   """
   speed_scale: float = 1.0
   depth_shift: float = 0.0
@@ -34,6 +35,7 @@ class Effects:
   surface_agitation: float = 0.0
   skittish: float = 0.0
   night_light: float = 0.0
+  flicker: float = 0.0
 
   def clamped(self):
     """This value with each field inside RANGES (and NaN made neutral)."""
@@ -59,6 +61,7 @@ RANGES = {
   'surface_agitation': (0.0, 1.0),
   'skittish': (0.0, 1.0),
   'night_light': (0.0, 1.0),
+  'flicker': (0.0, 1.0),
 }
 
 NEUTRAL = Effects()

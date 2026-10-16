@@ -16,6 +16,7 @@ class NeutralTests(unittest.TestCase):
     self.assertEqual(NEUTRAL.surface_agitation, 0.0)
     self.assertEqual(NEUTRAL.skittish, 0.0)
     self.assertEqual(NEUTRAL.night_light, 0.0)
+    self.assertEqual(NEUTRAL.flicker, 0.0)
 
   def test_neutral_is_inside_its_ranges(self):
     self.assertEqual(NEUTRAL.clamped(), NEUTRAL)
@@ -44,6 +45,12 @@ class ClampTests(unittest.TestCase):
     self.assertEqual(e.surface_agitation, 1.0)
     self.assertEqual(e.skittish, 0.0)
     self.assertEqual(e.night_light, 1.0)
+
+  def test_flicker_range_and_blend(self):
+    self.assertEqual(Effects(flicker=3).clamped().flicker, 1.0)
+    self.assertEqual(Effects(flicker=-1).clamped().flicker, 0.0)
+    e = effects.blend(NEUTRAL, Effects(flicker=1.0), 0.25)
+    self.assertAlmostEqual(e.flicker, 0.25)
 
   def test_low_speed_floor(self):
     self.assertEqual(Effects(speed_scale=0).clamped().speed_scale, 0.25)
