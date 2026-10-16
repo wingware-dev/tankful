@@ -16,19 +16,14 @@ refetches the unchanged close every 10 minutes.
 """
 
 import datetime
-import json
-import logging
-import os
-import ssl
 import time
 import urllib.parse
-import urllib.request
 
 from tankful.factors import base
 from tankful.factors import effects
+from tankful.factors import net
 from tankful.factors import settings as settings_mod
 
-log = logging.getLogger('tankful.factors')
 
 KEY = 'stock'
 
@@ -36,10 +31,6 @@ SYMBOL = '^GSPC'
 NAMES = {'^GSPC': 'S&P 500'}
 URL = ('https://query1.finance.yahoo.com/v8/finance/chart/%s'
        '?range=2d&interval=1d')
-# Yahoo serves a plain app User-Agent, but answers 429 to a browser one
-# that doesn't really come from that browser
-USER_AGENT = 'tankful/0.1 (+desktop aquarium)'
-TIMEOUT = 10.0
 
 OPEN_TTL = 600.0       # seconds between fetches while the market is open
 MIN_TTL = 60.0
@@ -88,7 +79,7 @@ class StockSource(base.Source):
 
   def __init__(self, symbol=SYMBOL, opener=None, clock=None):
     self.symbol = symbol
-    self._opener = opener or _urlopen
+    self._opener = opener or net.urlopen
     self._clock = clock or time.time
     self._fetched = None
 
@@ -102,67 +93,13 @@ class StockSource(base.Source):
     return URL % urllib.parse.quote(self.symbol, safe='')
 
   def fetch(self):
-    request = urllib.request.Request(
-      self.url(), headers={'User-Agent': USER_AGENT,
-                           'Accept': 'application/json'})
-    with self._opener(request, timeout=TIMEOUT) as response:
-      data = json.loads(response.read().decode('utf-8'))
+    data = net.fetch_json(self.url(), opener=self._opener)
     change = parse_change(data)
     if change is None:
       return None
     self._fetched = self._clock()
     name = NAMES.get(self.symbol, self.symbol)
     return base.Reading(change, '%s %+.2f%%' % (name, change))
-
-
-# HTTPS.  A Python that ships its own OpenSSL can start with no CA
-# certificates, and then every fetch fails verification: UPBGE's has none
-# but ships certifi, and python.org's macOS builds have neither until
-# their Install Certificates step.  Fall back to certifi, else the
-# system's bundle
-
-
-CA_BUNDLES = (
-  '/etc/ssl/cert.pem',                     # macOS, some BSDs and Linuxes
-  '/etc/ssl/certs/ca-certificates.crt',    # Debian, Ubuntu, Arch
-  '/etc/pki/tls/certs/ca-bundle.crt',      # Fedora, RHEL
-)
-
-_context = None
-
-
-def ca_bundle(exists=os.path.exists):
-  """A CA bundle file to load when Python's defaults have none, or None."""
-  try:
-    import certifi
-    return certifi.where()
-  except ImportError:
-    pass
-  for path in CA_BUNDLES:
-    if exists(path):
-      return path
-  return None
-
-
-def ssl_context():
-  """The verifying SSL context for fetches, made once."""
-  global _context
-  if _context is None:
-    context = ssl.create_default_context()
-    if not context.cert_store_stats().get('x509_ca'):
-      path = ca_bundle()
-      if path is None:
-        log.warning('No CA certificates found; HTTPS fetches will fail')
-      else:
-        log.info('Loading CA certificates from %s', path)
-        context.load_verify_locations(cafile=path)
-    _context = context
-  return _context
-
-
-def _urlopen(request, timeout):
-  return urllib.request.urlopen(request, timeout=timeout,
-                                context=ssl_context())
 
 
 def parse_change(data):

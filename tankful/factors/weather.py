@@ -19,14 +19,12 @@ The mapping, from Open-Meteo's WMO weather code:
   storm: dark, a rough surface, skittish fish and a light flicker
 """
 
-import json
 import logging
-import ssl
 import urllib.parse
-import urllib.request
 
 from tankful.factors import base
 from tankful.factors import effects
+from tankful.factors import net
 from tankful.factors import settings as settings_mod
 
 log = logging.getLogger('tankful.factors.weather')
@@ -35,8 +33,6 @@ LOCATION_URL = 'http://ip-api.com/json/?fields=status,message,lat,lon,city'
 FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
 CURRENT = ('weather_code,temperature_2m,cloud_cover,precipitation,is_day,'
            'wind_speed_10m')
-USER_AGENT = 'tankful (desktop aquarium)'
-TIMEOUT = 10.0
 
 CONDITIONS = ('clear', 'cloudy', 'fog', 'drizzle', 'rain', 'snow', 'storm')
 
@@ -58,28 +54,6 @@ def condition_for(code):
   if 95 <= code <= 99:
     return 'storm'
   return 'cloudy'
-
-
-def ssl_context():
-  """A TLS context that can verify certificates.
-
-  UPBGE's bundled Python has no system CA store (its OpenSSL looks in
-  /dev/null), but it ships certifi, so use certifi's bundle when present.
-  """
-  try:
-    import certifi
-  except ImportError:
-    return ssl.create_default_context()
-  return ssl.create_default_context(cafile=certifi.where())
-
-
-def fetch_json(url, timeout=TIMEOUT):
-  """GET url and parse it as JSON; raises on any failure."""
-  request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-  context = ssl_context() if url.startswith('https:') else None
-  with urllib.request.urlopen(request, timeout=timeout,
-                              context=context) as response:
-    return json.loads(response.read().decode('utf-8'))
 
 
 def parse_location(data):
@@ -148,7 +122,7 @@ class WeatherSource(base.Source):
   max_stale = 2 * 60 * 60.0
 
   def __init__(self, lat=None, lon=None, place='', units='C',
-               fetch_json=fetch_json):
+               fetch_json=net.fetch_json):
     self.location = None
     if lat is not None and lon is not None:
       self.location = (float(lat), float(lon), place)

@@ -2,10 +2,8 @@ import datetime
 import io
 import json
 import os
-import sys
 import unittest
 import urllib.error
-from unittest import mock
 
 from tankful.factors import base
 from tankful.factors import effects
@@ -279,71 +277,6 @@ class SourceTests(unittest.TestCase):
     self.assertEqual(source.ttl, stock.OPEN_TTL)
     source.fetch()
     self.assertEqual(source.ttl, MONDAY_930AM - FRIDAY_5PM)
-
-
-class FakeContext:
-
-  def __init__(self, cas):
-    self.cas = cas
-    self.loaded = []
-
-  def cert_store_stats(self):
-    return {'crl': 0, 'x509': self.cas, 'x509_ca': self.cas}
-
-  def load_verify_locations(self, cafile=None):
-    self.loaded.append(cafile)
-
-
-class SslTests(unittest.TestCase):
-
-  def setUp(self):
-    patcher = mock.patch.object(stock, '_context', None)
-    patcher.start()
-    self.addCleanup(patcher.stop)
-    # Without certifi, as in python.org's Python
-    patcher = mock.patch.dict(sys.modules, {'certifi': None})
-    patcher.start()
-    self.addCleanup(patcher.stop)
-
-  def test_bundle_is_first_that_exists(self):
-    self.assertEqual(stock.ca_bundle(lambda p: p.startswith('/etc/pki')),
-                     '/etc/pki/tls/certs/ca-bundle.crt')
-    self.assertIsNone(stock.ca_bundle(lambda p: False))
-
-  def test_certifi_preferred(self):
-    certifi = mock.Mock(where=lambda: '/x/cacert.pem')
-    with mock.patch.dict(sys.modules, {'certifi': certifi}):
-      self.assertEqual(stock.ca_bundle(lambda p: True), '/x/cacert.pem')
-
-  def test_defaults_kept_when_they_have_cas(self):
-    context = FakeContext(cas=140)
-    with mock.patch('ssl.create_default_context', return_value=context):
-      self.assertIs(stock.ssl_context(), context)
-    self.assertEqual(context.loaded, [])
-
-  def test_bundle_loaded_when_defaults_empty(self):
-    context = FakeContext(cas=0)
-    with mock.patch('ssl.create_default_context', return_value=context), \
-         mock.patch.object(stock, 'ca_bundle', return_value='/b.pem'), \
-         self.assertLogs('tankful.factors', 'INFO'):
-      self.assertIs(stock.ssl_context(), context)
-      self.assertIs(stock.ssl_context(), context)
-    self.assertEqual(context.loaded, ['/b.pem'])
-
-  def test_warns_with_no_bundle(self):
-    context = FakeContext(cas=0)
-    with mock.patch('ssl.create_default_context', return_value=context), \
-         mock.patch.object(stock, 'ca_bundle', return_value=None), \
-         self.assertLogs('tankful.factors', 'WARNING'):
-      stock.ssl_context()
-    self.assertEqual(context.loaded, [])
-
-  def test_urlopen_uses_context(self):
-    context = FakeContext(cas=1)
-    with mock.patch.object(stock, '_context', context), \
-         mock.patch('urllib.request.urlopen') as urlopen:
-      stock._urlopen('request', timeout=3)
-    urlopen.assert_called_once_with('request', timeout=3, context=context)
 
 
 class PollerTests(unittest.TestCase):

@@ -1,12 +1,9 @@
-import ssl
-import sys
-import types
 import unittest
 import urllib.parse
-from unittest import mock
 
 from tankful.factors import base
 from tankful.factors import effects
+from tankful.factors import net
 from tankful.factors import registry
 from tankful.factors import weather
 from tankful.factors.base import Reading
@@ -39,7 +36,7 @@ class FakeWeb:
     self.forecast = forecast_reply or forecast(0)
     self.urls = []
 
-  def __call__(self, url, timeout=weather.TIMEOUT):
+  def __call__(self, url, timeout=net.TIMEOUT):
     self.urls.append(url)
     reply = self.location if url.startswith('http://ip-api.com') else \
       self.forecast
@@ -158,6 +155,9 @@ class SourceTests(unittest.TestCase):
     self.assertEqual(weather.WeatherSource.ttl, 900)
     self.assertEqual(weather.WeatherSource.name, 'weather')
 
+  def test_fetches_with_shared_helper(self):
+    self.assertIs(weather.WeatherSource()._fetch_json, net.fetch_json)
+
   def test_looks_up_location_once(self):
     web = FakeWeb(forecast_reply=forecast(61))
     source = weather.WeatherSource(fetch_json=web)
@@ -218,47 +218,6 @@ class SourceTests(unittest.TestCase):
     clock.advance(1)
     poller.poll()
     self.assertEqual(poller.status().reading.value['condition'], 'storm')
-
-
-class FetchJsonTests(unittest.TestCase):
-  """The real fetch_json, with urlopen mocked: still no network."""
-
-  def urlopen(self, body=b'{"ok": 1}'):
-    response = mock.MagicMock()
-    response.__enter__.return_value.read.return_value = body
-    return mock.patch('urllib.request.urlopen', return_value=response)
-
-  def test_https_uses_verifying_context(self):
-    with self.urlopen() as urlopen:
-      self.assertEqual(weather.fetch_json('https://example.test/x'),
-                       {'ok': 1})
-    request = urlopen.call_args[0][0]
-    self.assertEqual(request.get_header('User-agent'), weather.USER_AGENT)
-    context = urlopen.call_args[1]['context']
-    self.assertIsInstance(context, ssl.SSLContext)
-    self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
-    self.assertEqual(urlopen.call_args[1]['timeout'], weather.TIMEOUT)
-
-  def test_http_has_no_context(self):
-    with self.urlopen() as urlopen:
-      weather.fetch_json(weather.LOCATION_URL)
-    self.assertIsNone(urlopen.call_args[1]['context'])
-
-  def test_bad_json_raises(self):
-    with self.urlopen(b'<html>'):
-      with self.assertRaises(ValueError):
-        weather.fetch_json('http://example.test/')
-
-  def test_ssl_context_without_certifi(self):
-    with mock.patch.dict(sys.modules, {'certifi': None}):
-      self.assertIsInstance(weather.ssl_context(), ssl.SSLContext)
-
-  def test_ssl_context_uses_certifi(self):
-    certifi = types.SimpleNamespace(where=lambda: '/certs/cacert.pem')
-    with mock.patch.dict(sys.modules, {'certifi': certifi}), \
-         mock.patch('ssl.create_default_context') as create:
-      weather.ssl_context()
-    create.assert_called_once_with(cafile='/certs/cacert.pem')
 
 
 class MakeSourceTests(unittest.TestCase):
