@@ -302,7 +302,13 @@ WATER_TINT = (0.30, 0.42, 0.45, 1.0)
 # Building
 
 def build_fish(scene):
-  """Every species' fish (tools/species/<name>.py), in the registry's
-  order (tankful.sim.species.NAMES)."""
+  """Every present species' fish (tools/species/<name>.py), in the
+  registry's order (tankful.sim.species.present)."""
+  present = sim_species.present()
   for name in sim_species.NAMES:
-    importlib.import_module('species.' + name).build(scene)
+    if name in present:
+      importlib.import_module('species.' + name).build(scene)
+    else:
+      # Blender's Python has no logging set up, so say it here
+      print('scene_fish: skipping species %s, its modules not all written'
+            % name)

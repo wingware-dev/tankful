@@ -1,7 +1,7 @@
 # Adding a species
 
-Each species lives in two modules of its own, and the registry lists it
-in one line, so species can be added side by side without touching each
+Each species lives in two modules of its own, which the registry lists
+by name, so species can be added side by side without touching each
 other's files:
 
 | File | What it holds |
@@ -11,21 +11,33 @@ other's files:
 | `tankful/sim/species/__init__.py` | the registry, `NAMES`: one line per species |
 
 `<name>` is the same in all three, and is the species' `Species.name`
-(`'neon_tetra'`).  Everything else reads the registry:
+(`'neon_tetra'`).
 
-- the sim: `tankful.sim.species.stock(tank)` stocks every species, in
-  the order of `NAMES` (`tankful/game/main.py`);
+`NAMES` already lists the species planned next: `corydoras`, `guppy`,
+`honey_gourami` and `cherry_shrimp`.  The registry skips a name until
+both its modules exist, logging it once (`species.present()`), so **a
+species task adds only its own two modules and its tests, and doesn't
+edit `NAMES`**.  That keeps parallel tasks out of one shared file, and
+one task's commit from taking in a line for a module another task
+hasn't committed yet.  A species not planned yet gets its line in a
+task of its own, at the end of `NAMES`: the fish already in the tank
+then keep their order, which the tank steps them in and harness runs
+repeat only while it holds.
+
+Everything else reads the registry, and sees only present species:
+
+- the sim: `tankful.sim.species.stock(tank)` stocks every present
+  species, in the order of `NAMES` (`tankful/game/main.py`);
 - the game's fish driver, `tankful/game/fishes.py`, finds each fish's
   bones and pose with `species.of(fish.species)`;
 - the scene builder, `build_fish` in `tools/scene_fish.py`, calls each
-  `tools/species/<name>.py`'s `build(scene)`, in the same order;
-- the launcher's `SCENE_SOURCES` includes both of each species' modules,
-  so changing either rebuilds the scene.
+  present `tools/species/<name>.py`'s `build(scene)`, in the same order;
+- the launcher's `SCENE_SOURCES` includes both of each present species'
+  modules, so changing either rebuilds the scene, and so does adding a
+  species' second module, which makes it present.
 
-So adding a species is: write its two modules, and add its line to
-`NAMES`.  Add it at the end, so the fish already in the tank keep their
-order: the tank steps its fish in that order, and harness runs repeat
-only while it holds.
+A module only half written is not skipped: once both files exist, an
+import error in either fails the build and the tests, as it should.
 
 ## The sim module
 
@@ -51,8 +63,9 @@ only while it holds.
   `{}` (the pleco's mouth works by scaling).
 
 Give each fish a unique object name and its own seed, and test the
-module in `tests/test_<name>.py`; `tests/test_species.py` checks every
-registered species has all of the above.
+module in `tests/test_<name>.py`.  `tests/test_species.py` lets a
+listed species' modules be missing, but checks that every sim module
+that exists has all of the above, and every model module a `build(scene)`.
 
 ## The model module
 
@@ -83,4 +96,6 @@ Add a harness script under `tools/scripts/` that shows the new species,
 and its shot under `docs/shots/`.  With the fixed timestep, the
 existing scripts (`04-school.json`, `05-sucker.json`) give the same
 tank as before as long as the new species stocks after the others; its
-own fish may push into theirs, though, so check the shots.
+own fish may push into theirs, though, so check the shots.  Species
+tasks running side by side change each other's tank as they land, so
+compare against the tank as it stands, not as the task found it.

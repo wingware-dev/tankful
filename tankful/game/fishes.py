@@ -32,7 +32,11 @@ class Fishes:
     self.rigs = []
     self.members = []
     self.school_rigs = []
+    present = set(species.present())
     for f in fish:
+      if f.species.name not in present:
+        # Its modules aren't all written yet: the registry logged it
+        continue
       if f.school is not None:
         rig = objects.get(f.school.name + '.Rig')
         prefix = f.name + ':'

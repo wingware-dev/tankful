@@ -15,18 +15,21 @@ import time
 
 from tankful.sim import species
 
-ROOT =os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BLEND = os.path.join(ROOT, 'build', 'tankful.blend')
 BUILD_SCRIPT = os.path.join(ROOT, 'tools', 'build_scene.py')
 
-def species_sources(names=species.NAMES):
-  """Each species' model builder and sim module (tankful.sim.species):
-  the model takes its size from the sim, and may sit where the sim
-  starts it."""
+
+def species_sources(names=None):
+  """Each present species' model builder and sim module
+  (tankful.sim.species.present): the model takes its size from the sim,
+  and may sit where the sim starts it.  A species whose modules are
+  written later joins the sources then, newer than the scene, so the
+  scene rebuilds."""
   out = []
-  for name in names:
-    out.append(os.path.join(ROOT, 'tools', 'species', name + '.py'))
-    out.append(os.path.join(ROOT, 'tankful', 'sim', 'species', name + '.py'))
+  for name in species.present(names):
+    out.append(species.model_path(name))
+    out.append(species.sim_path(name))
   return tuple(out)
 
 
