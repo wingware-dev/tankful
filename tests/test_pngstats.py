@@ -96,8 +96,22 @@ class PngStatsTests(unittest.TestCase):
     p = self.path('x.png')
     with open(p, 'wb') as f:
       f.write(b'GIF89a')
-    with self.assertRaises(pngstats.PngError):
+    with self.assertRaises(pngstats.PngError) as cm:
       pngstats.read_png(p)
+    self.assertNotIsInstance(cm.exception, pngstats.PngTruncated)
+
+  def test_truncated(self):
+    p = self.path('t.png')
+    write_png(p, 64, 64, lambda x, y: (x * 4, y * 4, 9))
+    with open(p, 'rb') as f:
+      data = f.read()
+    # Empty, mid-signature, mid-chunk header, mid-IDAT, and at a chunk
+    # boundary just before IEND.
+    for size in (0, 5, 20, len(data) // 2, len(data) - 12):
+      with open(p, 'wb') as f:
+        f.write(data[:size])
+      with self.assertRaises(pngstats.PngTruncated, msg=size):
+        pngstats.read_png(p)
 
 
 if __name__ == '__main__':

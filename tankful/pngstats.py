@@ -8,21 +8,32 @@ import struct
 import zlib
 
 _CHANNELS = {0: 1, 2: 3, 4: 2, 6: 4}
+_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 
 
 class PngError(ValueError):
   pass
 
 
+class PngTruncated(PngError):
+  """The file ends early: perhaps it is still being written."""
+
+
 def read_png(path):
   """Return (width, height, channels, rows), rows being bytes per row."""
   with open(path, 'rb') as f:
     data = f.read()
-  if data[:8] != b'\x89PNG\r\n\x1a\n':
+  if data[:8] != _SIGNATURE[:len(data)]:
     raise PngError('%s is not a PNG' % path)
-  pos, idat, header = 8, [], None
+  if len(data) < 8:
+    raise PngTruncated('%s is too short for a PNG' % path)
+  pos, idat, header, ended = 8, [], None, False
   while pos < len(data):
+    if pos + 12 > len(data):
+      break
     length, kind = struct.unpack('>I4s', data[pos:pos + 8])
+    if pos + 12 + length > len(data):
+      break
     body = data[pos + 8:pos + 8 + length]
     pos += 12 + length
     if kind == b'IHDR':
@@ -30,7 +41,10 @@ def read_png(path):
     elif kind == b'IDAT':
       idat.append(body)
     elif kind == b'IEND':
+      ended = True
       break
+  if not ended:
+    raise PngTruncated('%s ends before its IEND chunk' % path)
   if header is None:
     raise PngError('%s has no IHDR' % path)
   width, height, depth, color, _, _, interlace = header

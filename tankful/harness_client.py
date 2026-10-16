@@ -18,6 +18,7 @@ from tankful import pngstats
 
 CONNECT_TIMEOUT = 180.0
 REPLY_TIMEOUT = 60.0
+SHOT_TIMEOUT = 15.0
 
 
 class HarnessError(RuntimeError):
@@ -131,6 +132,21 @@ def git_add(path, root=launcher.ROOT):
   return True
 
 
+def read_shot(path, timeout=None, poll=0.1):
+  """Return pngstats.stats for a screenshot, waiting while it is missing
+  or truncated: the game can reply before a large PNG is fully written."""
+  timeout = SHOT_TIMEOUT if timeout is None else timeout
+  deadline = time.monotonic() + timeout
+  while True:
+    try:
+      return pngstats.stats(path)
+    except (FileNotFoundError, pngstats.PngTruncated) as exc:
+      if time.monotonic() > deadline:
+        raise HarnessError('screenshot %s still incomplete after %gs: %s'
+                           % (path, timeout, exc))
+    time.sleep(poll)
+
+
 def run_script(client, commands, add_shots=True, log=print):
   """Run commands in order; return a list of (command, reply), stopping
   at the first failure."""
@@ -144,7 +160,13 @@ def run_script(client, commands, add_shots=True, log=print):
     note = ''
     if msg['cmd'] == 'screenshot':
       full = os.path.join(launcher.ROOT, msg['path'])
-      summary = pngstats.stats(full)
+      try:
+        summary = read_shot(full)
+      except HarnessError as exc:
+        reply['ok'] = False
+        reply['error'] = str(exc)
+        log('FAILED %s: %s' % (_describe(msg), exc))
+        break
       reply['image'] = summary
       note = ' %(width)dx%(height)d mean %(mean)s max %(max)s' % summary
       if pngstats.is_black(summary):

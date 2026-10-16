@@ -3,10 +3,14 @@ import os
 import shutil
 import socket
 import tempfile
+import threading
 import unittest
+from unittest import mock
 
 from tankful import harness_client
 from tankful import harness_protocol as proto
+from tankful import launcher
+from tests.test_pngstats import write_png
 
 
 class FakeSocket:
@@ -118,6 +122,73 @@ class ScriptTests(unittest.TestCase):
                {'cmd': 'quit'}], log=lines.append)
     self.assertEqual(len(results), 2)
     self.assertTrue(lines[1].startswith('FAILED key'))
+
+
+class ReadShotTests(unittest.TestCase):
+
+  def setUp(self):
+    self.dir = tempfile.mkdtemp()
+    self.addCleanup(shutil.rmtree, self.dir)
+    self.path = os.path.join(self.dir, 'shot.png')
+    full = os.path.join(self.dir, 'full.png')
+    write_png(full, 32, 32, lambda x, y: (x * 8, y * 8, 120))
+    with open(full, 'rb') as f:
+      self.data = f.read()
+
+  def write(self, data):
+    with open(self.path, 'wb') as f:
+      f.write(data)
+
+  def finish_later(self, delay=0.3):
+    timer = threading.Timer(delay, self.write, [self.data])
+    timer.start()
+    self.addCleanup(timer.join)
+
+  def test_waits_for_truncated_file(self):
+    self.write(self.data[:len(self.data) // 2])
+    self.finish_later()
+    self.assertEqual(harness_client.read_shot(self.path, timeout=5)['width'],
+                     32)
+
+  def test_waits_for_missing_file(self):
+    self.finish_later()
+    self.assertEqual(harness_client.read_shot(self.path, timeout=5)['height'],
+                     32)
+
+  def test_gives_up(self):
+    self.write(self.data[:-12])
+    with self.assertRaises(harness_client.HarnessError) as cm:
+      harness_client.read_shot(self.path, timeout=0.2, poll=0.05)
+    self.assertIn('incomplete', str(cm.exception))
+
+  def test_run_script_reads_shot_written_after_reply(self):
+    rel = os.path.relpath(self.path, launcher.ROOT)
+    self.write(self.data[:40])
+    self.finish_later()
+    client = harness_client.Client(FakeSocket(
+      lambda m: [{'id': m['id'], 'ok': True}]))
+    lines = []
+    results = harness_client.run_script(
+      client, [{'cmd': 'screenshot', 'path': rel}, {'cmd': 'quit'}],
+      add_shots=False, log=lines.append)
+    self.assertEqual(len(results), 2)
+    self.assertTrue(results[0][1]['ok'])
+    self.assertEqual(results[0][1]['image']['width'], 32)
+    self.assertTrue(lines[0].startswith('ok screenshot'), lines)
+
+  def test_run_script_fails_incomplete_shot(self):
+    rel = os.path.relpath(self.path, launcher.ROOT)
+    self.write(self.data[:-12])
+    client = harness_client.Client(FakeSocket(
+      lambda m: [{'id': m['id'], 'ok': True}]))
+    lines = []
+    with mock.patch.object(harness_client, 'SHOT_TIMEOUT', 0.2):
+      results = harness_client.run_script(
+        client, [{'cmd': 'screenshot', 'path': rel}, {'cmd': 'quit'}],
+        add_shots=False, log=lines.append)
+    self.assertEqual(len(results), 1)
+    self.assertFalse(results[0][1]['ok'])
+    self.assertTrue(lines[0].startswith('FAILED screenshot'), lines)
 
 
 if __name__ == '__main__':
