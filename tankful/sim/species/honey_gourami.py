@@ -26,7 +26,7 @@ import math
 
 from tankful.sim import vec
 from tankful.sim import swim
-from tankful.sim.fish import MARGIN, MAX_STEP, Fish
+from tankful.sim.fish import MAX_STEP, Fish
 from tankful.sim.species.base import Resident, Species
 
 SPECIES = Species(
@@ -44,6 +44,8 @@ SPECIES = Species(
   beat_base=1.0, beat_per_speed=1.4,
   wave_min=0.08, wave_max=0.35,
   fin_beat=3.0, fin_swing=0.45,
+  # A surface fish: the surface pushes it down only near the top
+  surface_margin=0.06,
 )
 
 FEELERS = ('Feeler.L', 'Feeler.R')
@@ -53,9 +55,6 @@ BONES = ('Head',) + swim.SPINE + FINS
 # The male: honey-gold with a dark throat (tools/species/honey_gourami.py)
 MALES = ('HoneyGourami.0',)
 
-# How much of the surface's push (Fish._steer_clear) a gourami doesn't
-# feel
-SURFACE_EASE = 0.85
 # How far ahead (m) a gourami notices things to probe, and how far to
 # either side of straight ahead (radians)
 PROBE_RANGE = 0.10
@@ -142,20 +141,6 @@ class Gourami(Fish):
   def _target_speed(self, want):
     target, glide = super()._target_speed(want)
     return target * (1.0 - PROBE_SLOW * self.probing), glide
-
-  def _steer_clear(self, want):
-    # A surface fish: give back most of the surface's push, which
-    # Fish._steer_clear gives every fish within MARGIN of the top of its
-    # swim box, so it keeps to the top of its depth band rather than
-    # MARGIN below it.  The swim box still holds it under the surface
-    danger = super()._steer_clear(want)
-    _, _, (_, z1) = self.bounds()
-    look = 0.04 + self.speed * 1.2
-    for z in (self.z, self.z + self.forward()[2] * look):
-      near = (z - (z1 - MARGIN)) / MARGIN
-      if near > 0:
-        want[2] += SURFACE_EASE * min(near, 1.5) ** 2 * 2.0
-    return danger
 
   # Probing
 

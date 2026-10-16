@@ -145,6 +145,33 @@ class FishLimitsTests(unittest.TestCase):
     run(two, 30.0)
     self.assertEqual(one.snapshot(), two.snapshot())
 
+  def surface_push(self, surface_margin, below):
+    """The up/down push _steer_clear gives a still fish level in the
+    middle of its swim box, below meters under its top, with no decor
+    about."""
+    species = ANGELFISH._replace(surface_margin=surface_margin)
+    f = Fish('Probe', species, 1.0, 1, (0.0, 0.0, 0.3), 0.0)
+    (x0, x1), (y0, y1), (z0, z1) = f.bounds()
+    f.x, f.y, f.z = (x0 + x1) / 2, (y0 + y1) / 2, z1 - below
+    f.speed = 0.0
+    # Only the walls: no decor pushes
+    f._obstacles_near = lambda pos, reach: ()
+    want = [0.0, 0.0, 0.0]
+    f._steer_clear(want)
+    return want[2]
+
+  def test_surface_margin(self):
+    self.assertIsNone(ANGELFISH.surface_margin)
+    # By default the surface pushes down within MARGIN of the top
+    self.assertLess(self.surface_push(None, 0.08), 0)
+    self.assertAlmostEqual(self.surface_push(None, 0.08),
+                           self.surface_push(sim_fish.MARGIN, 0.08))
+    # A smaller margin: no push until nearer the top, then less of one
+    self.assertEqual(self.surface_push(0.06, 0.08), 0.0)
+    self.assertLess(self.surface_push(0.06, 0.03), 0)
+    self.assertGreater(self.surface_push(0.06, 0.03),
+                       self.surface_push(None, 0.03))
+
 
 class FishGaitTests(unittest.TestCase):
 

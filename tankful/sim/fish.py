@@ -213,10 +213,15 @@ class Fish:
     ahead = (self.x + fwd[0] * look, self.y + fwd[1] * look,
              self.z + fwd[2] * look)
     danger = 0.0
+    top = self.species.surface_margin
+    if top is None:
+      top = MARGIN
     for axis, (a, b) in enumerate(((x0, x1), (y0, y1), (z0, z1))):
+      # The surface's margin is the species' own
+      hi = top if axis == 2 else MARGIN
       for p in (pos[axis], ahead[axis]):
         near_lo = (a + MARGIN - p) / MARGIN
-        near_hi = (p - (b - MARGIN)) / MARGIN
+        near_hi = (p - (b - hi)) / hi
         for near, sign in ((near_lo, 1.0), (near_hi, -1.0)):
           if near > 0:
             w = min(near, 1.5) ** 2 * 2.0
