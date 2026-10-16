@@ -169,14 +169,37 @@ class SceneAndCommandTests(unittest.TestCase):
     for key in ('TANKFUL_HARNESS_PORT', 'TANKFUL_DEBUG', 'TANKFUL_OFFSCREEN'):
       self.assertNotIn(key, plain)
 
+  def test_player_command_follows_tankful_window(self):
+    with mock.patch.dict(os.environ, {'TANKFUL_WINDOW': '640x360'}):
+      cmd = launcher.player_command(self.UP, 'xvfb', blend='/t.blend')
+      env = launcher.game_env(os.environ, root='/r', offscreen=True)
+    self.assertEqual(cmd, ['/u/blenderplayer', '-w', '640', '360', '/t.blend'])
+    self.assertEqual(env['TANKFUL_OFFSCREEN'], '640x360')
+
+  def test_window_size(self):
+    self.assertEqual(launcher.window_size({}), launcher.WINDOW)
+    self.assertEqual(launcher.window_size({'TANKFUL_WINDOW': '640X360'}),
+                     (640, 360))
+    for bad in ('640', '640x360x2', 'axb', '300x200'):
+      with self.assertRaises(launcher.LaunchError):
+        launcher.window_size({'TANKFUL_WINDOW': bad})
+
   def test_docker_command(self):
-    cmd = launcher.docker_command('/proj', ['--harness', '7'], 7)
+    cmd = launcher.docker_command('/proj', ['--harness', '7'], 7, env={})
     self.assertIn('/proj:/tankful', cmd)
     self.assertIn('127.0.0.1:7:7', cmd)
     self.assertIn('TANKFUL_HARNESS_HOST=0.0.0.0', cmd)
+    self.assertIn('MESA_SHADER_CACHE_DIR=/tankful/build/docker-cache/mesa', cmd)
+    self.assertFalse([a for a in cmd if a.startswith('TANKFUL_WINDOW')])
     i = cmd.index(launcher.DOCKER_IMAGE)
     self.assertEqual(cmd[i + 1:], ['python3', '/tankful/run_tankful.py',
                                    '--backend', 'xvfb', '--harness', '7'])
+
+  def test_docker_command_forwards_tankful_window(self):
+    cmd = launcher.docker_command('/proj', [], env={'TANKFUL_WINDOW': '640x360'})
+    i = cmd.index('TANKFUL_WINDOW=640x360')
+    self.assertEqual(cmd[i - 1], '-e')
+    self.assertLess(i, cmd.index(launcher.DOCKER_IMAGE))
 
   def test_ensure_docker_image_rebuilds_on_dockerfile_change(self):
     digest = launcher.dockerfile_digest()

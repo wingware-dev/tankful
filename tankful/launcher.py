@@ -23,6 +23,8 @@ SCENE_SOURCES = (BUILD_SCRIPT,
                  os.path.join(ROOT, 'tankful', 'sim', 'bubbles.py'),
                  os.path.join(ROOT, 'tankful', 'sim', 'species.py'))
 WINDOW = (1280, 720)
+# The player rejects windows smaller than its usage example's 320x200
+MIN_WINDOW = (320, 200)
 
 # Where and how big -w first makes the offscreen window.  The player
 # rejects negative coordinates and macOS pulls titled windows back onto a
@@ -36,6 +38,10 @@ DOCKER_IMAGE = 'tankful-upbge'
 DOCKER_ROOT = '/tankful'
 # Image label holding dockerfile_digest(), so a changed Dockerfile rebuilds
 DOCKER_LABEL = 'tankful.dockerfile'
+# Mesa's shader cache, kept in the (git-ignored) build/ directory of the
+# mounted project: compiling EEVEE's shaders on llvmpipe under emulation
+# is most of the container's startup time
+DOCKER_SHADER_CACHE = DOCKER_ROOT + '/build/docker-cache/mesa'
 
 BACKENDS = ('window', 'offscreen', 'xvfb', 'docker')
 
@@ -44,6 +50,23 @@ Upbge = collections.namedtuple('Upbge', 'blender player')
 
 class LaunchError(RuntimeError):
   pass
+
+
+def window_size(env=None):
+  """The game window size: $TANKFUL_WINDOW as WIDTHxHEIGHT, else WINDOW."""
+  env = os.environ if env is None else env
+  value = env.get('TANKFUL_WINDOW')
+  if not value:
+    return WINDOW
+  try:
+    w, h = (int(v) for v in value.lower().split('x'))
+  except ValueError:
+    raise LaunchError('TANKFUL_WINDOW=%s: expected WIDTHxHEIGHT, like 640x360'
+                      % value)
+  if w < MIN_WINDOW[0] or h < MIN_WINDOW[1]:
+    raise LaunchError('TANKFUL_WINDOW=%s: the player needs at least %dx%d'
+                      % ((value,) + MIN_WINDOW))
+  return (w, h)
 
 
 def platform_key(platform=None):
@@ -163,12 +186,12 @@ def build_scene(upbge, force=False, output=BLEND):
   return subprocess.call(build_scene_command(upbge, output))
 
 
-def player_command(upbge, backend, blend=BLEND, window=WINDOW, extra=()):
+def player_command(upbge, backend, blend=BLEND, window=None, extra=()):
   """The argv that starts the player for one of BACKENDS (but docker)."""
   if backend == 'offscreen':
     geometry = OFFSCREEN_START_SIZE + OFFSCREEN_POS
   else:
-    geometry = (window[0], window[1])
+    geometry = window or window_size()
   cmd = [upbge.player, '-w'] + [str(v) for v in geometry] + [blend]
   if extra:
     cmd += ['-'] + list(extra)
@@ -176,13 +199,13 @@ def player_command(upbge, backend, blend=BLEND, window=WINDOW, extra=()):
 
 
 def game_env(base, root=ROOT, harness_port=None, harness_host=None,
-             debug=False, offscreen=False, window=WINDOW):
+             debug=False, offscreen=False, window=None):
   env = dict(base)
   env['TANKFUL_ROOT'] = root
   if offscreen:
     # The game moves its own window off the desktop and sizes it
     # (tankful.game.main)
-    env['TANKFUL_OFFSCREEN'] = '%dx%d' % window
+    env['TANKFUL_OFFSCREEN'] = '%dx%d' % (window or window_size(base))
   if harness_port is not None:
     env['TANKFUL_HARNESS_PORT'] = str(harness_port)
   if harness_host:
@@ -199,11 +222,12 @@ def free_display(exists=os.path.exists):
   raise LaunchError('no free X display number')
 
 
-def start_xvfb(window=WINDOW):
+def start_xvfb(window=None):
   """Start Xvfb on a free display; return (process, DISPLAY value)."""
   xvfb = shutil.which('Xvfb')
   if not xvfb:
     raise LaunchError('Xvfb not found (install the xvfb package)')
+  window = window or window_size()
   n = free_display()
   proc = subprocess.Popen([xvfb, ':%d' % n, '-screen', '0',
                            '%dx%dx24' % (window[0], window[1]), '-nolisten',
@@ -242,12 +266,17 @@ def ensure_docker_image(root=ROOT, image=DOCKER_IMAGE):
                           '-t', image, os.path.join(root, 'tools', 'docker')])
 
 
-def docker_command(root, argv, harness_port=None, image=DOCKER_IMAGE):
+def docker_command(root, argv, harness_port=None, image=DOCKER_IMAGE,
+                   env=None):
   """docker run argv that runs run_tankful.py with the xvfb backend inside
   the Linux container, with the project mounted at DOCKER_ROOT."""
+  env = os.environ if env is None else env
   cmd = ['docker', 'run', '--rm', '--platform', 'linux/amd64',
          '-v', '%s:%s' % (root, DOCKER_ROOT), '-w', DOCKER_ROOT,
-         '-e', 'TANKFUL_HARNESS_HOST=0.0.0.0']
+         '-e', 'TANKFUL_HARNESS_HOST=0.0.0.0',
+         '-e', 'MESA_SHADER_CACHE_DIR=' + DOCKER_SHADER_CACHE]
+  if env.get('TANKFUL_WINDOW'):
+    cmd += ['-e', 'TANKFUL_WINDOW=' + env['TANKFUL_WINDOW']]
   if harness_port is not None:
     cmd += ['-p', '127.0.0.1:%d:%d' % (harness_port, harness_port)]
   cmd += [image, 'python3', DOCKER_ROOT + '/run_tankful.py',

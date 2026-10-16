@@ -60,8 +60,19 @@ script behaves the same on every OS.  Screenshots use
   `python tools/fetch_upbge.py --platform linux` first, and builds the
   image on first use and again whenever the Dockerfile changes (the
   image carries the Dockerfile's sha256 as its `tankful.dockerfile`
-  label).
+  label).  Mesa's shader cache is kept in `build/docker-cache/mesa/`,
+  so only the first run after a shader change compiles EEVEE's shaders
+  on llvmpipe (about a minute); delete that directory to start cold.
 - **`window`**: an ordinary window, for use by hand.
+
+`TANKFUL_WINDOW=WIDTHxHEIGHT` (at least 320x200) changes the window
+size from 1280x720 for every backend, and the docker backend passes it
+into the container.  Screenshots come out at that size, and `click`
+coordinates are pixels of that window, so scripts written for 1280x720
+click elsewhere.  For docker runs, `TANKFUL_WINDOW=640x360` renders
+about 2.7 times faster:
+
+    TANKFUL_WINDOW=640x360 python tools/harness.py SCRIPT.json --backend docker
 
 ## Results on this Mac (2026-10-16)
 
@@ -73,7 +84,7 @@ checked by eye as well as by the non-black test.
 |---|---|
 | `offscreen` (macOS) | **Works.**  1280x720 screenshots of the tank (mean brightness 87, `docs/shots/01-skeleton.png`).  The game keeps running at 60 fps with its window at (-30000, -30000), which `state` reports as `window_frames`. |
 | `xvfb` (macOS) | Not applicable: the macOS player draws through Cocoa, not X11, so XQuartz's Xvfb cannot host it. |
-| `docker` (linux/amd64 under Rosetta) | **Works, slowly.**  1280x720 screenshots of the tank and fish (mean brightness 90), but at about 0.7 fps, so a 60-frame wait takes over a minute and `tools/scripts/01-skeleton.json` about 2 m 40 s including startup.  Fine for checking what a scene looks like; not for anything timing-sensitive. |
+| `docker` (linux/amd64 under Rosetta) | **Works, slowly.**  1280x720 screenshots of the tank and fish (mean brightness 90).  With a warm shader cache, startup takes about 8 s and the game runs at 3.8 fps (10.4 fps at `TANKFUL_WINDOW=640x360`), so `tools/scripts/01-skeleton.json` takes 31 s (15 s at 640x360).  A cold shader cache adds about a minute to startup.  Fine for checking what a scene looks like; not for anything timing-sensitive.  llvmpipe already uses all 12 of the Docker VM's CPUs: `LP_NUM_THREADS=16` is no faster, and 4 threads halve the frame rate. |
 | `docker` (linux/amd64 under QEMU) | **Works, much more slowly** than under Rosetta: the scene took minutes to come up.  Not wired into the launcher; see below for how it was run. |
 | `xvfb` (Linux host) | Not tried: the only Linux here is the container above. |
 | `offscreen` (Windows) | Not tried: no Windows machine. |
