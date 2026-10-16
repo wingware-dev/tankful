@@ -1,8 +1,11 @@
 import datetime
 import io
 import json
+import os
+import sys
 import unittest
 import urllib.error
+from unittest import mock
 
 from tankful.factors import base
 from tankful.factors import effects
@@ -20,6 +23,22 @@ FRIDAY_10AM = utc(2026, 10, 16, 14, 0)
 FRIDAY_3_58PM = utc(2026, 10, 16, 19, 58)
 FRIDAY_5PM = utc(2026, 10, 16, 21, 0)
 MONDAY_930AM = utc(2026, 10, 19, 13, 30)
+
+
+LIVE_FIXTURE = os.path.join(os.path.dirname(__file__), 'fixtures',
+                            'yahoo_chart_gspc.json')
+LIVE_URL = ('https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC'
+            '?range=2d&interval=1d')
+
+
+def live_bytes():
+  """A real chart reply for LIVE_URL (re-indented, data unchanged)."""
+  with open(LIVE_FIXTURE, 'rb') as f:
+    return f.read()
+
+
+def live():
+  return json.loads(live_bytes())
 
 
 def chart(price=5050.0, previous=5000.0, closes=(5000.0, 5050.0),
@@ -53,6 +72,28 @@ class FakeOpener:
     if not isinstance(body, bytes):
       body = json.dumps(body).encode('utf-8')
     return io.BytesIO(body)
+
+
+class LiveResponseTests(unittest.TestCase):
+  """A real reply, fetched from LIVE_URL after the close on 2026-10-16."""
+
+  def test_parses(self):
+    self.assertAlmostEqual(stock.parse_change(live()), -1.093)
+
+  def test_without_yahoo_percent_uses_closes(self):
+    # The day before's close, from the closes: chartPreviousClose
+    # (7718.94) is the close before the two-day range, and would give
+    # about -0.77%
+    data = live()
+    del data['chart']['result'][0]['meta']['regularMarketChangePercent']
+    self.assertAlmostEqual(stock.parse_change(data),
+                           (7659.44 / 7744.06005859375 - 1) * 100)
+    self.assertAlmostEqual(stock.parse_change(data), -1.093, places=3)
+
+  def test_effects(self):
+    reading = base.Reading(stock.parse_change(live()), '')
+    self.assertAlmostEqual(stock.effects_for(reading).depth_shift,
+                           -1.093 / stock.FULL_SCALE)
 
 
 class ParseChangeTests(unittest.TestCase):
@@ -204,14 +245,16 @@ class SourceTests(unittest.TestCase):
                          '^GSPC')
 
   def test_fetch(self):
-    opener = FakeOpener(chart(price=5100.0))
-    source = stock.StockSource(opener=opener, clock=lambda: FRIDAY_10AM)
+    opener = FakeOpener(live_bytes())
+    source = stock.StockSource(opener=opener, clock=lambda: FRIDAY_5PM)
     reading = source.fetch()
-    self.assertAlmostEqual(reading.value, 2.0)
-    self.assertEqual(reading.label, 'S&P 500 +2.00%')
+    self.assertAlmostEqual(reading.value, -1.093)
+    self.assertEqual(reading.label, 'S&P 500 -1.09%')
     request = opener.requests[0]
-    self.assertIn('/chart/%5EGSPC?', request.full_url)
-    self.assertIn('Mozilla', request.get_header('User-agent'))
+    self.assertEqual(request.full_url, LIVE_URL)
+    # Yahoo answers 429 to a spoofed browser User-Agent
+    self.assertEqual(request.get_header('User-agent'),
+                     'tankful/0.1 (+desktop aquarium)')
 
   def test_label_for_other_symbol(self):
     source = stock.StockSource('^IXIC',
@@ -238,6 +281,71 @@ class SourceTests(unittest.TestCase):
     self.assertEqual(source.ttl, MONDAY_930AM - FRIDAY_5PM)
 
 
+class FakeContext:
+
+  def __init__(self, cas):
+    self.cas = cas
+    self.loaded = []
+
+  def cert_store_stats(self):
+    return {'crl': 0, 'x509': self.cas, 'x509_ca': self.cas}
+
+  def load_verify_locations(self, cafile=None):
+    self.loaded.append(cafile)
+
+
+class SslTests(unittest.TestCase):
+
+  def setUp(self):
+    patcher = mock.patch.object(stock, '_context', None)
+    patcher.start()
+    self.addCleanup(patcher.stop)
+    # Without certifi, as in python.org's Python
+    patcher = mock.patch.dict(sys.modules, {'certifi': None})
+    patcher.start()
+    self.addCleanup(patcher.stop)
+
+  def test_bundle_is_first_that_exists(self):
+    self.assertEqual(stock.ca_bundle(lambda p: p.startswith('/etc/pki')),
+                     '/etc/pki/tls/certs/ca-bundle.crt')
+    self.assertIsNone(stock.ca_bundle(lambda p: False))
+
+  def test_certifi_preferred(self):
+    certifi = mock.Mock(where=lambda: '/x/cacert.pem')
+    with mock.patch.dict(sys.modules, {'certifi': certifi}):
+      self.assertEqual(stock.ca_bundle(lambda p: True), '/x/cacert.pem')
+
+  def test_defaults_kept_when_they_have_cas(self):
+    context = FakeContext(cas=140)
+    with mock.patch('ssl.create_default_context', return_value=context):
+      self.assertIs(stock.ssl_context(), context)
+    self.assertEqual(context.loaded, [])
+
+  def test_bundle_loaded_when_defaults_empty(self):
+    context = FakeContext(cas=0)
+    with mock.patch('ssl.create_default_context', return_value=context), \
+         mock.patch.object(stock, 'ca_bundle', return_value='/b.pem'), \
+         self.assertLogs('tankful.factors', 'INFO'):
+      self.assertIs(stock.ssl_context(), context)
+      self.assertIs(stock.ssl_context(), context)
+    self.assertEqual(context.loaded, ['/b.pem'])
+
+  def test_warns_with_no_bundle(self):
+    context = FakeContext(cas=0)
+    with mock.patch('ssl.create_default_context', return_value=context), \
+         mock.patch.object(stock, 'ca_bundle', return_value=None), \
+         self.assertLogs('tankful.factors', 'WARNING'):
+      stock.ssl_context()
+    self.assertEqual(context.loaded, [])
+
+  def test_urlopen_uses_context(self):
+    context = FakeContext(cas=1)
+    with mock.patch.object(stock, '_context', context), \
+         mock.patch('urllib.request.urlopen') as urlopen:
+      stock._urlopen('request', timeout=3)
+    urlopen.assert_called_once_with('request', timeout=3, context=context)
+
+
 class PollerTests(unittest.TestCase):
 
   def poller(self, now, *bodies):
@@ -260,7 +368,7 @@ class PollerTests(unittest.TestCase):
     self.assertEqual(poller.status().label, 'S&P 500 -1.00%')
 
   def test_cached_until_open_when_closed(self):
-    poller, clock, opener = self.poller(FRIDAY_5PM, chart())
+    poller, clock, opener = self.poller(FRIDAY_5PM, live_bytes())
     self.assertEqual(poller.poll(), MONDAY_930AM - FRIDAY_5PM)
     clock.now = utc(2026, 10, 18, 12, 0)   # Sunday
     self.assertGreater(poller.poll(), 0)
