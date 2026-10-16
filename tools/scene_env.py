@@ -10,7 +10,9 @@ shader reads its pattern through the CausticProjection node group, which
 projects a caustic pattern down from the CausticProjector empty above the
 tank.  The game moves that empty each frame (tankful.game.scenery), which
 moves the caustics on the sand, rocks and plants, the shimmer on the
-water surface and the flicker of the god rays together.
+water surface and the flicker of the god rays together.  The fish bodies
+read the same pattern through FISH_CAUSTIC, which follows the projector
+through their object color (caustic_group).
 """
 
 import math
@@ -28,6 +30,12 @@ PROJECTOR = 'CausticProjector'
 # How fast W, the caustic pattern's time axis, runs per unit the projector
 # sinks (the game sinks it by CAUSTIC_SPEED per second)
 CAUSTIC_W = 0.8
+# The caustic group the fish bodies read: it follows the projector
+# through their object color (caustic_group)
+FISH_CAUSTIC = 'CausticProjection.Fish'
+# Added to the projector's drift in that color, to keep it positive
+# (tankful.game.scenery.CAUSTIC_BIAS)
+CAUSTIC_BIAS = 1.0
 
 
 def build_environment(scene, tank, mats):
@@ -36,6 +44,7 @@ def build_environment(scene, tank, mats):
   projector.location = (0, 0, env.TANK_H + 0.2)
   scene.collection.objects.link(projector)
   caustic = caustic_group(projector)
+  caustic_group(projector, FISH_CAUSTIC, 'object_color')
 
   build_back_panel(scene, tank)
   build_sand(scene, tank, caustic)
@@ -144,15 +153,23 @@ def new_material(name, blended=False):
   return mat, Tree(mat.node_tree), nodes['Material Output']
 
 
-def caustic_group(projector):
+def caustic_group(projector, name='CausticProjection', follow='projector'):
   """A node group whose Caustic output is the moving caustic light.
 
   The pattern is two layers of Voronoi cell edges, wobbled by noise, in
   the projector's object space: x and y across the tank, and its z as the
   4D Voronoi's W, so sinking the projector evolves the pattern.  Light
   falls from above, so it fades on surfaces that face away from it.
+
+  follow 'object_color' makes the group the fish bodies use
+  (FISH_CAUSTIC): the same pattern, but with the projector's place read
+  from each object's color, which the game sets as the projector moves
+  (tankful.game.scenery, CAUSTIC_BIAS), instead of from the projector.
+  Every object whose material reads a moving object's space is redrawn
+  at a cost each frame: about 1 ms for each fish body (docs/harness.md,
+  "Frame budget").
   """
-  group = bpy.data.node_groups.new('CausticProjection', 'ShaderNodeTree')
+  group = bpy.data.node_groups.new(name, 'ShaderNodeTree')
   group.interface.new_socket('Caustic', in_out='OUTPUT',
                              socket_type='NodeSocketFloat')
   # The pattern without the fade, for the water surface seen from below
@@ -160,9 +177,25 @@ def caustic_group(projector):
                              socket_type='NodeSocketFloat')
   t = Tree(group)
   out = t.add('NodeGroupOutput')
-  coords = t.add('ShaderNodeTexCoord', {'object': projector})
+  if follow == 'projector':
+    coords = t.add('ShaderNodeTexCoord', {'object': projector}).outputs['Object']
+  else:
+    # The color is the projector's drift in x and y, each plus CAUSTIC_BIAS,
+    # and how far it has sunk: never negative, as the color cannot be
+    info = t.add('ShaderNodeObjectInfo')
+    rgb = t.add('ShaderNodeSeparateColor')
+    t.link(info.outputs['Color'], rgb.inputs[0])
+    home = projector.location
+    place = t.add('ShaderNodeCombineXYZ',
+                  X=t.math('ADD', rgb.outputs['Red'], home.x - CAUSTIC_BIAS),
+                  Y=t.math('ADD', rgb.outputs['Green'], home.y - CAUSTIC_BIAS),
+                  Z=t.math('SUBTRACT', home.z, rgb.outputs['Blue']))
+    rel = t.add('ShaderNodeVectorMath', {'operation': 'SUBTRACT'})
+    t.link(t.add('ShaderNodeNewGeometry').outputs['Position'], rel.inputs[0])
+    t.link(place.outputs[0], rel.inputs[1])
+    coords = rel.outputs[0]
   xyz = t.add('ShaderNodeSeparateXYZ')
-  t.link(coords.outputs['Object'], xyz.inputs[0])
+  t.link(coords, xyz.inputs[0])
   w = t.math('MULTIPLY', xyz.outputs['Z'], CAUSTIC_W)
   flat = t.add('ShaderNodeCombineXYZ', X=xyz.outputs['X'], Y=xyz.outputs['Y'])
   warp = t.add('ShaderNodeTexNoise', {'noise_dimensions': '4D'},

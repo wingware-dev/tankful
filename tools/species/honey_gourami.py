@@ -371,7 +371,7 @@ def materials(prefix, colors, caustic):
 
 def build(scene, caustic=None):
   if caustic is None:
-    caustic = bpy.data.node_groups['CausticProjection']
+    caustic = bpy.data.node_groups[scene_env.FISH_CAUSTIC]
   mats = {'male': materials('HoneyGouramiMale', MALE, caustic),
           'female': materials('HoneyGouramiFemale', FEMALE, caustic)}
   for res in sim_gourami.residents():

@@ -321,7 +321,7 @@ def fin_material(name, alpha, clear, ray_alpha=0.12, opaque=False):
 
 def build(scene, caustic=None):
   if caustic is None:
-    caustic = bpy.data.node_groups['CausticProjection']
+    caustic = bpy.data.node_groups[scene_env.FISH_CAUSTIC]
   mats = {
     'body': body_material(caustic),
     'eye': scene_fish.eye_material('AngelfishEye', ANGEL_EYE),

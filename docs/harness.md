@@ -233,7 +233,9 @@ neither was tried.
   clear fins with no detail, the angelfish's pectorals and the tetras'
   fins, stay blended.
 - The caustic projection on the fins cost about 3 fps for the two
-  angelfish (a moving pattern on moving sheets), so fins have none.
+  angelfish, so fins have none.  That was most likely the cost of
+  reading the moving projector's space, not of the moving pattern (see
+  "Frame budget").
 - A bone's scale animates in the player (`channel.scale`), as its
   rotation does: the pleco's sucker disc and jaws work that way
   (`tankful.sim.species.pleco.scales`).
@@ -264,13 +266,55 @@ slower for these last two rows than for the earlier ones, and single
 readings on both dipped as low as 30-44 fps; repeat a run before
 trusting one low reading.
 
+With all seven species in (35 fish), the tank fell to 37-42 fps.  On a
+quiet machine, with each species taken out in turn (a project copy
+without its `tools/species/<name>.py`), two runs of three readings each:
+
+| Tank (2026-10-16, all seven species) | fps | Logic / Depsgraph / Rasterizer (ms) |
+|---|---|---|
+| No fish at all | 52-57 | 0.4 / 1.7 / 10.3 |
+| The step 5 tank again | 54-55 | 2.0 / 2.6 / 13.3 |
+| Every species | 37-42 | 3.7 / 3.5 / 17.4 |
+| Without the angelfish (2) | 45-48 | 3.4 / 3.1 / 14.6 |
+| Without the neon tetras (15) | 45-48 | 1.7 / 2.9 / 16.6 |
+| Without the honey gouramis (2) | 44-49 | 3.3 / 3.1 / 14.6 |
+| Without the corydoras (5) | 42-44 | 3.5 / 3.1 / 16.4 |
+| Without the guppies (6) | 42-43 | 3.0 / 3.3 / 16.9 |
+| Without the cherry shrimp (5) | 41-43 | 3.2 / 3.3 / 16.9 |
+| Without the pleco | 40-41 | 3.6 / 3.3 / 17.4 |
+| Every species, fish bodies off the projector (below) | 47-51 | 3.7 / 3.2 / 13.0 |
+| For comparison: every species, the projector held still | 54-59 | 3.8 / 3.4 / 3.7 |
+
+So the angelfish and the gouramis cost the most: about 2.5 ms of
+`Rasterizer` per pair, all of it from the caustic projection on their
+bodies (with it taken off, the full tank ran 48-51 fps; making the
+gouramis' pectorals opaque, or giving both gouramis one set of
+materials, changed nothing).  The cost is not the pattern's shading:
+3D Voronoi and noise instead of 4D made no difference.  It is that their
+materials read the space of the CausticProjector, which the game moves
+every frame: an object whose material reads a moving object's space is
+redrawn at a cost each frame, about 1 ms for each fish body, and the
+scenery's caustics (sand, rocks, plants, water and god rays), which read
+it the same way, cost about 13 ms of the frame between them (the last
+row).  The fish bodies now read the projector's place from their object
+color instead (`FISH_CAUSTIC`, `caustic_group` in `tools/scene_env.py`),
+which `tankful.game.scenery` sets on them as it moves the projector:
+the same pattern, rendered side by side to within 1/255, at no
+measurable cost.  The tetras' 2 ms is in `Logic`, the sim's step and
+the game's posing of the fish, which grew from about 2 ms at step 5 to
+3.7 ms with all 35 fish.  The pleco, the corydoras,
+the guppies and the shrimp cost 0-2 fps each, near the readings' spread.
+
 So for more fish:
 
 - Small fish that come in numbers go in one object per group, as the
   school does.  A fish with its own rig costs about 0.4 fps.
 - Small fish get a plain material: no caustic projection and no thin
   film (`tools/species/neon_tetra.py`).
+- A fish with caustics on its body reads them through `FISH_CAUSTIC`,
+  never the scenery's `CausticProjection` group, and no fish material
+  reads another object's space (a Texture Coordinate node's Object).
 - No fish casts a shadow.
-- The sim's step for 17 fish takes about 1 ms (`Logic`); it checks the
-  decor only near each fish, and school members' bodies only against
-  near neighbors.
+- The sim's step for 17 fish takes about 1 ms (`Logic`), and for all 35
+  about 3.7 ms; it checks the decor only near each fish, and school
+  members' bodies only against near neighbors.

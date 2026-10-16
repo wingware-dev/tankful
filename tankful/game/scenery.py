@@ -5,7 +5,9 @@ named after tankful.sim.environment's layout:
 
 - CausticProjector: an empty whose object space every caustic, shimmer
   and god-ray shader reads; sinking it runs the pattern's time axis and
-  drifting it moves the pattern across the tank.
+  drifting it moves the pattern across the tank.  The fish bodies read
+  where it is from their object color instead (FISH_CAUSTIC), which is
+  set as it moves.
 - <plant>.Rig: an armature per plant with a chain of bones L<leaf>.<bone>
   per leaf, bent by tankful.sim.sway.
 - Bubble.NN: one object per slot of the tankful.sim.bubbles pool, moved,
@@ -27,6 +29,11 @@ PROJECTOR = 'CausticProjector'
 # tools/build_scene.py), which smears shading that changes quickly: much
 # faster than this and the caustics wash out to a flat glow
 CAUSTIC_SPEED = 0.1
+# The caustic group of the objects that read the projector's place from
+# their color, and what is added to its drift there to keep it positive
+# (tools/scene_env.py, caustic_group)
+FISH_CAUSTIC = 'CausticProjection.Fish'
+CAUSTIC_BIAS = 1.0
 
 
 class Scenery:
@@ -38,6 +45,8 @@ class Scenery:
       log.warning('no %s in the scene: caustics stay still', PROJECTOR)
     self._projector_home = (list(self.projector.worldPosition)
                             if self.projector is not None else None)
+    self.caustic_followers = [obj for obj in objects
+                              if reads_group(obj, FISH_CAUSTIC)]
     self.plants = []
     for plant in env.plants():
       rig = objects.get(plant.name + '.Rig')
@@ -71,10 +80,13 @@ class Scenery:
       return
     x, y, z = self._projector_home
     # Sinking runs the pattern's time; a slow drift slides it along
-    self.projector.worldPosition = (
-      x + 0.02 * math.sin(0.05 * t) + 0.003 * t,
-      y + 0.015 * math.cos(0.04 * t),
-      z - CAUSTIC_SPEED * t)
+    dx = 0.02 * math.sin(0.05 * t) + 0.003 * t
+    dy = 0.015 * math.cos(0.04 * t)
+    sunk = CAUSTIC_SPEED * t
+    self.projector.worldPosition = (x + dx, y + dy, z - sunk)
+    color = (dx + CAUSTIC_BIAS, dy + CAUSTIC_BIAS, sunk, 1.0)
+    for obj in self.caustic_followers:
+      obj.color = color
 
   def _sway(self, t):
     for plant, rig, chains in self.plants:
@@ -105,6 +117,24 @@ class Scenery:
     return {
       'bubbles': self.pool.snapshot(),
       'plants': len(self.plants),
+      'caustic_followers': len(self.caustic_followers),
       'projector': [round(v, 3) for v in self.projector.worldPosition]
       if self.projector is not None else None,
     }
+
+
+def reads_group(obj, group_name):
+  """Whether a material of obj (a KX_GameObject) uses the node group
+  group_name directly in its node tree."""
+  blender_obj = getattr(obj, 'blenderObject', None)
+  if blender_obj is None:
+    return False
+  for slot in blender_obj.material_slots:
+    tree = slot.material.node_tree if slot.material else None
+    if tree is None:
+      continue
+    for node in tree.nodes:
+      if (node.bl_idname == 'ShaderNodeGroup' and node.node_tree is not None
+          and node.node_tree.name == group_name):
+        return True
+  return False
