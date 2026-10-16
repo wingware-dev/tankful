@@ -9,7 +9,8 @@ its sources.  Run directly with the venv's Python (as Wing's build-scene
 entry point does), it finds UPBGE and re-runs itself under Blender.
 
 Coordinates match tankful.sim.tank.Tank: meters, origin at the center of
-the tank floor, x to the right, y toward the viewer and z up.
+the tank floor, x to the viewer's right, y away from the viewer (the
+camera is at -y, looking along +y) and z up.
 """
 
 import math
@@ -19,10 +20,15 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_OUTPUT = os.path.join(ROOT, 'build', 'tankful.blend')
 
-TANK_W, TANK_D, TANK_H = 1.0, 0.4, 0.5
-GLASS = 0.006
+# The scene reads its layout from the sim, and scene_env sits beside us
+for _path in (ROOT, os.path.dirname(os.path.abspath(__file__))):
+  if _path not in sys.path:
+    sys.path.insert(0, _path)
+
+from tankful.sim.environment import (  # noqa: E402
+  TANK_W, TANK_D, TANK_H, GLASS, WATER_LEVEL)
+
 TRIM = 0.012
-WATER_LEVEL = TANK_H - 0.04
 WINDOW = (1280, 720)
 
 # The game's entry: run every frame by an Always sensor.  TANKFUL_ROOT is
@@ -57,7 +63,7 @@ def build(output):
   mats = {
     'glass': material('Glass', (0.85, 0.95, 0.95, 1.0), alpha=0.12,
                       roughness=0.02, specular=0.9),
-    'water': material('Water', (0.15, 0.45, 0.55, 1.0), alpha=0.22,
+    'water': material('Water', (0.08, 0.32, 0.36, 1.0), alpha=0.07,
                       roughness=0.1),
     'trim': material('Trim', (0.02, 0.02, 0.02, 1.0), roughness=0.4),
     'stand': material('Stand', (0.09, 0.055, 0.035, 1.0), roughness=0.6),
@@ -66,14 +72,16 @@ def build(output):
 
   tank = bpy.data.objects.new('Tank', None)
   scene.collection.objects.link(tank)
+  import scene_env
+  scene_env.build_environment(scene, tank, mats)
   build_glass(scene, tank, mats)
   build_trim(scene, tank, mats['trim'])
   box(scene, 'Water', (0, 0, WATER_LEVEL / 2 + GLASS / 2),
       (TANK_W - 2 * GLASS - 0.002, TANK_D - 2 * GLASS - 0.002,
-       WATER_LEVEL - GLASS), mats['water'], parent=tank)
+       WATER_LEVEL - GLASS), mats['water'], parent=tank, shadow=False)
   box(scene, 'Stand', (0, 0, -0.04), (TANK_W + 0.3, TANK_D + 0.2, 0.08),
       mats['stand'])
-  box(scene, 'BackWall', (0, -TANK_D / 2 - 0.35, 0.6), (6.0, 0.02, 3.0),
+  box(scene, 'BackWall', (0, TANK_D / 2 + 0.35, 0.6), (6.0, 0.02, 3.0),
       mats['wall'])
 
   setup_camera(scene)
@@ -96,8 +104,15 @@ def setup_render(scene):
   gs.exit_key = 'ESC'
   scene.render.resolution_x, scene.render.resolution_y = WINDOW
   ee = scene.eevee
+  # The player accumulates samples over frames (TAA), which is what makes
+  # soft shadows clean: two shadow rays and eight steps per frame, plus the
+  # light's filter (setup_light), converge without grain and hold 60 fps.
+  # One ray leaves the shadows grainy; four halve the frame rate.  The
+  # same accumulation smears shading that changes fast, which is why the
+  # caustics evolve slowly (tankful/game/scenery.py)
   for attr, value in (('taa_render_samples', 16), ('taa_samples', 8),
-                      ('use_shadows', True)):
+                      ('use_taa_reprojection', True), ('use_shadows', True),
+                      ('shadow_ray_count', 2), ('shadow_step_count', 8)):
     if hasattr(ee, attr):
       setattr(ee, attr, value)
 
@@ -134,7 +149,7 @@ def material(name, color, alpha=1.0, roughness=0.5, specular=0.5):
   return mat
 
 
-def box(scene, name, center, size, mat, parent=None):
+def box(scene, name, center, size, mat, parent=None, shadow=True):
   import bpy
   import bmesh
   mesh = bpy.data.meshes.new(name)
@@ -147,6 +162,7 @@ def box(scene, name, center, size, mat, parent=None):
   obj = bpy.data.objects.new(name, mesh)
   obj.location = center
   obj.game.physics_type = 'NO_COLLISION'
+  obj.visible_shadow = shadow
   scene.collection.objects.link(obj)
   if parent is not None:
     obj.parent = parent
@@ -156,14 +172,16 @@ def box(scene, name, center, size, mat, parent=None):
 def build_glass(scene, tank, mats):
   w, d, h, g = TANK_W, TANK_D, TANK_H, GLASS
   panes = {
-    'GlassFront': ((0, d / 2 - g / 2, h / 2), (w, g, h)),
-    'GlassBack': ((0, -d / 2 + g / 2, h / 2), (w, g, h)),
+    'GlassFront': ((0, -d / 2 + g / 2, h / 2), (w, g, h)),
+    'GlassBack': ((0, d / 2 - g / 2, h / 2), (w, g, h)),
     'GlassLeft': ((-w / 2 + g / 2, 0, h / 2), (g, d - 2 * g, h)),
     'GlassRight': ((w / 2 - g / 2, 0, h / 2), (g, d - 2 * g, h)),
     'GlassBottom': ((0, 0, g / 2), (w - 2 * g, d - 2 * g, g)),
   }
   for name, (center, size) in panes.items():
-    box(scene, name, center, size, mats['glass'], parent=tank)
+    # The front pane, the one the viewer looks through, catches sheens
+    mat = mats['glass_front'] if name == 'GlassFront' else mats['glass']
+    box(scene, name, center, size, mat, parent=tank, shadow=False)
 
 
 def build_trim(scene, tank, mat):
@@ -186,9 +204,10 @@ def setup_camera(scene):
   cam_data.clip_start = 0.05
   cam_data.clip_end = 50
   cam = bpy.data.objects.new('Camera', cam_data)
-  cam.location = (0, TANK_D / 2 + 1.25, TANK_H * 0.55)
-  # Looking down -y at the front glass, tilted down slightly
-  cam.rotation_euler = (math.radians(87), 0, math.radians(180))
+  cam.location = (0, -TANK_D / 2 - 1.25, TANK_H * 0.55)
+  # Looking along +y at the front glass, tilted down slightly, so +x is
+  # to the right of the screen
+  cam.rotation_euler = (math.radians(87), 0, 0)
   scene.collection.objects.link(cam)
   scene.camera = cam
   # The 0.50 player renders through the saved 3D viewport (as its
@@ -207,9 +226,10 @@ def setup_light(scene):
   data.size, data.size_y = TANK_W * 0.9, TANK_D * 0.6
   data.energy = 20
   data.color = (1.0, 0.97, 0.9)
-  # Its soft shadow leaves the player's frames grainy, and nothing in the
-  # empty tank needs one yet
-  data.use_shadow = False
+  data.use_shadow = True
+  # Blurs the shadow map lookups, which hides the remaining noise of the
+  # soft shadow's few rays (see setup_render)
+  data.shadow_filter_radius = 4.0
   light = bpy.data.objects.new('TankLight', data)
   light.location = (0, 0, TANK_H + 0.35)
   scene.collection.objects.link(light)

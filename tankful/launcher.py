@@ -15,7 +15,10 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BLEND = os.path.join(ROOT, 'build', 'tankful.blend')
 BUILD_SCRIPT = os.path.join(ROOT, 'tools', 'build_scene.py')
-SCENE_SOURCES = (BUILD_SCRIPT,)
+SCENE_SOURCES = (BUILD_SCRIPT,
+                 os.path.join(ROOT, 'tools', 'scene_env.py'),
+                 os.path.join(ROOT, 'tankful', 'sim', 'environment.py'),
+                 os.path.join(ROOT, 'tankful', 'sim', 'bubbles.py'))
 WINDOW = (1280, 720)
 
 # Where and how big -w first makes the offscreen window.  The player

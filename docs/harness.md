@@ -6,11 +6,14 @@ clicks, key presses, waits, screenshots and state dumps.  It is how the
 game is checked the way a user sees it, without showing a window on the
 user's screen or touching their mouse and keyboard.
 
-    python tools/harness.py tools/scripts/01-skeleton.json
+    python tools/harness.py tools/scripts/02-environment.json
     python tools/harness.py SCRIPT.json --backend docker --log build/game.log
 
 It exits 0 when every command succeeded.  Each screenshot is checked for
-being non-black, and those under `docs/shots/` are `git add`ed.
+being non-black, and those under `docs/shots/` are `git add`ed.  The
+shots there record each step as it was built, so a script for an earlier
+step (such as `01-skeleton.json`) now saves under `build/shots/`
+instead, and the committed shot keeps showing that step.
 
 ## Scripts and commands
 
@@ -94,5 +97,25 @@ read the window list.
   ("window size too small").
 - The player ignores SIGTERM, so `run_tankful.py` falls back to SIGKILL
   after 5 s.
-- The area light's soft shadow left the player's frames grainy, so the
-  skeleton scene has it off for now.
+- The player smooths its frames by accumulating them over time with
+  reprojection (EEVEE's `use_taa_reprojection`), and that is what makes
+  soft shadows clean.  The area light's soft shadow, with the default
+  single shadow ray, comes out grainy; `shadow_ray_count` 2,
+  `shadow_step_count` 8 and the light's `shadow_filter_radius` 4 come
+  out clean at 60 fps (`build_scene.py`, `setup_render` and
+  `setup_light`).  Four rays are clean too, but halve the frame rate.
+  Turning reprojection off leaves every frame a single, grainy sample;
+  `taa_samples` makes no visible difference in the player.
+- The same accumulation keeps much of past frames, and only moving
+  geometry tells it where things went.  Shading that changes on a still
+  surface smears, so the caustics change slowly
+  (`tankful/game/scenery.py`, `CAUSTIC_SPEED`).  Texture detail finer
+  than a pixel makes this far worse: the history is clamped to each
+  pixel's neighborhood, and sub-pixel speckle widens that range until
+  the caustics wash out completely.  Keep textures under moving light
+  coarse.  Small, fast objects such as the bubbles fade too, so they are
+  bright and fairly opaque.
+- Setting a shader node's value through `bpy` each frame works in the
+  player, but dropped the frame rate from 60 to 45 in one test.  The scenery
+  animates the light by moving an empty instead (the caustic
+  projector), which costs nothing.

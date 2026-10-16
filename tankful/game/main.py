@@ -11,6 +11,7 @@ import sys
 import time
 
 from tankful.game import input as game_input
+from tankful.game.scenery import Scenery
 from tankful.sim.tank import Tank
 
 log = logging.getLogger('tankful')
@@ -42,6 +43,7 @@ class App:
       if self.offscreen is not None:
         self.offscreen.hide_offscreen(size)
     self.tank = Tank()
+    self.scenery = Scenery(bge.logic.getCurrentScene())
     self.input = game_input.InputState()
     self.channel = None
     self._last = time.monotonic()
@@ -66,6 +68,7 @@ class App:
     if self.channel is not None:
       self.channel.poll()
     self.tank.step(dt)
+    self.scenery.update(self.tank.time, dt)
     self.input.end_frame()
 
   def state(self):
@@ -76,6 +79,7 @@ class App:
     return {
       'window_frames': frames,
       'tank': self.tank.snapshot(),
+      'scenery': self.scenery.snapshot(),
       'input': self.input.snapshot(),
       'window': [render.getWindowWidth(), render.getWindowHeight()],
       'fps': round(self.bge.logic.getAverageFrameRate(), 1),

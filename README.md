@@ -4,10 +4,12 @@ A desktop aquarium built on the [UPBGE](https://upbge.org) game engine:
 a glass tank of fish that swim, school and react, with lighting that can
 follow the weather, the moon, your battery or the stock market.
 
-This is the project skeleton: an empty glass tank, the launcher and the
-test harness.
+So far there is the tank itself, still without fish: a sloping sand bed,
+rocks and driftwood, swaying vallisneria, Amazon swords and moss, an
+airstone's bubble stream, moving caustics with a shimmering surface, and
+soft god rays.  Then there are the launcher and the test harness.
 
-![The empty tank](docs/shots/01-skeleton.png)
+![The tank environment](docs/shots/02-environment.png)
 
 ## Setup
 
@@ -33,7 +35,8 @@ or `%ProgramFiles%\UPBGE`.
     python run_tankful.py
 
 This rebuilds `build/tankful.blend` from `tools/build_scene.py` when it
-is missing or older than that script, then starts the UPBGE player.
+is missing or older than that script or the other sources it is made
+from (`launcher.SCENE_SOURCES`), then starts the UPBGE player.
 Escape quits.  Options:
 
 - `--rebuild`: rebuild the scene even if up to date.
@@ -48,10 +51,10 @@ In Wing, `run_tankful.py` is the main entry point, and `build-scene` and
 
 ## Harness and tests
 
-    python tools/harness.py tools/scripts/01-skeleton.json
+    python tools/harness.py tools/scripts/02-environment.json
 
 This drives the game with clicks, keys, waits, screenshots and state
-checks, off screen.  It saves `docs/shots/01-skeleton.png`.  See
+checks, off screen.  It saves `docs/shots/02-environment.png`.  See
 [docs/harness.md](docs/harness.md) for the commands, the display
 backends, and which of them work where.
 
@@ -62,15 +65,19 @@ Unit tests use unittest and need no UPBGE:
 ## Layout
 
 - `tankful/sim/`: the simulation, in plain standard-library Python that
-  runs under both the venv and UPBGE's Python 3.11.
+  runs under both the venv and UPBGE's Python 3.11.  `environment.py`
+  is the tank's layout, which the scene build and the game share;
+  `bubbles.py` and `sway.py` drive the bubble stream and the plants.
 - `tankful/game/`: thin adapters to UPBGE's `bge`: the per-frame update,
-  the input layer, the harness channel and off-screen window handling.
+  the scenery animation (`scenery.py`), the input layer, the harness
+  channel and off-screen window handling.
 - `tankful/factors/`: external data sources (still to come).
 - `tankful/launcher.py`, `run_tankful.py`: find UPBGE, build the scene
   and start the player.
 - `tankful/harness_*.py`, `tools/harness.py`: the test harness.
 - `tools/build_scene.py`: generates the scene; it runs under
-  `blender -b`.
+  `blender -b`.  `tools/scene_env.py` makes the environment in it:
+  sand, decor, plants, bubbles and the light effects.
 - `tools/fetch_upbge.py`: downloads UPBGE.
 - `tools/docker/`: the headless Linux container.
 - `vendor/` and `build/`: downloads and generated files, not in git.

@@ -125,6 +125,11 @@ class SceneAndCommandTests(unittest.TestCase):
     del times['b.blend']
     self.assertTrue(launcher.scene_is_stale('b.blend', ['src.py'], mtime))
 
+  def test_scene_sources_exist(self):
+    # A missing source would make every launch fail in scene_is_stale
+    for path in launcher.SCENE_SOURCES:
+      self.assertTrue(os.path.isfile(path), path)
+
   def test_build_scene_command_fails_on_python_errors(self):
     cmd = launcher.build_scene_command(self.UP, '/out.blend')
     self.assertEqual(cmd[:2], ['/u/blender', '-b'])

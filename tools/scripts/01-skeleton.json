@@ -6,7 +6,7 @@
     "key down left",
     "state",
     "key up left",
-    "screenshot docs/shots/01-skeleton.png",
+    "screenshot build/shots/01-skeleton.png",
     "quit"
   ]
 }

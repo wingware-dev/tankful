@@ -5,8 +5,8 @@ class Tank:
   """Holds everything that lives in the tank and advances it in time.
 
   Units are meters and seconds.  The origin is the center of the tank
-  floor; x runs left to right, y back to front (toward the viewer) and z
-  up.
+  floor; x runs left to right as the viewer sees it, y front to back
+  (away from the viewer) and z up.  The camera looks along +y.
   """
 
   def __init__(self, width=1.0, depth=0.4, height=0.5):
