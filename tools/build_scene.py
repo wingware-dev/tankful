@@ -267,18 +267,26 @@ def blender_argv():
   return argv[argv.index('--') + 1:] if '--' in argv else []
 
 
-def main_in_blender():
+def parse_args(argv):
   import argparse
   parser = argparse.ArgumentParser(prog='build_scene.py')
   parser.add_argument('--output', default=DEFAULT_OUTPUT)
-  args = parser.parse_args(blender_argv())
+  return parser.parse_args(argv)
+
+
+def main_in_blender():
+  args = parse_args(blender_argv())
   build(os.path.abspath(args.output))
 
 
-def main_outside_blender():
+def main_outside_blender(argv=None):
+  # Accept the in-Blender form's '--' too, so both command lines work
+  argv = sys.argv[1:] if argv is None else argv
+  args = parse_args(argv[1:] if argv[:1] == ['--'] else argv)
   sys.path.insert(0, ROOT)
   from tankful import launcher
-  return launcher.build_scene(launcher.find_upbge(), force=True)
+  return launcher.build_scene(launcher.find_upbge(), force=True,
+                              output=os.path.abspath(args.output))
 
 
 if __name__ == '__main__':
