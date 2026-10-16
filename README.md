@@ -11,10 +11,13 @@ surface, and soft god rays.  Two angelfish glide slowly around the
 decor, bank into turns, and now and then hover on their fins.  A school
 of fifteen neon tetras swims as one through the open water: it turns
 together, flows round the decor, and now and then one of them flicks
-aside and darts back.  Then there are the launcher and the test
-harness.
+aside and darts back.  A bristlenose pleco clings to the front glass
+with its belly to the viewer, its sucker mouth rasping as it inches
+along; now and then it lets go, darts to another spot on the glass, a
+rock or the sand, and clings again.  Then there are the launcher and
+the test harness.
 
-![Angelfish and a school of neon tetras in the tank](docs/shots/04-school.png)
+![The pleco on the front glass, belly to the viewer](docs/shots/05-sucker.png)
 
 ## Setup
 
@@ -56,10 +59,10 @@ In Wing, `run_tankful.py` is the main entry point, and `build-scene` and
 
 ## Harness and tests
 
-    python tools/harness.py tools/scripts/04-school.json
+    python tools/harness.py tools/scripts/05-sucker.json
 
 This drives the game with clicks, keys, waits, screenshots and state
-checks, off screen.  It saves `docs/shots/04-school.png`.  See
+checks, off screen.  It saves `docs/shots/05-sucker.png`.  See
 [docs/harness.md](docs/harness.md) for the commands, the display
 backends, and which of them work where.
 
@@ -76,8 +79,10 @@ Unit tests use unittest and need no UPBGE:
   `fish.py` is the fish agent (wandering, avoiding the glass and decor,
   speed, turn, pitch and bank limits, hovering), `school.py` schools
   (a group with a wandering goal, and members that follow the boids
-  rules and flick), `species.py` each species' build and gait and who
-  lives in the tank, and `swim.py` the bone pose of a swimming fish.
+  rules and flick), `pleco.py` the glass sucker (the surfaces it clings
+  to, and its attach and detach state machine), `species.py` each
+  species' build and gait and who lives in the tank, and `swim.py` the
+  bone pose of a swimming fish.
 - `tankful/game/`: thin adapters to UPBGE's `bge`: the per-frame update,
   the scenery animation (`scenery.py`), the fish rigs (`fishes.py`),
   the input layer, the harness
@@ -89,8 +94,9 @@ Unit tests use unittest and need no UPBGE:
 - `tools/build_scene.py`: generates the scene; it runs under
   `blender -b`.  `tools/scene_env.py` makes the environment in it:
   sand, decor, plants, bubbles and the light effects.
-  `tools/scene_fish.py` makes the rigged fish models, and
-  `tools/scene_tetra.py` the neon tetras, each school as one object.
+  `tools/scene_fish.py` makes the rigged fish models,
+  `tools/scene_tetra.py` the neon tetras, each school as one object, and
+  `tools/scene_pleco.py` the pleco.
 - `tools/fetch_upbge.py`: downloads UPBGE.
 - `tools/docker/`: the headless Linux container.
 - `vendor/` and `build/`: downloads and generated files, not in git.

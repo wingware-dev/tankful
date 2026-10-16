@@ -117,6 +117,24 @@ def inside(x, y, margin=0.0):
   return abs(x) <= INNER_X - margin and abs(y) <= INNER_Y - margin
 
 
+# Spots on the decor where a pleco (tankful.sim.pleco) can cling: the
+# point its belly rests on and the surface's normal there.  The rocks are
+# lumpy (tools/scene_env.py, build_rocks), so these were measured on the
+# built meshes: a plane fitted over a pleco-sized patch of each top, the
+# point raised to clear most of the bumps.  tools/scene_pleco.py checks
+# them against the meshes when it builds the scene.
+Perch = collections.namedtuple('Perch', 'name obstacle point normal')
+
+
+def perches():
+  return [
+    Perch('Rock.Right.Top', 'Rock.Right', (0.27, 0.10, 0.132),
+          (-0.133, -0.062, 0.989)),
+    Perch('Rock.BackLeft.Top', 'Rock.BackLeft', (-0.33, 0.12, 0.155),
+          (0.075, -0.049, 0.996)),
+  ]
+
+
 # Decor obstacles for the fish: capsules (a segment with a radius) that
 # wrap each rock, the driftwood's trunk and branches, and each plant clump
 # from the sand up.  Plants are soft (fish brush past leaves) so the game

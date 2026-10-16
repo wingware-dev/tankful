@@ -1,0 +1,12 @@
+{
+  "commands": [
+    "wait 60f",
+    "state",
+    "wait 20",
+    "state",
+    "screenshot docs/shots/05-sucker.png",
+    "wait 16",
+    "state",
+    "quit"
+  ]
+}

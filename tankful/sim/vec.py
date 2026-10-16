@@ -30,6 +30,16 @@ def normalized(a, fallback=(1.0, 0.0, 0.0)):
   return (a[0] / n, a[1] / n, a[2] / n)
 
 
+def cross(a, b):
+  return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
+          a[0] * b[1] - a[1] * b[0])
+
+
+def lerp(a, b, t):
+  return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t,
+          a[2] + (b[2] - a[2]) * t)
+
+
 def clamp(v, lo, hi):
   return lo if v < lo else hi if v > hi else v
 
@@ -91,3 +101,36 @@ def quaternion(m):
   s = 2.0 * math.sqrt(1.0 + m[2][2] - m[0][0] - m[1][1])
   return ((m[1][0] - m[0][1]) / s, (m[0][2] + m[2][0]) / s,
           (m[1][2] + m[2][1]) / s, 0.25 * s)
+
+
+def rotation(q):
+  """The 3x3 rotation (rows) of the unit quaternion q (w, x, y, z)."""
+  w, x, y, z = q
+  return ((1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)),
+          (2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)),
+          (2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)))
+
+
+def slerp(q0, q1, t):
+  """The unit quaternion t of the way from q0 to q1, the short way round."""
+  d = sum(a * b for a, b in zip(q0, q1))
+  if d < 0:
+    q1, d = tuple(-v for v in q1), -d
+  if d > 0.9995:
+    q = tuple(a + (b - a) * t for a, b in zip(q0, q1))
+  else:
+    theta = math.acos(d)
+    s0 = math.sin((1 - t) * theta) / math.sin(theta)
+    s1 = math.sin(t * theta) / math.sin(theta)
+    q = tuple(s0 * a + s1 * b for a, b in zip(q0, q1))
+  n = math.sqrt(sum(v * v for v in q))
+  return tuple(v / n for v in q)
+
+
+def frame(forward, up):
+  """The 3x3 rotation (rows) whose columns are forward, up x forward (the
+  left) and up, after making up square to forward."""
+  f = normalized(forward)
+  u = normalized(sub(up, scale(f, dot(up, f))), (0.0, 0.0, 1.0))
+  left = cross(u, f)
+  return ((f[0], left[0], u[0]), (f[1], left[1], u[1]), (f[2], left[2], u[2]))

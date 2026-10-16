@@ -86,7 +86,30 @@ NEON_TETRA = Species(
   flick_chance=0.07, flick_turn=0.9,
 )
 
-SPECIES = {s.name: s for s in (ANGELFISH, NEON_TETRA)}
+# A bristlenose pleco: a flat-bellied armored catfish that clings to the
+# glass and decor by its sucker mouth (tankful.sim.pleco).  The speeds and
+# turns here are for its darts between spots; the depth band, hovering
+# and wander go unused
+PLECO = Species(
+  name='pleco',
+  length=0.10, height=0.05,
+  clear_side=0.025, clear_up=0.02, clear_front=0.025,
+  hover_speed=0.0, cruise_speed=0.24, max_speed=0.40,
+  thrust=2.0, glide_time=0.5,
+  pivot_rate=1.6, turn_radius=0.05, max_turn_rate=3.2,
+  max_pitch=math.radians(55), pitch_rate=math.radians(140),
+  max_bank=math.radians(20),
+  depth_band=(0.0, 1.0),
+  wander_frequency=0.2, wander_turn=0.15,
+  hover_chance=0.0, hover_time=(1.0, 2.0),
+  beat_base=1.5, beat_per_speed=1.6,
+  wave_min=0.12, wave_max=0.55,
+  fin_beat=3.0, fin_swing=0.2,
+  model='pleco',
+  turn_accel=14.0, roll_rate=3.0,
+)
+
+SPECIES = {s.name: s for s in (ANGELFISH, NEON_TETRA, PLECO)}
 
 Resident = collections.namedtuple('Resident', 'name species size seed start')
 
@@ -105,6 +128,12 @@ def residents():
     Resident('Angelfish.0', ANGELFISH, 1.0, 101, (-0.18, -0.05, 0.30, 0.3)),
     Resident('Angelfish.1', ANGELFISH, 0.9, 202, (0.14, 0.0, 0.26, 2.8)),
   ]
+
+
+def plecos():
+  """The glass suckers (tankful.sim.pleco).  start is a point near the
+  surface each starts clinging to, and its heading there."""
+  return [Resident('Pleco', PLECO, 1.15, 505, (-0.05, -0.19, 0.24, 1.35))]
 
 
 def schools():

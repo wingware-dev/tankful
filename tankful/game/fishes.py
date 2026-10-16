@@ -3,7 +3,8 @@
 tools/scene_fish.py builds, per fish, <name>.Rig: an armature that
 carries the body and fin meshes.  Each frame the rig takes the fish's
 position and orientation (tankful.sim.fish), and its bones the swim pose
-(tankful.sim.swim), so all the animation is object and bone transforms:
+(tankful.sim.swim; the pleco's mouth bones scale as well), so all the
+animation is object and bone transforms:
 no shader parameters are written per frame (docs/harness.md).
 
 A school (tools/scene_tetra.py) is one armature, <school>.Rig, for all
@@ -81,6 +82,9 @@ class Fishes:
     pose = swim.pose(f)
     for bone, channel in channels.items():
       channel.rotation_euler = pose[bone]
+    for bone, scale in swim.scales(f).items():
+      if bone in channels:
+        channels[bone].scale = scale
 
   def snapshot(self):
     return {'rigs': [f.name for f, _, _ in self.rigs],

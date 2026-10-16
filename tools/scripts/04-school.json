@@ -2,9 +2,9 @@
   "commands": [
     "wait 60f",
     "state",
-    "wait 10",
+    "wait 13",
     "state",
-    "screenshot docs/shots/04-school.png",
+    "screenshot build/shots/04-school.png",
     "wait 6",
     "state",
     "quit"

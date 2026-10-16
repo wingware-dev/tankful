@@ -38,8 +38,14 @@ MAX_BEND = 0.5
 
 def bones(species):
   """The bones of the species' rig: all of BONES for the angelfish; the
-  spine alone for a small fish whose fins are too small to stroke."""
-  return BONES if species.model == 'angelfish' else ('Head',) + SPINE
+  pleco's own (tankful.sim.pleco.BONES); the spine alone for a small fish
+  whose fins are too small to stroke."""
+  if species.model == 'angelfish':
+    return BONES
+  if species.model == 'pleco':
+    from tankful.sim import pleco
+    return pleco.BONES
+  return ('Head',) + SPINE
 
 
 def spine_angles(wave, phase, yaw_rate=0.0):
@@ -61,6 +67,9 @@ def spine_angles(wave, phase, yaw_rate=0.0):
 
 def pose(fish):
   """{bone: (rx, ry, rz)} for fish (a tankful.sim.fish.Fish) now."""
+  if fish.species.model == 'pleco':
+    from tankful.sim import pleco
+    return pleco.pose(fish)
   angles = {'Head': (0.0, 0.0, 0.0)}
   for name, rz in zip(SPINE, spine_angles(fish.wave, fish.beat_phase,
                                           fish.yaw_rate)):
@@ -88,3 +97,12 @@ def pose(fish):
     s = math.sin(0.5 * fish.beat_phase + offset)
     angles[name] = (0.35 * pace + 0.06 * s, 0.0, 0.05 * s)
   return angles
+
+
+def scales(fish):
+  """{bone: (sx, sy, sz)} for the bones that scale: only the pleco's
+  mouth."""
+  if fish.species.model == 'pleco':
+    from tankful.sim import pleco
+    return pleco.scales(fish)
+  return {}

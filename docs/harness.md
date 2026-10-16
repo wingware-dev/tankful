@@ -13,7 +13,10 @@ It exits 0 when every command succeeded.  Each screenshot is checked for
 being non-black, and those under `docs/shots/` are `git add`ed.  The
 shots there record each step as it was built, so a script for an earlier
 step (such as `01-skeleton.json`) now saves under `build/shots/`
-instead, and the committed shot keeps showing that step.
+instead, and the committed shot keeps showing that step.  With the
+fixed timestep (below), such a shot can be retaken exactly by running
+its script at the commit that ended its step, with `docs/shots/` put
+back in it: `docs/shots/04-school.png` is `04-school.json` at 1f3c71a.
 
 ## Scripts and commands
 
@@ -231,6 +234,13 @@ neither was tried.
   fins, stay blended.
 - The caustic projection on the fins cost about 3 fps for the two
   angelfish (a moving pattern on moving sheets), so fins have none.
+- A bone's scale animates in the player (`channel.scale`), as its
+  rotation does: the pleco's sucker disc and jaws work that way
+  (`tankful.sim.pleco.scales`).
+- A pleco on the front glass shows the viewer its belly, which the lamp
+  above the tank barely lights: its materials glow faintly with their
+  own color (`FILL` in `tools/scene_pleco.py`), or it is a dark
+  silhouette.
 
 ## Frame budget
 
@@ -246,6 +256,13 @@ later readings, since `fps` is a running average that starts low:
 | Plus 15 tetras as 45 separate objects | 44-46 | 1.7 / 3.5 / 18.0 |
 | Plus 15 tetras as one school object | 48-52 | |
 | The same, with opaque angelfish fins and no caustics on fins | 53-56 | 1.9 / 2.7 / 13.0 |
+| Plus the pleco (step 5) | 50-53 | 2.0 / 3.0 / 14.0 |
+| The step 4 tank again, measured alongside, for comparison | 51-55 | 1.9 / 2.7 / 14.1 |
+
+The pleco costs about 1 fps, within the readings' spread.  The Mac ran
+slower for these last two rows than for the earlier ones, and single
+readings on both dipped as low as 30-44 fps; repeat a run before
+trusting one low reading.
 
 So for more fish:
 

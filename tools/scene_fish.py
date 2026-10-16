@@ -580,6 +580,8 @@ def build_fish(scene, caustic=None):
     build_one(scene, res, mats)
   import scene_tetra
   scene_tetra.build_schools(scene)
+  import scene_pleco
+  scene_pleco.build_plecos(scene)
 
 
 def build_one(scene, res, mats):

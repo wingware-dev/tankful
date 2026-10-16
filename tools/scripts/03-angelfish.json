@@ -4,7 +4,7 @@
     "state",
     "wait 9",
     "state",
-    "screenshot docs/shots/03-angelfish.png",
+    "screenshot build/shots/03-angelfish.png",
     "wait 6",
     "state",
     "quit"
