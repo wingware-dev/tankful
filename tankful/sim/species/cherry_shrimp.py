@@ -35,7 +35,6 @@ less that way (docs/harness.md, "Frame budget").  A Colony doesn't steer
 its members, as a School does: each shrimp goes its own way.
 """
 
-import collections
 import math
 
 from tankful.sim import environment as env
@@ -44,8 +43,8 @@ from tankful.sim import vec
 from tankful.sim.fish import MAX_STEP, MIN_GAP, Fish
 from tankful.sim.noise import SmoothNoise
 from tankful.sim.species.base import Resident, Species
-# The surface geometry the pleco clings by, which a shrimp walks on too
-from tankful.sim.species.pleco import Sand, ease, signed_angle, tangent, turned
+from tankful.sim.surfaces import (Sand, Spot, ease, signed_angle, tangent,
+                                  turned)
 
 # A cherry shrimp (Neocaridina): the speeds and turns are for its short
 # swims between spots, and its tail beats are its swimmerets'.  It has
@@ -106,16 +105,12 @@ SWIM_TIMEOUT = 8.0
 HOP = (0.04, 0.22)
 # How far from the edge of the open sand it keeps (m)
 SAND_EDGE = 0.015
+# The open sand it uses: in front of this y
+SAND_BACK = 0.0
 # The moss clumps it uses: in front of this y, where the viewer sees them
 MOSS_BACK = 0.05
 # How often it picks each kind of spot
 SPOT_WEIGHTS = (('sand', 0.55), ('moss', 0.45))
-
-# A place to pick at: the surface, the point it stands on, the surface's
-# normal there, and a heading along the surface to take if it arrives
-# with none of its own
-Spot = collections.namedtuple('Spot', 'surface point normal heading')
-
 
 # Surfaces
 
@@ -220,7 +215,7 @@ class MossTop:
 def surfaces():
   """The surfaces a shrimp picks at, by kind of spot."""
   return {
-    'sand': [Sand(SAND_EDGE)],
+    'sand': [Sand(SAND_EDGE, SAND_BACK)],
     'moss': [MossTop(p) for p in env.plants()
              if p.kind == 'moss' and p.y < MOSS_BACK],
   }
