@@ -7,7 +7,8 @@ from tankful.sim import fish as sim_fish
 from tankful.sim import swim
 from tankful.sim import vec
 from tankful.sim.fish import Fish
-from tankful.sim.species import ANGELFISH, residents
+from tankful.sim.species import angelfish
+from tankful.sim.species.angelfish import SPECIES as ANGELFISH, residents
 from tankful.sim.tank import Tank
 
 DT = 1 / 60.0
@@ -15,7 +16,7 @@ DT = 1 / 60.0
 
 def stocked():
   tank = Tank()
-  sim_fish.stock(tank)
+  angelfish.stock(tank)
   return tank
 
 
@@ -175,7 +176,7 @@ class FishGaitTests(unittest.TestCase):
     spine, fins = [], []
     for _ in range(60):
       tank.step(DT)
-      pose = swim.pose(f)
+      pose = angelfish.pose(f)
       spine.append(sum(abs(pose[b][2]) for b in swim.SPINE))
       fins.append(pose['Pec.L'][2])
     self.assertLess(max(spine), 0.12)

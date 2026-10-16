@@ -33,7 +33,6 @@ import random
 from tankful.sim import environment as env
 from tankful.sim import vec
 from tankful.sim.noise import SmoothNoise
-from tankful.sim.species import residents
 
 CRUISE, HOVER = 'cruise', 'hover'
 
@@ -442,10 +441,12 @@ class Fish:
     }
 
 
-def stock(tank):
-  """Add the residents (tankful.sim.species.residents) to tank."""
-  for r in residents():
+def stock(tank, residents):
+  """Add a Fish for each of residents (tankful.sim.species.base.Resident)
+  to tank, and return them."""
+  out = []
+  for r in residents:
     x, y, z, heading = r.start
-    tank.fish.append(Fish(r.name, r.species, r.size, r.seed, (x, y, z),
-                          heading))
-  return tank.fish
+    out.append(Fish(r.name, r.species, r.size, r.seed, (x, y, z), heading))
+  tank.fish.extend(out)
+  return out

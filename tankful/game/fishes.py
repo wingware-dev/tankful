@@ -1,22 +1,23 @@
 """Puts each simulated fish's pose on its model every frame.
 
-tools/scene_fish.py builds, per fish, <name>.Rig: an armature that
-carries the body and fin meshes.  Each frame the rig takes the fish's
-position and orientation (tankful.sim.fish), and its bones the swim pose
-(tankful.sim.swim; the pleco's mouth bones scale as well), so all the
+The model builder (tools/species/<name>.py) makes, per fish, <name>.Rig:
+an armature that carries the body and fin meshes.  Each frame the rig
+takes the fish's position and orientation (tankful.sim.fish), and its
+bones the pose of its species' module (tankful.sim.species.<name>: BONES,
+pose and scales; the pleco's mouth bones scale as well), so all the
 animation is object and bone transforms:
 no shader parameters are written per frame (docs/harness.md).
 
-A school (tools/scene_tetra.py) is one armature, <school>.Rig, for all
-its members: each member's bones are prefixed with its name, and its
-Root bone takes its position and orientation instead of an object.  The
-player spends time on every object that moves, so a school moves one
+A school (tools/species/neon_tetra.py) is one armature, <school>.Rig,
+for all its members: each member's bones are prefixed with its name, and
+its Root bone takes its position and orientation instead of an object.
+The player spends time on every object that moves, so a school moves one
 object, not one per fish.
 """
 
 import logging
 
-from tankful.sim import swim
+from tankful.sim import species
 from tankful.sim import vec
 
 log = logging.getLogger('tankful.fishes')
@@ -42,7 +43,7 @@ class Fishes:
         log.warning('no rig for fish %s', f.name)
         continue
       channels = {}
-      for bone in swim.bones(f.species):
+      for bone in species.of(f.species).BONES:
         channel = rig.channels.get(prefix + bone)
         if channel is None:
           log.warning('fish %s has no bone %s', f.name, bone)
@@ -79,10 +80,11 @@ class Fishes:
 
   @staticmethod
   def _pose(f, channels):
-    pose = swim.pose(f)
+    mod = species.of(f.species)
+    pose = mod.pose(f)
     for bone, channel in channels.items():
       channel.rotation_euler = pose[bone]
-    for bone, scale in swim.scales(f).items():
+    for bone, scale in mod.scales(f).items():
       if bone in channels:
         channels[bone].scale = scale
 

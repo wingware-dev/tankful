@@ -4,12 +4,11 @@ import unittest
 from unittest import mock
 
 from tankful.sim import environment as env
-from tankful.sim import fish as sim_fish
-from tankful.sim import pleco
-from tankful.sim import school as sim_school
+from tankful.sim import species
 from tankful.sim import swim
 from tankful.sim import vec
-from tankful.sim.species import PLECO
+from tankful.sim.species import angelfish, neon_tetra, pleco
+from tankful.sim.species.pleco import SPECIES as PLECO
 from tankful.sim.tank import Tank
 
 DT = 1 / 60.0
@@ -24,8 +23,8 @@ def alone():
 def stocked():
   """The whole tank: the angelfish, the school and the pleco."""
   tank = Tank()
-  sim_fish.stock(tank)
-  sim_school.stock(tank)
+  angelfish.stock(tank)
+  neon_tetra.stock(tank)
   return tank, pleco.stock(tank)[0]
 
 
@@ -303,20 +302,21 @@ class SpotTests(unittest.TestCase):
 class PlecoPoseTests(unittest.TestCase):
 
   def test_bones(self):
-    self.assertEqual(swim.bones(PLECO), pleco.BONES)
+    self.assertIs(species.of(PLECO), pleco)
+    self.assertEqual(pleco.BONES[:5], ('Head',) + swim.SPINE)
     _, p = alone()
-    self.assertEqual(set(swim.pose(p)), set(pleco.BONES))
-    self.assertEqual(set(swim.scales(p)), {'Mouth', 'Jaw'})
+    self.assertEqual(set(pleco.pose(p)), set(pleco.BONES))
+    self.assertEqual(set(pleco.scales(p)), {'Mouth', 'Jaw'})
 
   def test_clinging_the_fins_spread_and_the_mouth_works(self):
     tank, p = alone()
     p.attach_left = 1e9
     discs = []
     for _ in steps(tank, 1.5):
-      pose = swim.pose(p)
+      pose = pleco.pose(p)
       self.assertEqual(pose['Pec.L'][2], 0.0)
       self.assertEqual(pose['Dorsal'][0], -pleco.DORSAL_FOLD)
-      discs.append(swim.scales(p)['Jaw'][0])
+      discs.append(pleco.scales(p)['Jaw'][0])
     # The jaws open and close with the rasps
     self.assertLess(min(discs), 0.6)
     self.assertGreater(max(discs), 0.95)
@@ -327,18 +327,20 @@ class PlecoPoseTests(unittest.TestCase):
     for _ in steps(tank, pleco.RELEASE_TIME + 0.2):
       pass
     self.assertEqual(p.state, pleco.DARTING)
-    pose = swim.pose(p)
+    pose = pleco.pose(p)
     # The left fins swing in toward the right, the right ones the other way
     self.assertGreater(pose['Pec.L'][2], 0.5)
     self.assertLess(pose['Pec.R'][2], -0.5)
     self.assertEqual(pose['Dorsal'][0], 0.0)
-    self.assertEqual(swim.scales(p), {'Mouth': (1.0, 1.0, 1.0),
+    self.assertEqual(pleco.scales(p), {'Mouth': (1.0, 1.0, 1.0),
                                       'Jaw': (1.0, 1.0, 1.0)})
 
   def test_other_fish_have_no_scales(self):
     tank = Tank()
-    sim_fish.stock(tank)
-    self.assertEqual(swim.scales(tank.fish[0]), {})
+    angelfish.stock(tank)
+    neon_tetra.stock(tank)
+    for f in tank.fish:
+      self.assertEqual(species.of(f.species).scales(f), {})
 
 
 if __name__ == '__main__':

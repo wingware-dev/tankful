@@ -26,6 +26,7 @@ overlap: whatever the steering does, each step ends by pushing apart
 any that touch (School.settle).
 """
 
+import collections
 import math
 import random
 
@@ -33,7 +34,12 @@ from tankful.sim import environment as env
 from tankful.sim import vec
 from tankful.sim.fish import MAX_STEP, Fish
 from tankful.sim.noise import SmoothNoise
-from tankful.sim.species import school_members, schools
+from tankful.sim.species.base import Resident
+
+# A school: its name, its species, how many, a seed for their sizes and
+# places, and where it starts (x, y, z, heading)
+SchoolSpec = collections.namedtuple('SchoolSpec',
+                                    'name species count seed start')
 
 # Boids, in body lengths: members keep SPACING apart, and heed the mates
 # within VIEW
@@ -407,13 +413,41 @@ def group_of(fish):
   return fish.school or fish
 
 
-def stock(tank):
-  """Add the schools (tankful.sim.species.schools) to tank."""
-  for spec in schools():
+def school_members(spec):
+  """Each member of the school spec (a SchoolSpec) as a
+  tankful.sim.species.base.Resident, around its start.
+
+  The members are spread over a loose ball facing the school's heading,
+  with sizes from 0.88 to 1.1 of the species' length.
+  """
+  rng = random.Random(spec.seed)
+  x, y, z, heading = spec.start
+  length = spec.species.length
+  out = []
+  for i in range(spec.count):
+    # A spiral of points over a flattened ball, jittered
+    a = i * 2.39996
+    r = length * 1.4 * math.sqrt(i + 0.5)
+    px = x + r * math.cos(a) + rng.uniform(-0.3, 0.3) * length
+    py = y + 0.5 * r * math.sin(a) + rng.uniform(-0.3, 0.3) * length
+    pz = z + rng.uniform(-1.2, 1.2) * length
+    out.append(Resident('%s.%02d' % (spec.species.name.title().replace('_', ''),
+                                     i),
+                        spec.species, rng.uniform(0.88, 1.1),
+                        spec.seed * 100 + i,
+                        (px, py, pz, heading + rng.uniform(-0.3, 0.3))))
+  return out
+
+
+def stock(tank, specs):
+  """Add the schools specs (SchoolSpecs) to tank, and return them."""
+  out = []
+  for spec in specs:
     school = School(spec.name, spec.species, spec.seed, spec.start)
     for r in school_members(spec):
       x, y, z, heading = r.start
       tank.fish.append(Member(r.name, r.species, school, r.size, r.seed,
                               (x, y, z), heading))
-    tank.schools.append(school)
-  return tank.schools
+    out.append(school)
+  tank.schools.extend(out)
+  return out

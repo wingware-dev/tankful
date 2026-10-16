@@ -117,11 +117,11 @@ def inside(x, y, margin=0.0):
   return abs(x) <= INNER_X - margin and abs(y) <= INNER_Y - margin
 
 
-# Spots on the decor where a pleco (tankful.sim.pleco) can cling: the
+# Spots on the decor where a pleco (tankful.sim.species.pleco) can cling: the
 # point its belly rests on and the surface's normal there.  The rocks are
 # lumpy (tools/scene_env.py, build_rocks), so these were measured on the
 # built meshes: a plane fitted over a pleco-sized patch of each top, the
-# point raised to clear most of the bumps.  tools/scene_pleco.py checks
+# point raised to clear most of the bumps.  tools/species/pleco.py checks
 # them against the meshes when it builds the scene.
 Perch = collections.namedtuple('Perch', 'name obstacle point normal')
 

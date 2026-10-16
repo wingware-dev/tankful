@@ -16,7 +16,7 @@ a rock (tankful.sim.environment.perches) or the sand.  Its state
 - RELEASING: it pushes off along the surface's normal, turning to face
   the next spot (Pleco.target, chosen by choose_spot).
 - DARTING: it swims there as a fish does, fast (the speeds and turns of
-  tankful.sim.species.PLECO), steering round the decor, until it is
+  SPECIES), steering round the decor, until it is
   within ARRIVE of the point just off the spot.  If it hasn't got there
   in DART_TIMEOUT it picks another spot.
 - ATTACHING: it glides onto the spot, turning its belly to it, and
@@ -34,16 +34,38 @@ import collections
 import math
 
 from tankful.sim import environment as env
+from tankful.sim import swim
 from tankful.sim import vec
 from tankful.sim.fish import MAX_STEP, Fish
 from tankful.sim.noise import SmoothNoise
-from tankful.sim.species import plecos
+from tankful.sim.species.base import Resident, Species
+
+# A bristlenose pleco: a flat-bellied armored catfish.  The speeds and
+# turns here are for its darts between spots; the depth band, hovering
+# and wander go unused
+SPECIES = Species(
+  name='pleco',
+  length=0.10, height=0.05,
+  clear_side=0.025, clear_up=0.02, clear_front=0.025,
+  hover_speed=0.0, cruise_speed=0.24, max_speed=0.40,
+  thrust=2.0, glide_time=0.5,
+  pivot_rate=1.6, turn_radius=0.05, max_turn_rate=3.2,
+  max_pitch=math.radians(55), pitch_rate=math.radians(140),
+  max_bank=math.radians(20),
+  depth_band=(0.0, 1.0),
+  wander_frequency=0.2, wander_turn=0.15,
+  hover_chance=0.0, hover_time=(1.0, 2.0),
+  beat_base=1.5, beat_per_speed=1.6,
+  wave_min=0.12, wave_max=0.55,
+  fin_beat=3.0, fin_swing=0.2,
+  turn_accel=14.0, roll_rate=3.0,
+)
 
 ATTACHED, RELEASING, DARTING, ATTACHING = (
   'attached', 'releasing', 'darting', 'attaching')
 
 # The center's height above the surface it clings to, in lengths: the
-# model's flat belly (tools/scene_pleco.py) is this far below its center
+# model's flat belly (tools/species/pleco.py) is this far below its center
 BELLY = 0.045
 # The surface on the glass is this far inside it, clear of the water's
 # front face
@@ -577,7 +599,7 @@ class Pleco(Fish):
 
 # The pose
 #
-# The rig (tools/scene_pleco.py) is the spine chain of tankful.sim.swim,
+# The rig (tools/species/pleco.py) is the spine chain of tankful.sim.swim,
 # with fin bones that all point straight back at rest (so bone x is the
 # fish's left and z its back), and the mouth's:
 #
@@ -603,7 +625,6 @@ DORSAL_FOLD = 0.9
 
 def pose(fish):
   """{bone: (rx, ry, rz)} for a Pleco now."""
-  from tankful.sim import swim
   sw = fish.swimming
   rest = 1.0 - sw
   swimming = swim.spine_angles(fish.wave, fish.beat_phase, fish.yaw_rate)
@@ -634,8 +655,14 @@ def scales(fish):
   return {'Mouth': (disc, disc, disc), 'Jaw': (jaw, jaw, jaw)}
 
 
+def plecos():
+  """The plecos in the tank.  start is a point near the surface each
+  starts clinging to, and its heading there."""
+  return [Resident('Pleco', SPECIES, 1.15, 505, (-0.05, -0.19, 0.24, 1.35))]
+
+
 def stock(tank):
-  """Add the plecos (tankful.sim.species.plecos) to tank."""
+  """Add the plecos to tank, and return them."""
   out = []
   for r in plecos():
     out.append(Pleco(r.name, r.species, r.size, r.seed, r.start))

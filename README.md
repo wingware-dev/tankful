@@ -79,10 +79,14 @@ Unit tests use unittest and need no UPBGE:
   `fish.py` is the fish agent (wandering, avoiding the glass and decor,
   speed, turn, pitch and bank limits, hovering), `school.py` schools
   (a group with a wandering goal, and members that follow the boids
-  rules and flick), `pleco.py` the glass sucker (the surfaces it clings
-  to, and its attach and detach state machine), `species.py` each
-  species' build and gait and who lives in the tank, and `swim.py` the
-  bone pose of a swimming fish.
+  rules and flick), and `swim.py` the body wave of a swimming fish.
+  `species/` has a module per species, with its build and gait, who of
+  it lives in the tank and its rig's pose: `angelfish.py`,
+  `neon_tetra.py`, and `pleco.py`, the glass sucker (the surfaces it
+  clings to, and its attach and detach state machine).  Its
+  `__init__.py` is the registry of species, which the sim, the game and
+  the scene build all read; see [docs/species.md](docs/species.md) for
+  adding one.
 - `tankful/game/`: thin adapters to UPBGE's `bge`: the per-frame update,
   the scenery animation (`scenery.py`), the fish rigs (`fishes.py`),
   the input layer, the harness
@@ -94,9 +98,10 @@ Unit tests use unittest and need no UPBGE:
 - `tools/build_scene.py`: generates the scene; it runs under
   `blender -b`.  `tools/scene_env.py` makes the environment in it:
   sand, decor, plants, bubbles and the light effects.
-  `tools/scene_fish.py` makes the rigged fish models,
-  `tools/scene_tetra.py` the neon tetras, each school as one object, and
-  `tools/scene_pleco.py` the pleco.
+  `tools/scene_fish.py` makes the rigged fish models, each species' from
+  its own builder in `tools/species/` (`angelfish.py`; `neon_tetra.py`,
+  each school as one object; and `pleco.py`), with the lofting and
+  materials they share.
 - `tools/fetch_upbge.py`: downloads UPBGE.
 - `tools/docker/`: the headless Linux container.
 - `vendor/` and `build/`: downloads and generated files, not in git.

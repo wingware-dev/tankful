@@ -1,12 +1,12 @@
 """The neon tetras for tools/build_scene.py: a school as one object.
 
-Runs inside UPBGE's Blender.  Each school (tankful.sim.species.schools)
-is built as <school>.Rig, one armature for all its members, with
+Runs inside UPBGE's Blender.  Each school
+(tankful.sim.species.neon_tetra.schools) is built as <school>.Rig, one armature for all its members, with
 <school> (every member's body and eyes) and <school>.Fins skinned to it.
 Each member has its own bones in the rig, prefixed with its name
 ("NeonTetra.03:Tail"): a Root bone, which the game places and turns as
 the fish swims (tankful.game.fishes), and under it the spine chain
-alone (tankful.sim.swim.bones), as the fins are too small to show
+alone (tankful.sim.species.neon_tetra.BONES), as the fins are too small to show
 strokes of their own.
 
 A tank holds a dozen or more of these, so they are cheap
@@ -31,7 +31,8 @@ from mathutils import Vector
 import scene_fish
 from scene_env import link_object, new_material
 from scene_fish import CHAIN, MeshBuilder, Shape, band, fin, spine_weights
-from tankful.sim import species as sim_species
+from tankful.sim import school as sim_school
+from tankful.sim.species import neon_tetra as sim_tetra
 
 # Side profile, snout (u=0) to the tail's base (u=1): (u, top, bottom,
 # half-width), in lengths.  Slender and torpedo-shaped, deepest just
@@ -208,13 +209,13 @@ def fin_material():
 
 # Building
 
-def build_schools(scene):
+def build(scene):
   mats = {
     'body': body_material(),
     'eye': scene_fish.eye_material('NeonTetraEye', TETRA_EYE),
     'fin': fin_material(),
   }
-  for spec in sim_species.schools():
+  for spec in sim_tetra.schools():
     build_school(scene, spec, mats)
 
 
@@ -222,7 +223,7 @@ def build_school(scene, spec, mats):
   """The school as three objects: <school>.Rig, the armature, and
   <school> and <school>.Fins, every member's body and fins in one mesh
   each, skinned to it."""
-  members = sim_species.school_members(spec)
+  members = sim_school.school_members(spec)
   rig = build_armature(scene, spec.name + '.Rig', members)
   body, fins = MeshBuilder(1.0), MeshBuilder(1.0)
   for res in members:
@@ -236,7 +237,7 @@ def build_school(scene, spec, mats):
     add_fins(fins)
   meshes = (body.finish(spec.name, [mats['body'], mats['eye']], scene, rig),
             fins.finish(spec.name + '.Fins', [mats['fin']], scene, rig))
-  # Small fish cast no shadows either (tools/scene_fish.py)
+  # Small fish cast no shadows either (tools/species/angelfish.py)
   for obj in meshes:
     obj.visible_shadow = False
   return rig

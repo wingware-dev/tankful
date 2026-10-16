@@ -4,7 +4,8 @@ import unittest
 from tankful.sim import swim
 from tankful.sim.fish import Fish
 from tankful.sim.noise import SmoothNoise
-from tankful.sim.species import ANGELFISH
+from tankful.sim.species import angelfish
+from tankful.sim.species.angelfish import SPECIES as ANGELFISH
 
 
 class SpineTests(unittest.TestCase):
@@ -36,10 +37,18 @@ class SpineTests(unittest.TestCase):
     self.assertEqual(swim.spine_angles(0.0, 0.0, 9.0),
                      swim.spine_angles(0.0, 0.0, swim.MAX_BEND))
 
+  def test_spine_pose_is_the_spine_angles(self):
+    f = Fish('f', ANGELFISH)
+    f.wave, f.beat_phase, f.yaw_rate = 0.3, 1.1, 0.2
+    pose = swim.spine_pose(f)
+    self.assertEqual(set(pose), {'Head'} | set(swim.SPINE))
+    self.assertEqual([pose[b][2] for b in swim.SPINE],
+                     swim.spine_angles(0.3, 1.1, 0.2))
+
   def test_pose_names_every_bone(self):
     f = Fish('f', ANGELFISH)
-    pose = swim.pose(f)
-    self.assertEqual(set(pose), set(swim.BONES))
+    pose = angelfish.pose(f)
+    self.assertEqual(set(pose), set(angelfish.BONES))
     for angles in pose.values():
       self.assertEqual(len(angles), 3)
       self.assertTrue(all(abs(a) < 1.5 for a in angles))
@@ -47,10 +56,10 @@ class SpineTests(unittest.TestCase):
   def test_pectorals_fold_when_cruising(self):
     f = Fish('f', ANGELFISH)
     f.hovering, f.fin_amp = 0.0, 0.2 * ANGELFISH.fin_swing
-    cruising = max(abs(swim.pose(f)['Pec.L'][2]) for f.fin_phase in
+    cruising = max(abs(angelfish.pose(f)['Pec.L'][2]) for f.fin_phase in
                    [i * 0.3 for i in range(21)])
     f.hovering, f.fin_amp = 1.0, ANGELFISH.fin_swing
-    hovering = max(abs(swim.pose(f)['Pec.L'][2]) for f.fin_phase in
+    hovering = max(abs(angelfish.pose(f)['Pec.L'][2]) for f.fin_phase in
                    [i * 0.3 for i in range(21)])
     self.assertGreater(hovering, 2 * cruising)
 

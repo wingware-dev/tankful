@@ -5,9 +5,12 @@ import unittest
 from tankful.sim import environment as env
 from tankful.sim import fish as sim_fish
 from tankful.sim import school as sim_school
+from tankful.sim import species
 from tankful.sim import swim
 from tankful.sim import vec
-from tankful.sim.species import NEON_TETRA, school_members, schools
+from tankful.sim.school import school_members
+from tankful.sim.species import angelfish, neon_tetra
+from tankful.sim.species.neon_tetra import SPECIES as NEON_TETRA, schools
 from tankful.sim.tank import Tank
 
 DT = 1 / 60.0
@@ -16,8 +19,8 @@ DT = 1 / 60.0
 def stocked():
   """The whole tank: the angelfish and the school."""
   tank = Tank()
-  sim_fish.stock(tank)
-  sim_school.stock(tank)
+  angelfish.stock(tank)
+  neon_tetra.stock(tank)
   return tank
 
 
@@ -301,11 +304,11 @@ class SchoolGroupTests(unittest.TestCase):
   def test_small_fish_rig_is_the_spine(self):
     tank = stocked()
     tetra = tank.schools[0].members[0]
-    self.assertEqual(swim.bones(tetra.species), ('Head',) + swim.SPINE)
-    self.assertEqual(swim.bones(tank.fish[0].species), swim.BONES)
-    pose = swim.pose(tetra)
-    for bone in swim.bones(tetra.species):
-      self.assertIn(bone, pose)
+    self.assertEqual(species.of(tetra.species).BONES, ('Head',) + swim.SPINE)
+    self.assertEqual(species.of(tank.fish[0].species).BONES, angelfish.BONES)
+    pose = neon_tetra.pose(tetra)
+    self.assertEqual(set(pose), set(neon_tetra.BONES))
+    self.assertEqual(neon_tetra.scales(tetra), {})
 
 
 class SegmentTests(unittest.TestCase):

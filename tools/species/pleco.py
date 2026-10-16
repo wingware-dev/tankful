@@ -1,9 +1,11 @@
 """The pleco for tools/build_scene.py: a flat-bellied sucker catfish.
 
-Runs inside UPBGE's Blender.  Each pleco (tankful.sim.species.plecos)
-gets, as the angelfish do (tools/scene_fish.py):
+Runs inside UPBGE's Blender.  Each pleco
+(tankful.sim.species.pleco.plecos) gets, as the angelfish do
+(tools/species/angelfish.py):
 
-- <name>.Rig: an armature with the bones tankful.sim.pleco animates;
+- <name>.Rig: an armature with the bones tankful.sim.species.pleco
+  poses;
 - <name>: the body, flat below and arched above, with the sucker disc
   on the belly under the head, the eyes high on the head and the
   bristles round the snout;
@@ -16,12 +18,12 @@ where the sim starts the fish.
 
 It is built on the frame budget's rules (docs/harness.md): one rig of
 its own, plain materials with no caustic projection or thin film, and no
-shadows.  build_plecos also checks the decor perches
+shadows.  build also checks the decor perches
 (tankful.sim.environment.perches) against the rock meshes.
 
 Built in the fish's space as scene_fish: +x forward, +y its left, +z its
 back, origin at its center, in units of its length.  The belly is flat
-at z = -tankful.sim.pleco.BELLY.
+at z = -tankful.sim.species.pleco.BELLY.
 """
 
 import collections
@@ -34,9 +36,8 @@ import scene_fish
 from scene_env import link_object, new_material
 from scene_fish import MeshBuilder, fin, lerp, spine_weights
 from tankful.sim import environment as env
-from tankful.sim import pleco as sim_pleco
-from tankful.sim import species as sim_species
 from tankful.sim import vec
+from tankful.sim.species import pleco as sim_pleco
 
 B = -sim_pleco.BELLY
 
@@ -403,7 +404,7 @@ def disc_material():
 def fin_material():
   """Brown fins with rows of dark spots and darker rays, drawn opaque
   and faded only at the very edge (dithered), as the angelfish's are
-  (tools/scene_fish.py, fin_material)."""
+  (tools/species/angelfish.py, fin_material)."""
   mat, t, out = new_material('PlecoFin')
   mat.surface_render_method = 'DITHERED'
   mat.use_backface_culling = False
@@ -437,7 +438,7 @@ def fin_material():
 
 # Building
 
-def build_plecos(scene):
+def build(scene):
   check_perches()
   mats = {
     'body': body_material(),
@@ -445,7 +446,7 @@ def build_plecos(scene):
     'disc': disc_material(),
     'fin': fin_material(),
   }
-  for res in sim_species.plecos():
+  for res in sim_pleco.plecos():
     build_one(scene, res, mats)
 
 
@@ -484,7 +485,7 @@ def check_perches(tolerance=0.012):
   for perch in env.perches():
     obj = bpy.data.objects.get(perch.obstacle)
     if obj is None:
-      print('scene_pleco: no object %s for perch %s' % (perch.obstacle,
+      print('species.pleco: no object %s for perch %s' % (perch.obstacle,
                                                         perch.name))
       continue
     inv = obj.matrix_world.inverted()
@@ -496,6 +497,6 @@ def check_perches(tolerance=0.012):
     if mesh_z is None or abs(mesh_z - z) > tolerance:
       misses.append(Miss(perch, mesh_z))
   for miss in misses:
-    print('scene_pleco: WARNING perch %s at z %.4f, but its mesh is at %s'
+    print('species.pleco: WARNING perch %s at z %.4f, but its mesh is at %s'
           % (miss.perch.name, miss.perch.point[2], miss.mesh_z))
   return misses

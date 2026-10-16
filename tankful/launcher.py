@@ -13,19 +13,32 @@ import subprocess
 import sys
 import time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from tankful.sim import species
+
+ROOT =os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BLEND = os.path.join(ROOT, 'build', 'tankful.blend')
 BUILD_SCRIPT = os.path.join(ROOT, 'tools', 'build_scene.py')
+
+def species_sources(names=species.NAMES):
+  """Each species' model builder and sim module (tankful.sim.species):
+  the model takes its size from the sim, and may sit where the sim
+  starts it."""
+  out = []
+  for name in names:
+    out.append(os.path.join(ROOT, 'tools', 'species', name + '.py'))
+    out.append(os.path.join(ROOT, 'tankful', 'sim', 'species', name + '.py'))
+  return tuple(out)
+
+
 SCENE_SOURCES = (BUILD_SCRIPT,
                  os.path.join(ROOT, 'tools', 'scene_env.py'),
                  os.path.join(ROOT, 'tools', 'scene_fish.py'),
-                 os.path.join(ROOT, 'tools', 'scene_tetra.py'),
-                 os.path.join(ROOT, 'tools', 'scene_pleco.py'),
                  os.path.join(ROOT, 'tankful', 'sim', 'environment.py'),
                  os.path.join(ROOT, 'tankful', 'sim', 'bubbles.py'),
-                 os.path.join(ROOT, 'tankful', 'sim', 'species.py'),
-                 # The pleco's model sits where the sim starts it
-                 os.path.join(ROOT, 'tankful', 'sim', 'pleco.py'))
+                 os.path.join(ROOT, 'tankful', 'sim', 'species',
+                              '__init__.py'),
+                 os.path.join(ROOT, 'tankful', 'sim', 'species', 'base.py'),
+                 ) + species_sources()
 WINDOW = (1280, 720)
 # The player rejects windows smaller than its usage example's 320x200
 MIN_WINDOW = (320, 200)

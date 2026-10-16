@@ -17,9 +17,7 @@ import time
 from tankful.game import input as game_input
 from tankful.game.fishes import Fishes
 from tankful.game.scenery import Scenery
-from tankful.sim import fish as sim_fish
-from tankful.sim import pleco as sim_pleco
-from tankful.sim import school as sim_school
+from tankful.sim import species
 from tankful.sim.tank import Tank
 
 log = logging.getLogger('tankful')
@@ -54,9 +52,7 @@ class App:
       if self.offscreen is not None:
         self.offscreen.hide_offscreen(size)
     self.tank = Tank()
-    sim_fish.stock(self.tank)
-    sim_school.stock(self.tank)
-    sim_pleco.stock(self.tank)
+    species.stock(self.tank)
     scene = bge.logic.getCurrentScene()
     self.scenery = Scenery(scene)
     self.fishes = Fishes(scene, self.tank.fish)

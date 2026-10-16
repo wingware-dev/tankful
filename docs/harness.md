@@ -204,7 +204,7 @@ neither was tried.
   Skinning the meshes to their armatures made no measurable difference.
   Their shadows cost 3-4 fps (most of it from the blended fins), and the
   caustic projection in their shaders cost about as much again.  The fish
-  now cast no shadows (`tools/scene_fish.py`), which brings the
+  now cast no shadows (`tools/species/angelfish.py`), which brings the
   frame rate back to 52-55.  These readings vary by about 2 fps between runs.
 - Every object that moves costs time of its own, shadow or not:
   fifteen neon tetras built as separate rigs (an armature with a body
@@ -212,7 +212,7 @@ neither was tried.
   about 53 to 45, and still about 47 with no skinning at all, or with
   the light's shadows off.  Built as one armature for the whole school,
   each member's bones under a Root bone that the game places and turns
-  (`tools/scene_tetra.py`, `tankful/game/fishes.py`), they cost about
+  (`tools/species/neon_tetra.py`, `tankful/game/fishes.py`), they cost about
   2 fps.  UPBGE's `use_gpu_deform` on the Armature modifier made no
   measurable difference either way; it is on.
 - The player re-evaluates an armature's pose only when its object has
@@ -229,17 +229,17 @@ neither was tried.
   4 fps.  Drawing the angelfish's dorsal, anal and caudal fins opaque
   (dithered, so only their faded outer edge is see-through), with their
   color blended toward the water's where they would be clear, makes
-  them clean (`fin_material` in `tools/scene_fish.py`).  Only nearly
+  them clean (`fin_material` in `tools/species/angelfish.py`).  Only nearly
   clear fins with no detail, the angelfish's pectorals and the tetras'
   fins, stay blended.
 - The caustic projection on the fins cost about 3 fps for the two
   angelfish (a moving pattern on moving sheets), so fins have none.
 - A bone's scale animates in the player (`channel.scale`), as its
   rotation does: the pleco's sucker disc and jaws work that way
-  (`tankful.sim.pleco.scales`).
+  (`tankful.sim.species.pleco.scales`).
 - A pleco on the front glass shows the viewer its belly, which the lamp
   above the tank barely lights: its materials glow faintly with their
-  own color (`FILL` in `tools/scene_pleco.py`), or it is a dark
+  own color (`FILL` in `tools/species/pleco.py`), or it is a dark
   silhouette.
 
 ## Frame budget
@@ -269,7 +269,7 @@ So for more fish:
 - Small fish that come in numbers go in one object per group, as the
   school does.  A fish with its own rig costs about 0.4 fps.
 - Small fish get a plain material: no caustic projection and no thin
-  film (`tools/scene_tetra.py`).
+  film (`tools/species/neon_tetra.py`).
 - No fish casts a shadow.
 - The sim's step for 17 fish takes about 1 ms (`Logic`); it checks the
   decor only near each fish, and school members' bodies only against
