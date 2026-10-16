@@ -3,6 +3,10 @@
 update(controller) runs once per logic tick.  The first call sets up the
 App: the simulation, the input layer and, with TANKFUL_HARNESS_PORT set,
 the harness channel.
+
+Under the harness the sim steps with a fixed HARNESS_DT instead of real
+frame time, and only while a wait command runs, so a script's waits
+alone set the game time and its runs and shots repeat (docs/harness.md).
 """
 
 import logging
@@ -18,6 +22,9 @@ from tankful.sim import school as sim_school
 from tankful.sim.tank import Tank
 
 log = logging.getLogger('tankful')
+
+# The sim's step under the harness, in seconds
+HARNESS_DT = 1.0 / 60
 
 _app = None
 
@@ -62,7 +69,7 @@ class App:
     from tankful.game import harness_channel
     processor = harness_channel.CommandProcessor(
       self.input, self.bge.render.makeScreenshot, self.state,
-      self.bge.logic.endGame, self.root)
+      self.bge.logic.endGame, self.root, frame_dt=HARNESS_DT)
     host = os.environ.get('TANKFUL_HARNESS_HOST', '127.0.0.1')
     self.channel = harness_channel.HarnessChannel(processor, port, host)
     log.info('harness listening on %s:%d', host, port)
@@ -74,7 +81,9 @@ class App:
     game_input.feed_from_bge(self.input, bge.logic, bge.events, bge.render)
     if self.channel is not None:
       self.channel.poll()
-    self.tank.step(dt)
+      dt = sim_step(self.channel.processor)
+    if dt:
+      self.tank.step(dt)
     self.scenery.update(self.tank.time, dt)
     self.fishes.update()
     self.input.end_frame()
@@ -99,6 +108,12 @@ class App:
                 'camera_pos': [round(v, 3) for v in cam.worldPosition]
                 if cam else None},
     }
+
+
+def sim_step(processor):
+  """The sim's step this frame under the harness: HARNESS_DT while a
+  wait runs, else 0, holding the sim still."""
+  return HARNESS_DT if processor.waiting else 0.0
 
 
 def profile(logic):

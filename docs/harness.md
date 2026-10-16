@@ -25,7 +25,7 @@ A script is a JSON list of commands, or `{"backend": ..., "commands":
 |---|---|
 | `click X Y [BUTTON]` | a click at window pixel X, Y (top left origin) |
 | `key down NAME`, `key up NAME` | `left`, `right`, `up`, `down`, `l`, `space`, `escape`, ... |
-| `wait 1.5`, `wait 1.5s` | waits game time, in seconds |
+| `wait 1.5`, `wait 1.5s` | waits game time, in seconds (90 frames at the fixed step) |
 | `wait 30f`, `wait 30 frames` | waits a number of frames |
 | `screenshot PATH` | saves the next frame (PATH relative to the project root) |
 | `state` | returns the sim state, input state, window and scene info, the frame rate (`fps`) and the player's frame time by category in ms (`profile`) |
@@ -38,6 +38,33 @@ keyboard and mouse feed, so game code cannot tell them apart and the same
 script behaves the same on every OS.  Screenshots use
 `bge.render.makeScreenshot`.  The game end is
 `tankful/game/harness_channel.py`, polled once per frame without blocking.
+
+## Fixed timestep
+
+Under `--harness` the sim does not step with real frame time, which
+would make each run differ.  It steps a fixed 1/60 s per frame
+(`HARNESS_DT` in `tankful/game/main.py`), and only on frames where a
+`wait` runs; the rest of the time it holds still, though the game keeps
+drawing.  So a script's waits alone set the game time: `wait 1.5` is
+exactly 90 steps, `wait 30f` 30 steps, and the frames spent starting
+up, connecting and going between commands (each command waits for the
+last one's reply) add none.  The same script then gives the same sim
+state, and a screenshot or `state` sees the tank exactly as the waits
+before it left it: `tank.time` is the sum of the waits.
+
+Two consequences:
+
+- Game time no longer follows the clock.  Where the game runs below
+  60 fps, as in the docker backend, `wait 10` takes longer than 10 s
+  (about 160 s at 3.8 fps).
+- Clicks and keys reach the game on the frame they arrive, but the sim
+  only moves during a wait, so follow them with one (`key down left`,
+  `wait 1`, `key up left`).
+
+What the sim does not decide still varies a little between runs: the
+renderer's accumulation of past frames (see the quirks below) depends
+on how many frames were drawn, so screenshots repeat in composition,
+not to the pixel.
 
 ## Display backends
 

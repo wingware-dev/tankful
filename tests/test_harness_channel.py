@@ -94,6 +94,26 @@ class CommandProcessorTests(unittest.TestCase):
     self.game.clock.now += 0.6
     self.assertEqual(self.proc.tick(), [{'id': 1, 'ok': True}])
 
+  def test_wait_seconds_counts_frames_with_fixed_step(self):
+    proc = harness_channel.CommandProcessor(
+      self.game.input, self.game.screenshot, self.game.get_state,
+      self.game.request_quit, self.root, clock=self.game.clock,
+      file_size=self.game.file_size, frame_dt=0.25)
+    proc.submit({'cmd': 'wait', 'seconds': 1.0, 'id': 1})
+    proc.submit({'cmd': 'state', 'id': 2})
+    for _ in range(4):
+      self.game.clock.now += 10.0    # real time doesn't count
+      self.assertEqual(proc.tick(), [])
+      self.assertTrue(proc.waiting)
+    self.assertEqual([r['id'] for r in proc.tick()], [1, 2])
+    self.assertFalse(proc.waiting)
+
+  def test_waiting_only_for_wait_commands(self):
+    self.assertFalse(self.proc.waiting)
+    self.proc.submit({'cmd': 'screenshot', 'path': 'x.png', 'id': 1})
+    self.proc.tick()
+    self.assertFalse(self.proc.waiting)
+
   def test_screenshot_waits_for_file_to_settle(self):
     self.proc.submit({'cmd': 'screenshot', 'path': 'docs/shots/01-a.png',
                       'id': 7})

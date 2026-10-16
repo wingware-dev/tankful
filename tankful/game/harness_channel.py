@@ -31,10 +31,13 @@ class CommandProcessor:
   get_state(): returns a JSON-able dict
   request_quit(): ends the game
   root: directory relative screenshot paths are resolved against
+  frame_dt: the sim's fixed step in seconds, or None when it steps with
+    real time; with it, 'wait SECONDS' waits round(SECONDS / frame_dt)
+    frames, so it covers exactly that much game time
   """
 
   def __init__(self, input_state, screenshot, get_state, request_quit,
-               root, clock=time.monotonic, file_size=None):
+               root, clock=time.monotonic, file_size=None, frame_dt=None):
     self.input = input_state
     self._screenshot = screenshot
     self._get_state = get_state
@@ -42,6 +45,7 @@ class CommandProcessor:
     self.root = root
     self._clock = clock
     self._file_size = file_size or _file_size
+    self.frame_dt = frame_dt
     self._queue = []
     self._busy = None     # (msg, until-test) for wait / screenshot
     self.frame = 0
@@ -50,6 +54,11 @@ class CommandProcessor:
 
   def submit(self, msg):
     self._queue.append(msg)
+
+  @property
+  def waiting(self):
+    """True while a wait command is running, after this frame's tick()."""
+    return self._busy is not None and self._busy[0].get('cmd') == 'wait'
 
   def tick(self):
     """Advance one frame; return the responses that are now ready."""
@@ -93,8 +102,12 @@ class CommandProcessor:
         self.input.key_up(msg['name'])
       return {'ok': True}
     if cmd == 'wait':
-      if 'frames' in msg:
-        end = self.frame + int(msg['frames'])
+      if 'frames' in msg or self.frame_dt:
+        if 'frames' in msg:
+          count = int(msg['frames'])
+        else:
+          count = int(round(float(msg['seconds']) / self.frame_dt))
+        end = self.frame + count
         return lambda: {'ok': True} if self.frame >= end else None
       end = self._clock() + float(msg['seconds'])
       return lambda: {'ok': True} if self._clock() >= end else None
