@@ -159,7 +159,7 @@ def skin(obj, rig):
 
 # The body
 
-def add_body(mb, shape, rings=30, sides=26):
+def add_body(mb, shape, rings=30, sides=26, mat_index=0):
   def weights(x):
     return spine_weights(x, shape.joints)
 
@@ -177,19 +177,19 @@ def add_body(mb, shape, rings=30, sides=26):
       p = (x, half * s * (1 - shape.lens * c * c), mid + hh * c)
       row.append(mb.vert(p, (u, j / sides), weights(x)))
     rows.append(row)
-  mb.grid(rows, flip=True)
+  mb.grid(rows, mat_index, flip=True)
   # Close the snout to a point, and the tail's base flat
   top, bot, _ = profile(0.0, shape)
   tip = mb.vert((body_x(0.0, shape) + 0.006, 0.0, (top + bot) / 2),
                 (0.0, 0.5), weights(shape.snout_x))
   for j in range(sides):
-    mb.face([tip, rows[0][j + 1], rows[0][j]][::-1])
+    mb.face([tip, rows[0][j + 1], rows[0][j]][::-1], mat_index)
   last = rows[-1]
   top, bot, _ = profile(1.0, shape)
   end = mb.vert((body_x(1.0, shape) - 0.004, 0.0, (top + bot) / 2),
                 (1.0, 0.5), weights(body_x(1.0, shape)))
   for j in range(sides):
-    mb.face([end, last[j], last[j + 1]][::-1])
+    mb.face([end, last[j], last[j + 1]][::-1], mat_index)
 
 
 def add_eye(mb, side, mat_index, shape, segments=16, rings=10, u=0.13,

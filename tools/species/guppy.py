@@ -411,13 +411,8 @@ def build_shoal(scene, name, members, body_mats, fin_mats):
     for mb in (body, fins):
       mb.scale = res.species.length * res.size
       mb.prefix = res.name + ':'
-    first = len(body.bm.faces)
-    scene_fish.add_body(body, rings=16, sides=12, shape=shape)
-    if male:
-      # add_body makes its faces with the first slot
-      body.bm.faces.ensure_lookup_table()
-      for i in range(first, len(body.bm.faces)):
-        body.bm.faces[i].material_index = BODY_MALE
+    scene_fish.add_body(body, rings=16, sides=12, shape=shape,
+                        mat_index=BODY_MALE if male else BODY_FEMALE)
     for side in (1, -1):
       scene_fish.add_eye(body, side, EYE, segments=10, rings=6, shape=shape,
                          u=0.11, r=0.05, height=0.62)
