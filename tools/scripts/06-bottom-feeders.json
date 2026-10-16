@@ -1,0 +1,15 @@
+{
+  "commands": [
+    "wait 60f",
+    "state",
+    "wait 600f",
+    "wait 600f",
+    "wait 600f",
+    "wait 60f",
+    "state",
+    "screenshot docs/shots/06-bottom-feeders.png",
+    "wait 30f",
+    "state",
+    "quit"
+  ]
+}
