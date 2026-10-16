@@ -4,11 +4,30 @@
 # Wing project file                                              #
 ##################################################################
 [project attributes]
+debug.named-entry-points = (1,
+                            {'build-scene': ({},
+        {'auto-show': True,
+         'launch-id': ('project',
+                       ('',
+                        '')),
+         'loc': loc('tools/build_scene.py')}),
+                             'harness': ({},
+        {'auto-show': True,
+         'launch-id': ('project',
+                       ('',
+                        '')),
+         'loc': loc('tools/harness.py')})})
 proj.directory-list = [{'dirloc': loc('.'),
-                        'excludes': (),
+                        'excludes': ['build',
+                                     'vendor'],
                         'filter': '*',
                         'include_hidden': False,
                         'recursive': True,
                         'watch_for_changes': True}]
 proj.file-type = 'shared'
+proj.main-file = loc('run_tankful.py')
 testing.auto-discover = True
+testing.excluded-test-file-specs = (('glob',
+                                     '*/site-packages/*'),
+                                    ('glob',
+                                     '*/vendor/*'))

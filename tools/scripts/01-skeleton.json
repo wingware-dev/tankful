@@ -1,0 +1,12 @@
+{
+  "commands": [
+    "wait 60f",
+    "state",
+    "click 640 360",
+    "key down left",
+    "state",
+    "key up left",
+    "screenshot docs/shots/01-skeleton.png",
+    "quit"
+  ]
+}
