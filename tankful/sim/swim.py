@@ -36,6 +36,12 @@ BEND = (0.05, 0.07, 0.07, 0.05)
 MAX_BEND = 0.5
 
 
+def bones(species):
+  """The bones of the species' rig: all of BONES for the angelfish; the
+  spine alone for a small fish whose fins are too small to stroke."""
+  return BONES if species.model == 'angelfish' else ('Head',) + SPINE
+
+
 def spine_angles(wave, phase, yaw_rate=0.0):
   """Each spine bone's rotation about its z, relative to its parent.
 

@@ -41,10 +41,6 @@ CRUISE, HOVER = 'cruise', 'hover'
 MAX_STEP = 0.1
 # How far ahead of its walls and decor a fish starts to steer
 MARGIN = 0.10
-# How fast the heading rate itself may change (rad/s^2): turns ease in
-TURN_ACCEL = 2.5
-# How fast the bank follows the turn (rad/s)
-ROLL_RATE = 0.7
 # Fish nearer than this many lengths (the longer one's) push apart;
 # farther than COHESION meters they drift together
 SEPARATION = 1.4
@@ -56,6 +52,9 @@ MIN_CRUISE = 6.0
 
 
 class Fish:
+
+  # The tankful.sim.school.School the fish swims in, if any
+  school = None
 
   def __init__(self, name, species, size=1.0, seed=0, position=(0, 0, 0.25),
                heading=0.0):
@@ -88,6 +87,10 @@ class Fish:
     self._depth = SmoothNoise(seed * 7 + 2, species.wander_frequency * 0.5)
     self._pace = SmoothNoise(seed * 7 + 3, species.wander_frequency * 1.3)
     self._obstacles = env.obstacles()
+    # Each obstacle's bounding box, to pass over the far ones quickly
+    self._boxes = [tuple((min(o.a[i], o.b[i]) - o.radius,
+                          max(o.a[i], o.b[i]) + o.radius) for i in range(3))
+                   for o in self._obstacles]
     self._limit_position()
 
   # Limits, scaled with the fish
@@ -128,6 +131,17 @@ class Fish:
     """How near the center may come to an obstacle's axis."""
     pad = self.species.clear_side * self.size * (0.5 if obstacle.soft else 1.0)
     return obstacle.radius + pad
+
+  def _obstacles_near(self, pos, pad):
+    """The obstacles that may come within the fish's clearance plus pad
+    of pos."""
+    reach = pad + self.species.clear_side * self.size
+    x, y, z = pos
+    for obstacle, ((x0, x1), (y0, y1), (z0, z1)) in zip(self._obstacles,
+                                                        self._boxes):
+      if (x0 - reach < x < x1 + reach and y0 - reach < y < y1 + reach
+          and z0 - reach < z < z1 + reach):
+        yield obstacle
 
   # The step
 
@@ -171,19 +185,29 @@ class Fish:
     """The direction the fish wants to go (a unit vector), and its target
     height."""
     s = self.species
-    pos = (self.x, self.y, self.z)
     wander = self._wander(self.time) * s.wander_turn
     if self.mode == HOVER:
       wander *= 0.4
     h = self.yaw + wander
     want = [math.cos(h), math.sin(h), 0.0]
-
-    (x0, x1), (y0, y1), (z0, z1) = self.bounds()
-    lo, hi = s.depth_band
-    frac = lo + (hi - lo) * (0.5 + 0.5 * self._depth(self.time))
-    z_want = z0 + (z1 - z0) * frac
+    z_want = self._depth_target()
     want[2] = vec.clamp((z_want - self.z) / 0.08, -1.0, 1.0) * 0.45
+    self.danger = self._steer_clear(want)
+    self._mind_others(want, others)
+    return vec.normalized(tuple(want), self.forward()), z_want
 
+  def _depth_target(self):
+    lo, hi = self.species.depth_band
+    _, _, (z0, z1) = self.bounds()
+    frac = lo + (hi - lo) * (0.5 + 0.5 * self._depth(self.time))
+    return z0 + (z1 - z0) * frac
+
+  def _steer_clear(self, want):
+    """Add to want the pushes off the glass, sand, surface and decor near
+    the fish or a look-ahead point; return how near the nearest is (0 to
+    1, the danger)."""
+    pos = (self.x, self.y, self.z)
+    (x0, x1), (y0, y1), (z0, z1) = self.bounds()
     # Look ahead along the heading, further when faster
     look = 0.04 + self.speed * 1.2
     fwd = self.forward()
@@ -200,7 +224,7 @@ class Fish:
             want[axis] += sign * w
             danger = max(danger, min(1.0, near))
 
-    for obstacle in self._obstacles:
+    for obstacle in self._obstacles_near(pos, MARGIN + look):
       clear = self.clearance(obstacle)
       for p in (pos, ahead):
         c = vec.closest_on_segment(p, obstacle.a, obstacle.b)
@@ -213,9 +237,15 @@ class Fish:
           for axis in range(3):
             want[axis] += away[axis] * w
           danger = max(danger, min(1.0, near) * (0.5 if obstacle.soft else 1))
+    return danger
 
+  def _mind_others(self, want, others, skip=()):
+    """Add to want the pull apart from fish too near, and, for fish of
+    its own species, together when far apart.  A much smaller fish of
+    another kind pushes less."""
+    fwd = self.forward()
     for other in others:
-      if other is self:
+      if other is self or other in skip:
         continue
       off = (self.x - other.x, self.y - other.y, self.z - other.z)
       d = vec.length(off)
@@ -223,15 +253,14 @@ class Fish:
       if d < sep:
         away = vec.normalized(off, (-fwd[0], -fwd[1], 0.0))
         w = (1.0 - d / sep) ** 2 * 3.0
+        if other.species is not self.species:
+          w *= min(1.0, other.length / self.length)
         for axis in range(3):
           want[axis] += away[axis] * w
-      elif d > COHESION:
+      elif d > COHESION and other.species is self.species:
         toward = vec.scale(vec.normalized(off), -0.12)
         for axis in range(3):
           want[axis] += toward[axis]
-
-    self.danger = danger
-    return vec.normalized(tuple(want), fwd), z_want
 
   def _turn(self, dt, want):
     s = self.species
@@ -253,7 +282,7 @@ class Fish:
     if self.mode == HOVER:
       limit = min(limit, s.pivot_rate * 0.5)
     target = vec.clamp(err * 1.4, -limit, limit)
-    step = TURN_ACCEL * dt
+    step = s.turn_accel * dt
     self.yaw_rate += vec.clamp(target - self.yaw_rate, -step, step)
     self.yaw_rate = vec.clamp(self.yaw_rate, -limit, limit)
     self.yaw = vec.wrap_angle(self.yaw + self.yaw_rate * dt)
@@ -273,17 +302,7 @@ class Fish:
 
   def _swim(self, dt, want):
     s = self.species
-    if self.mode == HOVER:
-      target = s.hover_speed * self.size
-      glide = s.glide_time * 0.35
-    else:
-      pace = 0.8 + 0.35 * self._pace(self.time)
-      fwd = self.forward()
-      # Slow down to turn hard, and near walls and decor
-      along = vec.dot(fwd, want)
-      target = (self.cruise_speed * pace * (0.55 + 0.45 * max(0.0, along))
-                * (1.0 - 0.45 * self.danger))
-      glide = s.glide_time
+    target, glide = self._target_speed(want)
     # Burst and glide: stroke up past the target, then coast down below it
     if self.speed < target * 0.8:
       self.stroking = True
@@ -297,12 +316,25 @@ class Fish:
              - self.speed / glide)
     self.speed = vec.clamp(self.speed + accel * dt, 0.0, top)
 
+  def _target_speed(self, want):
+    """The speed the fish strokes toward, and its glide time."""
+    s = self.species
+    if self.mode == HOVER:
+      return s.hover_speed * self.size, s.glide_time * 0.35
+    pace = 0.8 + 0.35 * self._pace(self.time)
+    fwd = self.forward()
+    # Slow down to turn hard, and near walls and decor
+    along = vec.dot(fwd, want)
+    target = (self.cruise_speed * pace * (0.55 + 0.45 * max(0.0, along))
+              * (1.0 - 0.45 * self.danger))
+    return target, s.glide_time
+
   def _bank(self, dt):
     s = self.species
     # Into the turn: turning left (yaw_rate > 0), the back leans left
     lean = self.yaw_rate * self.speed / (0.8 * self.cruise_speed)
     target = -s.max_bank * vec.clamp(lean, -1.0, 1.0)
-    step = ROLL_RATE * dt
+    step = s.roll_rate * dt
     self.roll += vec.clamp(target - self.roll, -step, step)
     self.roll = vec.clamp(self.roll, -s.max_bank, s.max_bank)
 
@@ -330,12 +362,18 @@ class Fish:
         continue
       off = (self.x - other.x, self.y - other.y, self.z - other.z)
       d = vec.length(off)
-      gap = MIN_GAP * max(self.length, other.length)
+      if other.species is self.species:
+        gap = MIN_GAP * max(self.length, other.length)
+        share = 0.5
+      else:
+        gap = MIN_GAP * 0.5 * (self.length + other.length)
+        share = other.length / (self.length + other.length)
       if d < gap:
-        # Each fish takes half the overlap on its own step
+        # Each fish takes its share of the overlap on its own step: half,
+        # or the smaller fish most of it
         away = vec.normalized(off, (0.0, 1.0 if self.y >= other.y else -1.0,
                                     0.0))
-        push = vec.scale(away, (gap - d) * 0.5)
+        push = vec.scale(away, (gap - d) * share)
         self.x, self.y, self.z = vec.add((self.x, self.y, self.z), push)
 
   def _limit_position(self):
@@ -346,7 +384,7 @@ class Fish:
       self._clamp_to_bounds()
       pos = (self.x, self.y, self.z)
       moved = False
-      for obstacle in self._obstacles:
+      for obstacle in self._obstacles_near(pos, 0.0):
         c = vec.closest_on_segment(pos, obstacle.a, obstacle.b)
         off = vec.sub(pos, c)
         clear = self.clearance(obstacle)

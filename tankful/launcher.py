@@ -19,6 +19,7 @@ BUILD_SCRIPT = os.path.join(ROOT, 'tools', 'build_scene.py')
 SCENE_SOURCES = (BUILD_SCRIPT,
                  os.path.join(ROOT, 'tools', 'scene_env.py'),
                  os.path.join(ROOT, 'tools', 'scene_fish.py'),
+                 os.path.join(ROOT, 'tools', 'scene_tetra.py'),
                  os.path.join(ROOT, 'tankful', 'sim', 'environment.py'),
                  os.path.join(ROOT, 'tankful', 'sim', 'bubbles.py'),
                  os.path.join(ROOT, 'tankful', 'sim', 'species.py'))

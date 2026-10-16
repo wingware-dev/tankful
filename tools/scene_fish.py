@@ -18,6 +18,7 @@ Both meshes carry a Pattern UV map holding each vertex's rest x and z
 and stay put on the skin as the body bends.
 """
 
+import collections
 import math
 
 import bpy
@@ -52,14 +53,23 @@ JOINTS = (0.25, 0.10, -0.03, -0.16)
 TAIL_END = -0.47
 CHAIN = ('Head', 'Spine.0', 'Spine.1', 'Spine.2', 'Tail')
 
+# A body's build: its side profile (as ANGEL_BODY), where the snout is
+# and how long the body is to the tail's base, the spine's joints and the
+# tail fin's end (all in lengths), and how much flatter than an ellipse
+# its cross-section is along the back and belly
+Shape = collections.namedtuple('Shape',
+                               'body snout_x body_len joints tail_end lens')
+ANGEL = Shape(ANGEL_BODY, SNOUT_X, BODY_LEN, JOINTS, TAIL_END, 0.22)
 
-def body_x(u):
-  return SNOUT_X - BODY_LEN * u
+
+def body_x(u, shape=ANGEL):
+  return shape.snout_x - shape.body_len * u
 
 
-def profile(u):
-  """(top, bottom, half-width) at u, by Catmull-Rom through ANGEL_BODY."""
-  pts = ANGEL_BODY
+def profile(u, shape=ANGEL):
+  """(top, bottom, half-width) at u, by Catmull-Rom through the shape's
+  body profile."""
+  pts = shape.body
   u = min(1.0, max(0.0, u))
   for i in range(len(pts) - 1):
     if pts[i + 1][0] >= u:
@@ -80,11 +90,11 @@ def profile(u):
   return tuple(out)
 
 
-def spine_weights(x, blend=0.05):
+def spine_weights(x, blend=0.05, joints=JOINTS):
   """{bone: weight} for a point at x: the spine bone over it, blended
   across each joint."""
-  # Bone k spans JOINTS[k-1] .. JOINTS[k] (Head ahead of the first joint)
-  edges = (math.inf,) + JOINTS + (-math.inf,)
+  # Bone k spans joints[k-1] .. joints[k] (Head ahead of the first joint)
+  edges = (math.inf,) + tuple(joints) + (-math.inf,)
   weights = {}
   for k, bone in enumerate(CHAIN):
     hi, lo = edges[k], edges[k + 1]
@@ -100,10 +110,14 @@ def spine_weights(x, blend=0.05):
 
 
 class MeshBuilder:
-  """A bmesh with a UVMap, a Pattern map and bone weights."""
+  """A bmesh with a UVMap, a Pattern map and bone weights.
 
-  def __init__(self, scale):
+  Vertices are scaled by scale, and their bones' names prefixed with
+  prefix: change them to add several fish to one mesh."""
+
+  def __init__(self, scale, prefix=''):
     self.scale = scale
+    self.prefix = prefix
     self.bm = bmesh.new()
     self.uv = self.bm.loops.layers.uv.new('UVMap')
     self.pattern = self.bm.loops.layers.uv.new('Pattern')
@@ -116,7 +130,7 @@ class MeshBuilder:
     v = self.bm.verts.new(Vector(p) * self.scale)
     dv = v[self.deform]
     for bone, w in weights.items():
-      dv[self.groups.setdefault(bone, len(self.groups))] = w
+      dv[self.groups.setdefault(self.prefix + bone, len(self.groups))] = w
     self.info[v] = (uv, (p[0], p[2]))
     return v
 
@@ -147,50 +161,63 @@ class MeshBuilder:
     obj = link_object(scene, name, mesh, parent)
     for bone, _ in sorted(self.groups.items(), key=lambda kv: kv[1]):
       obj.vertex_groups.new(name=bone)
-    mod = obj.modifiers.new('Rig', 'ARMATURE')
-    mod.object = parent
+    skin(obj, parent)
     return obj
+
+
+def skin(obj, rig):
+  """Deform obj by rig, on the GPU."""
+  mod = obj.modifiers.new('Rig', 'ARMATURE')
+  mod.object = rig
+  # UPBGE's GPU skinning
+  if hasattr(mod, 'use_gpu_deform'):
+    mod.use_gpu_deform = True
+  return mod
 
 
 # The body
 
-def add_body(mb, rings=30, sides=26):
+def add_body(mb, rings=30, sides=26, shape=ANGEL):
+  def weights(x):
+    return spine_weights(x, joints=shape.joints)
+
   rows = []
   for i in range(rings):
     u = 0.012 + (1.0 - 0.012) * (i / (rings - 1)) ** 1.1
-    top, bot, half = profile(u)
-    x = body_x(u)
+    top, bot, half = profile(u, shape)
+    x = body_x(u, shape)
     mid, hh = (top + bot) / 2, (top - bot) / 2
     row = []
     for j in range(sides + 1):
       phi = 2 * math.pi * j / sides
       c, s = math.cos(phi), math.sin(phi)
       # A lens more than an ellipse: thin along the back and belly
-      p = (x, half * s * (1 - 0.22 * c * c), mid + hh * c)
-      row.append(mb.vert(p, (u, j / sides), spine_weights(x)))
+      p = (x, half * s * (1 - shape.lens * c * c), mid + hh * c)
+      row.append(mb.vert(p, (u, j / sides), weights(x)))
     rows.append(row)
   mb.grid(rows, flip=True)
   # Close the snout to a point, and the tail's base flat
-  top, bot, _ = profile(0.0)
-  tip = mb.vert((body_x(0.0) + 0.006, 0.0, (top + bot) / 2), (0.0, 0.5),
-                spine_weights(SNOUT_X))
+  top, bot, _ = profile(0.0, shape)
+  tip = mb.vert((body_x(0.0, shape) + 0.006, 0.0, (top + bot) / 2),
+                (0.0, 0.5), weights(shape.snout_x))
   for j in range(sides):
     mb.face([tip, rows[0][j + 1], rows[0][j]][::-1])
   last = rows[-1]
-  top, bot, _ = profile(1.0)
-  end = mb.vert((body_x(1.0) - 0.004, 0.0, (top + bot) / 2), (1.0, 0.5),
-                spine_weights(body_x(1.0)))
+  top, bot, _ = profile(1.0, shape)
+  end = mb.vert((body_x(1.0, shape) - 0.004, 0.0, (top + bot) / 2),
+                (1.0, 0.5), weights(body_x(1.0, shape)))
   for j in range(sides):
     mb.face([end, last[j], last[j + 1]][::-1])
 
 
-def add_eye(mb, side, mat_index, segments=16, rings=10):
-  """An eye on side (+1 left, -1 right): a squashed sphere whose UV V runs
-  from the pupil (0) out to the back (1)."""
-  u = 0.13
-  top, bot, half = profile(u)
-  r = 0.036
-  center = Vector((body_x(u), side * half * 0.78, bot + (top - bot) * 0.6))
+def add_eye(mb, side, mat_index, segments=16, rings=10, shape=ANGEL, u=0.13,
+            r=0.036, height=0.6):
+  """An eye on side (+1 left, -1 right) at u along the body, height of the
+  way from belly to back: a squashed sphere whose UV V runs from the
+  pupil (0) out to the back (1)."""
+  top, bot, half = profile(u, shape)
+  center = Vector((body_x(u, shape), side * half * 0.78,
+                   bot + (top - bot) * height))
   axis = Vector((0, side, 0))
   a = Vector((1, 0, 0))
   b = axis.cross(a)
@@ -458,31 +485,51 @@ def body_material(caustic):
   return mat
 
 
-def eye_material():
-  mat, t, out = new_material('AngelfishEye')
+# The angelfish's eye, pupil (0) to the back (1): black, then a red iris
+# ringed with orange, then silver
+ANGEL_EYE = ((0.0, (0.005, 0.005, 0.005)), (0.17, (0.01, 0.008, 0.008)),
+             (0.21, (0.45, 0.06, 0.03)), (0.30, (0.72, 0.22, 0.06)),
+             (0.36, (0.55, 0.52, 0.45)), (1.0, (0.40, 0.40, 0.38)))
+
+
+def eye_material(name='AngelfishEye', stops=ANGEL_EYE):
+  mat, t, out = new_material(name)
   uv = t.add('ShaderNodeUVMap', {'uv_map': 'UVMap'})
   v = t.add('ShaderNodeSeparateXYZ')
   t.link(uv.outputs['UV'], v.inputs[0])
-  color = t.ramp(v.outputs['Y'], [(0.0, (0.005, 0.005, 0.005)),
-                                  (0.17, (0.01, 0.008, 0.008)),
-                                  (0.21, (0.45, 0.06, 0.03)),
-                                  (0.30, (0.72, 0.22, 0.06)),
-                                  (0.36, (0.55, 0.52, 0.45)),
-                                  (1.0, (0.40, 0.40, 0.38))])
+  color = t.ramp(v.outputs['Y'], list(stops))
   bsdf = t.add('ShaderNodeBsdfPrincipled', Roughness=0.12)
   t.link(color, bsdf.inputs['Base Color'])
-  for name, value in (('Coat Weight', 1.0), ('Specular IOR Level', 0.8)):
-    if name in bsdf.inputs:
-      bsdf.inputs[name].default_value = value
+  for key, value in (('Coat Weight', 1.0), ('Specular IOR Level', 0.8)):
+    if key in bsdf.inputs:
+      bsdf.inputs[key].default_value = value
   t.link(bsdf.outputs[0], out.inputs['Surface'])
   return mat
 
 
-def fin_material(name, caustic, alpha, clear, ray_alpha=0.12):
-  """Translucent fins, the bars running on into them, rays faintly
-  darker."""
-  mat, t, out = new_material(name, blended=True)
-  mat.use_transparency_overlap = True
+# What a translucent fin lets through, for the opaque fins to blend
+# toward: the water as it looks behind a fish
+WATER_TINT = (0.30, 0.42, 0.45, 1.0)
+
+
+def fin_material(name, alpha, clear, ray_alpha=0.12, opaque=False):
+  """Fins, the bars running on into them, rays faintly darker.
+
+  Fins have no caustics: the moving pattern on a moving sheet cost about
+  3 fps for the two angelfish and showed only as shimmer.  opaque fins
+  are drawn solid, with their color blended toward WATER_TINT where they
+  would be clear, and only their outer edge faded out (dithered): the
+  player's frame accumulation (TAA) has no motion for blended surfaces,
+  so a moving blended fin with dark bars breaks up into blocks and
+  speckle (docs/harness.md).  Blended fins suit only nearly clear ones,
+  such as the pectorals, with no detail to break up.
+  """
+  mat, t, out = new_material(name, blended=not opaque)
+  if opaque:
+    mat.surface_render_method = 'DITHERED'
+    mat.use_backface_culling = False
+  else:
+    mat.use_transparency_overlap = True
   x, z, dark = angel_bars(t)
   uv = t.add('ShaderNodeUVMap', {'uv_map': 'UVMap'})
   sr = t.add('ShaderNodeSeparateXYZ')
@@ -496,11 +543,13 @@ def fin_material(name, caustic, alpha, clear, ray_alpha=0.12):
               From_Max=0.93, To_Min=0.0, To_Max=0.45 * clear).outputs[0]
   dark = t.math('MAXIMUM', t.math('MULTIPLY', dark, clear), rim)
   color = t.mix(dark, color, (0.02, 0.02, 0.025, 1.0))
-  bsdf = scene_env.lit_surface(t, out, color, caustic_node(t, caustic),
-                               roughness=0.35, strength=0.7)
   a = t.math('ADD', alpha, t.math('ADD', t.math('MULTIPLY', dark, 0.5),
                                   t.math('MULTIPLY', rays, ray_alpha)),
              clamp=True)
+  if opaque:
+    color = t.mix(a, WATER_TINT, color)
+  bsdf = scene_env.lit_surface(t, out, color, 0.0, roughness=0.35,
+                               strength=0.7)
   # Fade out at the very edge: the player's frame accumulation leaves a
   # hard edge on a moving sheet stair-stepped
   fade = t.add('ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'},
@@ -511,7 +560,8 @@ def fin_material(name, caustic, alpha, clear, ray_alpha=0.12):
   fade = t.math('MULTIPLY', fade, t.add(
     'ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'}, Value=side,
     From_Min=0.45, From_Max=0.5, To_Min=1.0, To_Max=0.0).outputs[0])
-  t.link(t.math('MULTIPLY', a, fade), bsdf.inputs['Alpha'])
+  t.link(fade if opaque else t.math('MULTIPLY', a, fade),
+         bsdf.inputs['Alpha'])
   return mat
 
 
@@ -523,11 +573,13 @@ def build_fish(scene, caustic=None):
   mats = {
     'body': body_material(caustic),
     'eye': eye_material(),
-    'fin': fin_material('AngelfishFin', caustic, 0.62, 1.0),
-    'pec': fin_material('AngelfishPectoral', caustic, 0.04, 0.0, 0.05),
+    'fin': fin_material('AngelfishFin', 0.62, 1.0, opaque=True),
+    'pec': fin_material('AngelfishPectoral', 0.04, 0.0, 0.05),
   }
   for res in sim_species.residents():
     build_one(scene, res, mats)
+  import scene_tetra
+  scene_tetra.build_schools(scene)
 
 
 def build_one(scene, res, mats):

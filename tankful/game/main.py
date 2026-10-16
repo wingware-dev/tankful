@@ -14,6 +14,7 @@ from tankful.game import input as game_input
 from tankful.game.fishes import Fishes
 from tankful.game.scenery import Scenery
 from tankful.sim import fish as sim_fish
+from tankful.sim import school as sim_school
 from tankful.sim.tank import Tank
 
 log = logging.getLogger('tankful')
@@ -46,6 +47,7 @@ class App:
         self.offscreen.hide_offscreen(size)
     self.tank = Tank()
     sim_fish.stock(self.tank)
+    sim_school.stock(self.tank)
     scene = bge.logic.getCurrentScene()
     self.scenery = Scenery(scene)
     self.fishes = Fishes(scene, self.tank.fish)
@@ -86,15 +88,24 @@ class App:
       'window_frames': frames,
       'tank': self.tank.snapshot(),
       'scenery': self.scenery.snapshot(),
+      'fishes': self.fishes.snapshot(),
       'input': self.input.snapshot(),
       'window': [render.getWindowWidth(), render.getWindowHeight()],
       'fps': round(self.bge.logic.getAverageFrameRate(), 1),
+      'profile': profile(self.bge.logic),
       'scene': {'name': scene.name,
                 'objects': len(scene.objects),
                 'camera': cam.name if cam else None,
                 'camera_pos': [round(v, 3) for v in cam.worldPosition]
                 if cam else None},
     }
+
+
+def profile(logic):
+  """The player's frame time by category, in ms: {'Rasterizer': 15.4,
+  ...}, for frame budgets (docs/harness.md)."""
+  info = logic.getProfileInfo()
+  return {name.rstrip(':'): round(times[0], 2) for name, times in info.items()}
 
 
 def parse_size(text):

@@ -16,6 +16,9 @@ class Tank:
     self.time = 0.0
     self.frame = 0
     self.fish = []
+    # Groups of fish that swim together (tankful.sim.school); their
+    # members are in fish too
+    self.schools = []
     self.light_on = True
 
   def step(self, dt):
@@ -23,8 +26,12 @@ class Tank:
       raise ValueError('dt must not be negative: %r' % dt)
     self.time += dt
     self.frame += 1
+    for school in self.schools:
+      school.step(dt)
     for fish in self.fish:
       fish.step(dt, self.fish)
+    for school in self.schools:
+      school.settle()
 
   def snapshot(self):
     """Return the state as plain JSON-able data, for harness assertions."""
@@ -34,4 +41,5 @@ class Tank:
       'size': [self.width, self.depth, self.height],
       'light_on': self.light_on,
       'fish': [f.snapshot() for f in self.fish],
+      'schools': [s.snapshot() for s in self.schools],
     }

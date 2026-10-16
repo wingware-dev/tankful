@@ -28,7 +28,7 @@ A script is a JSON list of commands, or `{"backend": ..., "commands":
 | `wait 1.5`, `wait 1.5s` | waits game time, in seconds |
 | `wait 30f`, `wait 30 frames` | waits a number of frames |
 | `screenshot PATH` | saves the next frame (PATH relative to the project root) |
-| `state` | returns the sim state, input state, window and scene info |
+| `state` | returns the sim state, input state, window and scene info, the frame rate (`fps`) and the player's frame time by category in ms (`profile`) |
 | `quit` | ends the game (added at the end if a script leaves it out) |
 
 Commands run in order, one per frame at most for wait and screenshot, so
@@ -176,3 +176,57 @@ neither was tried.
   caustic projection in their shaders cost about as much again.  The fish
   now cast no shadows (`tools/scene_fish.py`), which brings the
   frame rate back to 52-55.  These readings vary by about 2 fps between runs.
+- Every object that moves costs time of its own, shadow or not:
+  fifteen neon tetras built as separate rigs (an armature with a body
+  and a fin mesh each, 45 moving objects) took the frame rate from
+  about 53 to 45, and still about 47 with no skinning at all, or with
+  the light's shadows off.  Built as one armature for the whole school,
+  each member's bones under a Root bone that the game places and turns
+  (`tools/scene_tetra.py`, `tankful/game/fishes.py`), they cost about
+  2 fps.  UPBGE's `use_gpu_deform` on the Armature modifier made no
+  measurable difference either way; it is on.
+- The player re-evaluates an armature's pose only when its object has
+  moved that frame: setting bone channels and calling `update()` on a
+  rig that stays put leaves it frozen in its first pose.  `fishes.py`
+  sets the school rig's `worldPosition` (to where it already is) each
+  frame.
+- Blended surfaces get no motion vectors, so the frame accumulation
+  reprojects a moving blended fin with whatever is behind it and
+  clamps the result: fins with dark bars break up into blocks and
+  speckle along the bars.  Taking the fins out of the shadowed light
+  (light linking, with a shadowless twin light for them) made no
+  difference; dithered transparency was grainier still and cost about
+  4 fps.  Drawing the angelfish's dorsal, anal and caudal fins opaque
+  (dithered, so only their faded outer edge is see-through), with their
+  color blended toward the water's where they would be clear, makes
+  them clean (`fin_material` in `tools/scene_fish.py`).  Only nearly
+  clear fins with no detail, the angelfish's pectorals and the tetras'
+  fins, stay blended.
+- The caustic projection on the fins cost about 3 fps for the two
+  angelfish (a moving pattern on moving sheets), so fins have none.
+
+## Frame budget
+
+The game should hold 48 fps or better on this Mac (M2 Pro) with every
+fish in.  Measure with a script of waits and `state` commands; take the
+later readings, since `fps` is a running average that starts low:
+
+    {"commands": ["wait 120f", "wait 4", "state", "wait 4", "state", "quit"]}
+
+| Tank (2026-10-16) | fps | Logic / Depsgraph / Rasterizer (ms) |
+|---|---|---|
+| Two angelfish (step 3) | 52-54 | |
+| Plus 15 tetras as 45 separate objects | 44-46 | 1.7 / 3.5 / 18.0 |
+| Plus 15 tetras as one school object | 48-52 | |
+| The same, with opaque angelfish fins and no caustics on fins | 53-56 | 1.9 / 2.7 / 13.0 |
+
+So for more fish:
+
+- Small fish that come in numbers go in one object per group, as the
+  school does.  A fish with its own rig costs about 0.4 fps.
+- Small fish get a plain material: no caustic projection and no thin
+  film (`tools/scene_tetra.py`).
+- No fish casts a shadow.
+- The sim's step for 17 fish takes about 1 ms (`Logic`); it checks the
+  decor only near each fish, and school members' bodies only against
+  near neighbors.
