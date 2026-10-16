@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest import mock
 
 from tankful import launcher
 
@@ -176,6 +177,29 @@ class SceneAndCommandTests(unittest.TestCase):
     i = cmd.index(launcher.DOCKER_IMAGE)
     self.assertEqual(cmd[i + 1:], ['python3', '/tankful/run_tankful.py',
                                    '--backend', 'xvfb', '--harness', '7'])
+
+  def test_ensure_docker_image_rebuilds_on_dockerfile_change(self):
+    digest = launcher.dockerfile_digest()
+    calls = []
+
+    def run(cmd, **kw):
+      return mock.Mock(returncode=0, stdout=label + '\n')
+
+    def call(cmd):
+      calls.append(cmd)
+      return 0
+
+    with mock.patch.object(launcher.shutil, 'which', return_value='docker'), \
+         mock.patch.object(launcher.subprocess, 'run', run), \
+         mock.patch.object(launcher.subprocess, 'call', call), \
+         mock.patch('builtins.print'):
+      label = digest
+      self.assertEqual(launcher.ensure_docker_image(), 0)
+      self.assertEqual(calls, [])
+      label = 'old'
+      self.assertEqual(launcher.ensure_docker_image(), 0)
+    self.assertEqual(len(calls), 1)
+    self.assertIn('%s=%s' % (launcher.DOCKER_LABEL, digest), calls[0])
 
   def test_free_display(self):
     taken = {'/tmp/.X11-unix/X99', '/tmp/.X100-lock'}

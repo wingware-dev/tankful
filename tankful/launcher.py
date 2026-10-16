@@ -5,6 +5,7 @@ Nothing here runs inside the game engine.
 """
 
 import collections
+import hashlib
 import os
 import shutil
 import socket
@@ -17,8 +18,10 @@ BLEND = os.path.join(ROOT, 'build', 'tankful.blend')
 BUILD_SCRIPT = os.path.join(ROOT, 'tools', 'build_scene.py')
 SCENE_SOURCES = (BUILD_SCRIPT,
                  os.path.join(ROOT, 'tools', 'scene_env.py'),
+                 os.path.join(ROOT, 'tools', 'scene_fish.py'),
                  os.path.join(ROOT, 'tankful', 'sim', 'environment.py'),
-                 os.path.join(ROOT, 'tankful', 'sim', 'bubbles.py'))
+                 os.path.join(ROOT, 'tankful', 'sim', 'bubbles.py'),
+                 os.path.join(ROOT, 'tankful', 'sim', 'species.py'))
 WINDOW = (1280, 720)
 
 # Where and how big -w first makes the offscreen window.  The player
@@ -31,6 +34,8 @@ OFFSCREEN_START_SIZE = (320, 200)
 
 DOCKER_IMAGE = 'tankful-upbge'
 DOCKER_ROOT = '/tankful'
+# Image label holding dockerfile_digest(), so a changed Dockerfile rebuilds
+DOCKER_LABEL = 'tankful.dockerfile'
 
 BACKENDS = ('window', 'offscreen', 'xvfb', 'docker')
 
@@ -213,16 +218,27 @@ def start_xvfb(window=WINDOW):
   raise LaunchError('Xvfb did not start')
 
 
+def dockerfile_digest(root=ROOT):
+  """sha256 of tools/docker/Dockerfile, kept as a label on the image."""
+  with open(os.path.join(root, 'tools', 'docker', 'Dockerfile'), 'rb') as f:
+    return hashlib.sha256(f.read()).hexdigest()
+
+
 def ensure_docker_image(root=ROOT, image=DOCKER_IMAGE):
-  """Build the container image unless it exists; return the exit code."""
+  """Build the container image unless it exists and was built from the
+  current Dockerfile; return the exit code."""
   if not shutil.which('docker'):
     raise LaunchError('docker not found')
-  have = subprocess.run(['docker', 'image', 'inspect', image],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-  if have.returncode == 0:
+  digest = dockerfile_digest(root)
+  have = subprocess.run(['docker', 'image', 'inspect', '--format',
+                         '{{index .Config.Labels "%s"}}' % DOCKER_LABEL, image],
+                        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                        text=True)
+  if have.returncode == 0 and have.stdout.strip() == digest:
     return 0
   print('Building docker image %s' % image, flush=True)
   return subprocess.call(['docker', 'build', '--platform', 'linux/amd64',
+                          '--label', '%s=%s' % (DOCKER_LABEL, digest),
                           '-t', image, os.path.join(root, 'tools', 'docker')])
 
 

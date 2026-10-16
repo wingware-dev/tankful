@@ -73,7 +73,9 @@ def build(output):
   tank = bpy.data.objects.new('Tank', None)
   scene.collection.objects.link(tank)
   import scene_env
+  import scene_fish
   scene_env.build_environment(scene, tank, mats)
+  scene_fish.build_fish(scene)
   build_glass(scene, tank, mats)
   build_trim(scene, tank, mats['trim'])
   box(scene, 'Water', (0, 0, WATER_LEVEL / 2 + GLASS / 2),

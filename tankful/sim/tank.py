@@ -23,6 +23,8 @@ class Tank:
       raise ValueError('dt must not be negative: %r' % dt)
     self.time += dt
     self.frame += 1
+    for fish in self.fish:
+      fish.step(dt, self.fish)
 
   def snapshot(self):
     """Return the state as plain JSON-able data, for harness assertions."""

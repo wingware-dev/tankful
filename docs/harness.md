@@ -54,10 +54,13 @@ script behaves the same on every OS.  Screenshots use
 - **`xvfb`** (the harness default on Linux): the player on a private
   Xvfb display.
 - **`docker`**: the Linux UPBGE build in a container
-  (`tools/docker/Dockerfile`: Xvfb plus Mesa llvmpipe), running
-  `run_tankful.py --backend xvfb` there with the project mounted at
-  `/tankful`.  It needs `python tools/fetch_upbge.py --platform linux`
-  first, and builds the image on first use.
+  (`tools/docker/Dockerfile`: Xvfb, Mesa llvmpipe and a PulseAudio
+  server with a null sink), running `run_tankful.py --backend xvfb`
+  there with the project mounted at `/tankful`.  It needs
+  `python tools/fetch_upbge.py --platform linux` first, and builds the
+  image on first use and again whenever the Dockerfile changes (the
+  image carries the Dockerfile's sha256 as its `tankful.dockerfile`
+  label).
 - **`window`**: an ordinary window, for use by hand.
 
 ## Results on this Mac (2026-10-16)
@@ -70,7 +73,8 @@ checked by eye as well as by the non-black test.
 |---|---|
 | `offscreen` (macOS) | **Works.**  1280x720 screenshots of the tank (mean brightness 87, `docs/shots/01-skeleton.png`).  The game keeps running at 60 fps with its window at (-30000, -30000), which `state` reports as `window_frames`. |
 | `xvfb` (macOS) | Not applicable: the macOS player draws through Cocoa, not X11, so XQuartz's Xvfb cannot host it. |
-| `docker` (linux/amd64 under Rosetta) | **Fails: the game engine segfaults on start.**  The image builds, and Blender itself works in it: its UI comes up on Xvfb, and `blender -b build/tankful.blend -f 1` renders the scene with EEVEE on llvmpipe (about 0.6 s per sample).  But `blenderplayer` segfaults right after loading its Python modules, even on Blender's factory scene, and so does the embedded engine (`view3d.game_start`).  ptrace does not work under Rosetta, so there is no backtrace past stripped addresses. |
+| `docker` (linux/amd64 under Rosetta) | **Works, slowly.**  1280x720 screenshots of the tank and fish (mean brightness 90), but at about 0.7 fps, so a 60-frame wait takes over a minute and `tools/scripts/01-skeleton.json` about 2 m 40 s including startup.  Fine for checking what a scene looks like; not for anything timing-sensitive. |
+| `docker` (linux/amd64 under QEMU) | **Works, much more slowly** than under Rosetta: the scene took minutes to come up.  Not wired into the launcher; see below for how it was run. |
 | `xvfb` (Linux host) | Not tried: the only Linux here is the container above. |
 | `offscreen` (Windows) | Not tried: no Windows machine. |
 
@@ -84,6 +88,39 @@ The `offscreen` backend has two known blemishes on macOS:
 Neither could be checked from the sandbox this work ran in, which cannot
 read the window list.
 
+### Why the player first segfaulted in Docker
+
+At first `blenderplayer` (and the embedded `view3d.game_start`) segfaulted
+in the container right after loading its Python modules, even on the
+factory scene, while Blender itself and EEVEE renders worked.  ptrace
+does not work under Rosetta, so the player was run under QEMU user mode
+in an arm64 container instead (`qemu-x86_64 -cpu max -L <amd64 rootfs>`,
+with Xvfb native and the amd64 rootfs exported from the image), where
+QEMU's gdb stub (`-g PORT`, `gdb-multiarch`) gives real backtraces.  That
+turned up two crashes:
+
+1. **No audio device**: `AUD_Device_setSpeedOfSound` dereferences a null
+   device in `LA_Launcher::InitEngine`, because the container has no
+   sound server and the player does not fall back to a null device.  This
+   was the crash under Rosetta too.  The image now runs a PulseAudio
+   server whose only sink is a null sink (`pulseaudio -D` in the
+   Dockerfile's entrypoint).
+2. **QEMU only: addresses above 47 bits**: QEMU hands the guest the
+   arm64 host's addresses (0xffff...), which a real x86-64 process never
+   sees.  The player's jemalloc packs pointers and sign-extends bit 47,
+   so it crashes in `extent_try_coalesce_impl` on a pointer like
+   `0xffffffff93a0a440`.  `-B 0x800000000000` (guest base) keeps guest
+   addresses below 0x800000000000 and fixes it.  QEMU 8.2 (Ubuntu 24.04)
+   crashed internally instead (`QEMU internal SIGSEGV`); QEMU 10.0
+   (Debian trixie) gave the guest segfault above.
+
+Docker Desktop's "Use Rosetta for x86_64/amd64 emulation" setting did not
+need to change: with it on, `--platform linux/amd64` containers run under
+Rosetta, which is much faster than QEMU here.  The task also listed the
+latest weekly UPBGE 0.53 Linux build and a native x86_64 Linux host as
+things to try; with the audio fix in place neither was needed, and
+neither was tried.
+
 ## UPBGE 0.50 quirks found on the way
 
 - In background mode (`blender -b`), the logic brick operators crash in
@@ -95,6 +132,8 @@ read the window list.
   change it.  `build_scene.py` sets every 3D view to camera perspective.
 - The player rejects windows smaller than its usage example's 320x200
   ("window size too small").
+- The player segfaults on start when it can open no audio device (see
+  above).
 - The player ignores SIGTERM, so `run_tankful.py` falls back to SIGKILL
   after 5 s.
 - The player smooths its frames by accumulating them over time with
@@ -119,3 +158,10 @@ read the window list.
   player, but dropped the frame rate from 60 to 45 in one test.  The scenery
   animates the light by moving an empty instead (the caustic
   projector), which costs nothing.
+- Moving shadow casters are what cost.  With the two angelfish
+  (step 3), the frame rate went from about 57 without fish to 49.
+  Skinning the meshes to their armatures made no measurable difference.
+  Their shadows cost 3-4 fps (most of it from the blended fins), and the
+  caustic projection in their shaders cost about as much again.  The fish
+  now cast no shadows (`tools/scene_fish.py`), which brings the
+  frame rate back to 52-55.  These readings vary by about 2 fps between runs.

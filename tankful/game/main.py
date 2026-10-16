@@ -11,7 +11,9 @@ import sys
 import time
 
 from tankful.game import input as game_input
+from tankful.game.fishes import Fishes
 from tankful.game.scenery import Scenery
+from tankful.sim import fish as sim_fish
 from tankful.sim.tank import Tank
 
 log = logging.getLogger('tankful')
@@ -43,7 +45,10 @@ class App:
       if self.offscreen is not None:
         self.offscreen.hide_offscreen(size)
     self.tank = Tank()
-    self.scenery = Scenery(bge.logic.getCurrentScene())
+    sim_fish.stock(self.tank)
+    scene = bge.logic.getCurrentScene()
+    self.scenery = Scenery(scene)
+    self.fishes = Fishes(scene, self.tank.fish)
     self.input = game_input.InputState()
     self.channel = None
     self._last = time.monotonic()
@@ -69,6 +74,7 @@ class App:
       self.channel.poll()
     self.tank.step(dt)
     self.scenery.update(self.tank.time, dt)
+    self.fishes.update()
     self.input.end_frame()
 
   def state(self):

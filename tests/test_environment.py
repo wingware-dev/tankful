@@ -112,5 +112,25 @@ class SwayTests(unittest.TestCase):
     self.assertEqual(sway.chain_angles(1.0, 0, 0.0, 0.1, 0.3), [])
 
 
+class ObstacleTests(unittest.TestCase):
+
+  def test_wraps_all_the_decor(self):
+    names = [o.name for o in env.obstacles()]
+    self.assertEqual(len(names), len(set(names)))
+    for item in env.rocks() + env.plants():
+      self.assertIn(item.name, names)
+    self.assertTrue(any(n.startswith('Driftwood.') for n in names))
+
+  def test_inside_the_tank_from_the_sand_up(self):
+    for o in env.obstacles():
+      for x, y, z in (o.a, o.b):
+        self.assertTrue(env.inside(x, y), o.name)
+        self.assertGreater(z, 0.0, o.name)
+        self.assertLess(z, env.WATER_LEVEL, o.name)
+      self.assertGreater(o.radius, 0.0)
+      # Only plants are soft
+      self.assertEqual(o.soft, not o.name.startswith(('Rock', 'Driftwood')))
+
+
 if __name__ == '__main__':
   unittest.main()

@@ -4,7 +4,7 @@
     "state",
     "wait 4",
     "state",
-    "screenshot docs/shots/02-environment.png",
+    "screenshot build/shots/02-environment.png",
     "quit"
   ]
 }

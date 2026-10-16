@@ -115,3 +115,48 @@ def airstone_position():
 def inside(x, y, margin=0.0):
   """Whether x, y is within the glass, margin meters from it."""
   return abs(x) <= INNER_X - margin and abs(y) <= INNER_Y - margin
+
+
+# Decor obstacles for the fish: capsules (a segment with a radius) that
+# wrap each rock, the driftwood's trunk and branches, and each plant clump
+# from the sand up.  Plants are soft (fish brush past leaves) so the game
+# lets fish closer to them than to wood and stone.
+Obstacle = collections.namedtuple('Obstacle', 'name a b radius soft')
+
+# The driftwood, in its own space before yaw: the trunk and the two
+# branches that reach into open water (tools/scene_env.py, build_driftwood)
+_WOOD_PARTS = (
+  ((-0.18, -0.02, 0.016), (0.17, 0.03, 0.035), 0.034),
+  ((-0.07, 0.0, 0.025), (-0.11, 0.05, 0.25), 0.022),
+  ((0.04, 0.01, 0.03), (0.11, -0.02, 0.18), 0.018),
+)
+# How far each plant kind's leaves spread from its base, as a fraction of
+# its height
+_PLANT_SPREAD = {'vallisneria': 0.12, 'sword': 0.42, 'moss': 1.2}
+
+
+def obstacles():
+  out = []
+  for rock in rocks():
+    sx, sy, sz = rock.size
+    z = sand_height(rock.x, rock.y) + sz * 0.18
+    # The mesh is the ellipsoid of rock.size, bumped out by up to a third
+    r = 0.55 * max(sx, sy)
+    top = (rock.x, rock.y, z + max(0.0, 0.6 * sz - r))
+    out.append(Obstacle(rock.name, (rock.x, rock.y, z), top, r, False))
+  for wood in driftwood():
+    c, s = math.cos(wood.yaw), math.sin(wood.yaw)
+    base = sand_height(wood.x, wood.y) - 0.008
+
+    def place(p):
+      return (wood.x + c * p[0] - s * p[1], wood.y + s * p[0] + c * p[1],
+              base + p[2])
+    for i, (a, b, r) in enumerate(_WOOD_PARTS):
+      out.append(Obstacle('%s.%d' % (wood.name, i), place(a), place(b), r,
+                          False))
+  for plant in plants():
+    z = sand_height(plant.x, plant.y)
+    r = max(0.012, _PLANT_SPREAD[plant.kind] * plant.height)
+    out.append(Obstacle(plant.name, (plant.x, plant.y, z),
+                        (plant.x, plant.y, z + plant.height * 0.95), r, True))
+  return out
