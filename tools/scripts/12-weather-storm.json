@@ -1,0 +1,15 @@
+{
+  "commands": [
+    "wait 60f",
+    "key down f",
+    "wait 1f",
+    "key up f",
+    "key down 2",
+    "wait 1f",
+    "key up 2",
+    "wait 669f",
+    "state",
+    "screenshot docs/shots/12-weather-storm.png",
+    "quit"
+  ]
+}
