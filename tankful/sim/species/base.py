@@ -44,7 +44,8 @@ Species = collections.namedtuple('Species', (
   'flick_chance', 'flick_turn',
   # How far below the top of its swim box the surface starts to push the
   # fish down (m); None for tankful.sim.fish.MARGIN, as for the glass and
-  # sand.  Surface fish set it smaller, to keep up near the surface
+  # sand.  Surface fish set it smaller, to keep up near the surface.
+  # Like the sand's, it reaches at most VERTICAL_MARGIN_SHARE of the box
   'surface_margin',
   # How it behaves at full night (tankful.sim.daynight.Night), or None
   # for as by day

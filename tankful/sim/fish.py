@@ -64,6 +64,9 @@ CRUISE, HOVER = 'cruise', 'hover'
 MAX_STEP = 0.1
 # How far ahead of its walls and decor a fish starts to steer
 MARGIN = 0.10
+# The sand's and surface's pushes each reach at most this share of the
+# swim box's height, so a tall fish's short box keeps room to swim in
+VERTICAL_MARGIN_SHARE = 0.25
 # Fish nearer than this many lengths (the longer one's) push apart;
 # farther than COHESION meters they drift together
 SEPARATION = 1.4
@@ -202,7 +205,7 @@ class Fish:
 
   def surface_margin(self):
     """How far below the top of its swim box the surface starts to push
-    it down (m)."""
+    it down (m), before _steer_clear caps it to its share of the box."""
     top = self.species.surface_margin
     if top is None:
       top = MARGIN
@@ -420,12 +423,16 @@ class Fish:
     ahead = (self.x + fwd[0] * look, self.y + fwd[1] * look,
              self.z + fwd[2] * look)
     danger = 0.0
-    top = self.surface_margin()
+    # The surface's margin is the species' own; neither it nor the sand's
+    # takes more than its share of the box's height
+    cap = max(z1 - z0, 0.0) * VERTICAL_MARGIN_SHARE
+    floor, top = min(MARGIN, cap), min(self.surface_margin(), cap)
     for axis, (a, b) in enumerate(((x0, x1), (y0, y1), (z0, z1))):
-      # The surface's margin is the species' own
-      hi = top if axis == 2 else MARGIN
+      lo, hi = (floor, top) if axis == 2 else (MARGIN, MARGIN)
+      if lo <= 0 or hi <= 0:
+        continue
       for p in (pos[axis], ahead[axis]):
-        near_lo = (a + MARGIN - p) / MARGIN
+        near_lo = (a + lo - p) / lo
         near_hi = (p - (b - hi)) / hi
         for near, sign in ((near_lo, 1.0), (near_hi, -1.0)):
           if near > 0:

@@ -145,14 +145,21 @@ class FishLimitsTests(unittest.TestCase):
     run(two, 30.0)
     self.assertEqual(one.snapshot(), two.snapshot())
 
-  def surface_push(self, surface_margin, below):
+  def surface_push(self, surface_margin, below, clear_up=0.01):
     """The up/down push _steer_clear gives a still fish level in the
-    middle of its swim box, below meters under its top, with no decor
-    about."""
-    species = ANGELFISH._replace(surface_margin=surface_margin)
+    middle of its swim box, below meters under its top.  The default
+    clear_up leaves the box tall enough that no margin is capped."""
+    species = ANGELFISH._replace(surface_margin=surface_margin,
+                                 clear_up=clear_up)
+    return self.vertical_push(species, lambda z0, z1: z1 - below)
+
+  def vertical_push(self, species, height):
+    """The up/down push _steer_clear gives a still fish of species level
+    in the middle of its swim box, at height(z0, z1) of its box's floor
+    and top, with no decor about."""
     f = Fish('Probe', species, 1.0, 1, (0.0, 0.0, 0.3), 0.0)
     (x0, x1), (y0, y1), (z0, z1) = f.bounds()
-    f.x, f.y, f.z = (x0 + x1) / 2, (y0 + y1) / 2, z1 - below
+    f.x, f.y, f.z = (x0 + x1) / 2, (y0 + y1) / 2, height(z0, z1)
     f.speed = 0.0
     # Only the walls: no decor pushes
     f._obstacles_near = lambda pos, reach: ()
@@ -171,6 +178,26 @@ class FishLimitsTests(unittest.TestCase):
     self.assertLess(self.surface_push(0.06, 0.03), 0)
     self.assertGreater(self.surface_push(0.06, 0.03),
                        self.surface_push(None, 0.03))
+
+  def test_vertical_margins_capped(self):
+    # The angelfish's box is short: the sand and surface each push only
+    # within their share of it, leaving the middle half free
+    (_, _), (_, _), (z0, z1) = Fish('Probe', ANGELFISH, 1.0, 1,
+                                    (0.0, 0.0, 0.3), 0.0).bounds()
+    share = sim_fish.VERTICAL_MARGIN_SHARE
+    self.assertLess((z1 - z0) * share, sim_fish.MARGIN)
+    for frac in (share + 0.01, 0.5, 1.0 - share - 0.01):
+      self.assertEqual(
+        self.vertical_push(ANGELFISH, lambda a, b: a + (b - a) * frac), 0.0)
+    self.assertGreater(
+      self.vertical_push(ANGELFISH, lambda a, b: a + (b - a) * 0.1), 0.0)
+    self.assertLess(
+      self.vertical_push(ANGELFISH, lambda a, b: a + (b - a) * 0.9), 0.0)
+    # A smaller surface margin than the cap is kept
+    small = ANGELFISH._replace(surface_margin=0.02)
+    self.assertEqual(
+      self.vertical_push(small, lambda a, b: b - 0.03), 0.0)
+    self.assertLess(self.vertical_push(small, lambda a, b: b - 0.01), 0.0)
 
 
 class FishNeighborTests(unittest.TestCase):
