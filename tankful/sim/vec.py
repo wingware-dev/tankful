@@ -19,12 +19,18 @@ def dot(a, b):
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 
 
+# length, normalized and closest_on_segment are written out, not built
+# on the helpers above: the sim calls them hundreds of thousands of times
+# a second (docs/harness.md, "Frame budget").  The arithmetic is the
+# same, in the same order
+
+
 def length(a):
-  return math.sqrt(dot(a, a))
+  return math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2])
 
 
 def normalized(a, fallback=(1.0, 0.0, 0.0)):
-  n = length(a)
+  n = math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2])
   if n < 1e-12:
     return fallback
   return (a[0] / n, a[1] / n, a[2] / n)
@@ -51,12 +57,14 @@ def wrap_angle(a):
 
 def closest_on_segment(p, a, b):
   """The point of segment a-b nearest to p."""
-  ab = sub(b, a)
-  denom = dot(ab, ab)
+  ax, ay, az = a
+  abx, aby, abz = b[0] - ax, b[1] - ay, b[2] - az
+  denom = abx * abx + aby * aby + abz * abz
   if denom < 1e-12:
     return a
-  t = clamp(dot(sub(p, a), ab) / denom, 0.0, 1.0)
-  return add(a, scale(ab, t))
+  t = ((p[0] - ax) * abx + (p[1] - ay) * aby + (p[2] - az) * abz) / denom
+  t = 0.0 if t < 0.0 else 1.0 if t > 1.0 else t
+  return (ax + abx * t, ay + aby * t, az + abz * t)
 
 
 def closest_between_segments(p0, p1, q0, q1):

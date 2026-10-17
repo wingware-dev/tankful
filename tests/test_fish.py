@@ -173,6 +173,65 @@ class FishLimitsTests(unittest.TestCase):
                        self.surface_push(None, 0.03))
 
 
+class FishNeighborTests(unittest.TestCase):
+  """_mind_others and _keep_apart pass over the fish of other kinds too
+  far off to matter, and only those."""
+
+  def setUp(self):
+    self.fish = Fish('Probe', ANGELFISH, 1.0, 1, (0.0, -0.05, 0.3), 0.0)
+    self.other_kind = ANGELFISH._replace(name='other_kind')
+
+  def neighbor(self, species, off):
+    other = Fish('Other', species, 1.0, 2, (0.0, -0.05, 0.3), 0.0)
+    other.x, other.y, other.z = vec.sub(
+      (self.fish.x, self.fish.y, self.fish.z), off)
+    return other
+
+  def mind(self, other):
+    want = [0.0, 0.0, 0.0]
+    self.fish._mind_others(want, [self.fish, other])
+    return want
+
+  def test_mind_others_of_another_kind(self):
+    sep = sim_fish.SEPARATION * ANGELFISH.length
+    self.assertEqual(self.mind(self.neighbor(self.other_kind,
+                                             (sep, 0.0, 0.0))), [0.0] * 3)
+    self.assertEqual(self.mind(self.neighbor(self.other_kind,
+                                             (0.0, 0.0, -2 * sep))),
+                     [0.0] * 3)
+    # Within sep along every axis, but farther than sep in all
+    self.assertEqual(self.mind(self.neighbor(self.other_kind,
+                                             (0.9 * sep, 0.9 * sep, 0.0))),
+                     [0.0] * 3)
+    self.assertGreater(self.mind(self.neighbor(self.other_kind,
+                                               (0.9 * sep, 0.0, 0.0)))[0], 0)
+
+  def test_mind_others_of_its_own_kind_far_off(self):
+    # Its own kind draws it together however far apart
+    off = (0.0, 0.0, -(sim_fish.COHESION + 0.05))
+    want = self.mind(self.neighbor(ANGELFISH, off))
+    self.assertAlmostEqual(want[2], 0.12)
+
+  def keep_apart(self, other):
+    before = (self.fish.x, self.fish.y, self.fish.z)
+    self.fish._keep_apart([self.fish, other])
+    return vec.sub((self.fish.x, self.fish.y, self.fish.z), before)
+
+  def test_keep_apart(self):
+    gap = sim_fish.MIN_GAP * ANGELFISH.length
+    self.assertEqual(self.keep_apart(self.neighbor(self.other_kind,
+                                                   (0.0, gap, 0.0))),
+                     (0.0, 0.0, 0.0))
+    self.assertEqual(self.keep_apart(self.neighbor(
+      self.other_kind, (0.8 * gap, 0.8 * gap, 0.0))), (0.0, 0.0, 0.0))
+    moved = self.keep_apart(self.neighbor(self.other_kind,
+                                          (0.0, 0.5 * gap, 0.0)))
+    # Equal lengths: half the overlap each
+    self.assertAlmostEqual(moved[1], 0.25 * gap)
+    moved = self.keep_apart(self.neighbor(ANGELFISH, (0.0, 0.0, 0.5 * gap)))
+    self.assertAlmostEqual(moved[2], 0.25 * gap)
+
+
 class FishGaitTests(unittest.TestCase):
 
   def test_beat_frequency_follows_speed(self):

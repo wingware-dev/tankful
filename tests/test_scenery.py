@@ -17,22 +17,37 @@ class FakeObjects(list):
     return None
 
 
+class FakeTree:
+  """A node tree: its name and nodes, groups among them for the names in
+  groups.  A group given as a tuple (outer, inner, ...) nests: outer's
+  tree uses inner."""
+
+  def __init__(self, name, groups=()):
+    self.name = name
+    self.nodes = [mock.Mock(bl_idname='ShaderNodeBsdfPrincipled')]
+    for group in groups:
+      path = (group,) if isinstance(group, str) else group
+      inner = FakeTree(path[0], [path[1:]] if len(path) > 1 else [])
+      self.nodes.append(mock.Mock(bl_idname='ShaderNodeGroup',
+                                  node_tree=inner))
+
+
 class FakeObject:
 
   def __init__(self, name, groups=(), position=(0.0, 0.0, 0.0)):
+    """groups: for each material slot, the groups its tree uses
+    (FakeTree)."""
     self.name = name
     self.worldPosition = list(position)
     self.color = (1.0, 1.0, 1.0, 1.0)
-    slots = []
-    for group in groups:
-      node = mock.Mock(bl_idname='ShaderNodeGroup')
-      node.node_tree.name = group
-      material = mock.Mock()
-      material.node_tree.nodes = [mock.Mock(bl_idname='ShaderNodeBsdfPrincipled'),
-                                  node]
-      slots.append(mock.Mock(material=material))
     if groups:
-      self.blenderObject = mock.Mock(material_slots=slots)
+      self.blenderObject = mock.Mock(material_slots=[
+        mock.Mock(material=mock.Mock(node_tree=FakeTree('Material', slot)))
+        for slot in groups])
+
+
+# A material reading the caustics, as tools/scene_env.py builds them
+CAUSTIC = [(('CausticProjection', scenery.PROJECTOR_SPACE),)]
 
 
 def make_scenery(objects):
@@ -44,24 +59,45 @@ def make_scenery(objects):
 class ReadsGroupTest(unittest.TestCase):
 
   def test_finds_group_in_any_slot(self):
-    obj = FakeObject('Fish', groups=('Other', scenery.FISH_CAUSTIC))
-    self.assertTrue(scenery.reads_group(obj, scenery.FISH_CAUSTIC))
+    obj = FakeObject('GodRay.0', groups=[('Other',), (scenery.PROJECTOR_SPACE,)])
+    self.assertTrue(scenery.reads_group(obj, scenery.PROJECTOR_SPACE))
+
+  def test_finds_group_nested_in_another(self):
+    obj = FakeObject('Sand', groups=[(('Outer', 'CausticProjection',
+                                       scenery.PROJECTOR_SPACE),)])
+    self.assertTrue(scenery.reads_group(obj, scenery.PROJECTOR_SPACE))
 
   def test_other_groups_do_not_count(self):
-    obj = FakeObject('Sand', groups=('CausticProjection',))
-    self.assertFalse(scenery.reads_group(obj, scenery.FISH_CAUSTIC))
+    obj = FakeObject('Leaf', groups=[(('Other', 'Inner'), 'Third')])
+    self.assertFalse(scenery.reads_group(obj, scenery.PROJECTOR_SPACE))
+
+  def test_group_used_twice_is_looked_through_once(self):
+    shared = FakeTree('Shared')
+    tree = FakeTree('Material')
+    tree.nodes += [mock.Mock(bl_idname='ShaderNodeGroup', node_tree=shared)
+                   for _ in range(2)]
+    seen = set()
+    with mock.patch.object(scenery, 'tree_uses',
+                           wraps=scenery.tree_uses) as uses:
+      self.assertFalse(scenery.tree_uses(tree, scenery.PROJECTOR_SPACE, seen))
+    self.assertEqual(seen, {'Shared'})
+    self.assertEqual(uses.call_count, 2)
 
   def test_object_without_blender_object(self):
     self.assertFalse(scenery.reads_group(FakeObject('Empty'),
-                                         scenery.FISH_CAUSTIC))
+                                         scenery.PROJECTOR_SPACE))
 
-  def test_empty_slot_and_material_without_nodes(self):
+  def test_empty_slot_material_without_nodes_and_empty_group(self):
     no_nodes = mock.Mock()
     no_nodes.node_tree = None
+    empty_group = FakeTree('Material')
+    empty_group.nodes.append(mock.Mock(bl_idname='ShaderNodeGroup',
+                                       node_tree=None))
     obj = FakeObject('Fish')
     obj.blenderObject = mock.Mock(material_slots=[
-      mock.Mock(material=None), mock.Mock(material=no_nodes)])
-    self.assertFalse(scenery.reads_group(obj, scenery.FISH_CAUSTIC))
+      mock.Mock(material=None), mock.Mock(material=no_nodes),
+      mock.Mock(material=mock.Mock(node_tree=empty_group))])
+    self.assertFalse(scenery.reads_group(obj, scenery.PROJECTOR_SPACE))
 
 
 class CausticFollowersTest(unittest.TestCase):
@@ -70,32 +106,37 @@ class CausticFollowersTest(unittest.TestCase):
 
   def setUp(self):
     self.projector = FakeObject(scenery.PROJECTOR, position=self.HOME)
-    self.fish = FakeObject('Angelfish.0', groups=(scenery.FISH_CAUSTIC,))
-    self.sand = FakeObject('Sand', groups=('CausticProjection',))
-    self.scenery = make_scenery([self.projector, self.fish, self.sand])
+    self.fish = FakeObject('Angelfish.0', groups=CAUSTIC)
+    self.sand = FakeObject('Sand', groups=CAUSTIC)
+    self.ray = FakeObject('GodRay.0', groups=[(scenery.PROJECTOR_SPACE,)])
+    self.tetras = FakeObject('NeonTetras', groups=[('Other',)])
+    self.scenery = make_scenery([self.projector, self.fish, self.sand,
+                                 self.ray, self.tetras])
 
-  def test_only_fish_caustic_readers_follow(self):
-    self.assertEqual(self.scenery.caustic_followers, [self.fish])
-    self.assertEqual(self.scenery.snapshot()['caustic_followers'], 1)
+  def test_only_projector_space_readers_follow(self):
+    self.assertEqual(self.scenery.caustic_followers,
+                     [self.fish, self.sand, self.ray])
+    self.assertEqual(self.scenery.snapshot()['caustic_followers'], 3)
 
   def test_color_gives_the_projector_place(self):
-    # The fish group reads the projector at home + (r - bias, g - bias, -b)
-    # (tools/scene_env.py, caustic_group)
+    # ProjectorSpace reads the projector at home + (r - bias, g - bias, -b)
+    # (tools/scene_env.py, projector_space_group)
     for t in (0.0, 3.5, 60.0, 3600.0):
       self.scenery._move_projector(t)
-      r, g, b, a = self.fish.color
-      bias = scenery.CAUSTIC_BIAS
-      place = (self.HOME[0] + r - bias, self.HOME[1] + g - bias,
-               self.HOME[2] - b)
-      for got, want in zip(place, self.projector.worldPosition):
-        self.assertAlmostEqual(got, want)
-      # The player's object color is never negative
-      self.assertTrue(min(r, g, b) >= 0.0, (t, self.fish.color))
-      self.assertEqual(a, 1.0)
+      for obj in (self.fish, self.sand, self.ray):
+        r, g, b, a = obj.color
+        bias = scenery.CAUSTIC_BIAS
+        place = (self.HOME[0] + r - bias, self.HOME[1] + g - bias,
+                 self.HOME[2] - b)
+        for got, want in zip(place, self.projector.worldPosition):
+          self.assertAlmostEqual(got, want)
+        # The player's object color is never negative
+        self.assertTrue(min(r, g, b) >= 0.0, (t, obj.color))
+        self.assertEqual(a, 1.0)
 
   def test_others_keep_their_color(self):
     self.scenery._move_projector(10.0)
-    self.assertEqual(self.sand.color, (1.0, 1.0, 1.0, 1.0))
+    self.assertEqual(self.tetras.color, (1.0, 1.0, 1.0, 1.0))
 
 
 class SharedConstantsTest(unittest.TestCase):
@@ -114,7 +155,7 @@ class SharedConstantsTest(unittest.TestCase):
             values[target.id] = ast.literal_eval(node.value)
           except ValueError:
             pass
-    self.assertEqual(values['FISH_CAUSTIC'], scenery.FISH_CAUSTIC)
+    self.assertEqual(values['PROJECTOR_SPACE'], scenery.PROJECTOR_SPACE)
     self.assertEqual(values['CAUSTIC_BIAS'], scenery.CAUSTIC_BIAS)
     self.assertEqual(values['PROJECTOR'], scenery.PROJECTOR)
 

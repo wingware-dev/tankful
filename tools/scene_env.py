@@ -8,11 +8,12 @@ game reads too.
 Moving light is done without per-frame shader parameters: every animated
 shader reads its pattern through the CausticProjection node group, which
 projects a caustic pattern down from the CausticProjector empty above the
-tank.  The game moves that empty each frame (tankful.game.scenery), which
-moves the caustics on the sand, rocks and plants, the shimmer on the
-water surface and the flicker of the god rays together.  The fish bodies
-read the same pattern through FISH_CAUSTIC, which follows the projector
-through their object color (caustic_group).
+tank.  The game moves that empty each frame (tankful.game.scenery), and
+sets where it is as the color of every object that reads it, which moves
+the caustics on the sand, rocks, plants and fish, the shimmer on the
+water surface and the flicker of the god rays together.  The shaders
+read that color, not the empty itself, through the ProjectorSpace group
+(projector_space_group).
 """
 
 import math
@@ -30,9 +31,10 @@ PROJECTOR = 'CausticProjector'
 # How fast W, the caustic pattern's time axis, runs per unit the projector
 # sinks (the game sinks it by CAUSTIC_SPEED per second)
 CAUSTIC_W = 0.8
-# The caustic group the fish bodies read: it follows the projector
-# through their object color (caustic_group)
-FISH_CAUSTIC = 'CausticProjection.Fish'
+# The node group giving the projector's space from the object color
+# (projector_space_group); the game sets the color of every object whose
+# material reads it (tankful.game.scenery.PROJECTOR_SPACE)
+PROJECTOR_SPACE = 'ProjectorSpace'
 # Added to the projector's drift in that color, to keep it positive
 # (tankful.game.scenery.CAUSTIC_BIAS)
 CAUSTIC_BIAS = 1.0
@@ -43,8 +45,8 @@ def build_environment(scene, tank, mats):
   projector.empty_display_type = 'SINGLE_ARROW'
   projector.location = (0, 0, env.TANK_H + 0.2)
   scene.collection.objects.link(projector)
-  caustic = caustic_group(projector)
-  caustic_group(projector, FISH_CAUSTIC, 'object_color')
+  space = projector_space_group(projector)
+  caustic = caustic_group(space)
 
   build_back_panel(scene, tank)
   build_sand(scene, tank, caustic)
@@ -54,7 +56,7 @@ def build_environment(scene, tank, mats):
   build_airstone(scene, tank)
   build_bubbles(scene, tank)
   build_water_surface(scene, tank, caustic)
-  build_god_rays(scene, tank, caustic)
+  build_god_rays(scene, tank, space)
   mats['glass_front'] = glass_front_material()
   return projector
 
@@ -153,23 +155,57 @@ def new_material(name, blended=False):
   return mat, Tree(mat.node_tree), nodes['Material Output']
 
 
-def caustic_group(projector, name='CausticProjection', follow='projector'):
+def projector_space_group(projector):
+  """A node group (PROJECTOR_SPACE) whose Vector output is the shaded
+  point in the projector's space, as a Texture Coordinate node's Object
+  would give it, but with where the projector is read from the object's
+  color, which the game sets as it moves the projector
+  (tankful.game.scenery).  The color is the projector's drift in x and y,
+  each plus CAUSTIC_BIAS, and how far it has sunk: never negative, as the
+  color cannot be.  The projector is neither turned nor scaled.
+
+  Reading the moving projector itself would cost far more: every object
+  whose material reads a moving object's space is redrawn at a cost each
+  frame, about 13 ms of the frame for the tank's (docs/harness.md, "Frame
+  budget")."""
+  group = bpy.data.node_groups.new(PROJECTOR_SPACE, 'ShaderNodeTree')
+  group.interface.new_socket('Vector', in_out='OUTPUT',
+                             socket_type='NodeSocketVector')
+  t = Tree(group)
+  out = t.add('NodeGroupOutput')
+  info = t.add('ShaderNodeObjectInfo')
+  rgb = t.add('ShaderNodeSeparateColor')
+  t.link(info.outputs['Color'], rgb.inputs[0])
+  home = projector.location
+  place = t.add('ShaderNodeCombineXYZ',
+                X=t.math('ADD', rgb.outputs['Red'], home.x - CAUSTIC_BIAS),
+                Y=t.math('ADD', rgb.outputs['Green'], home.y - CAUSTIC_BIAS),
+                Z=t.math('SUBTRACT', home.z, rgb.outputs['Blue']))
+  rel = t.add('ShaderNodeVectorMath', {'operation': 'SUBTRACT'})
+  t.link(t.add('ShaderNodeNewGeometry').outputs['Position'], rel.inputs[0])
+  t.link(place.outputs[0], rel.inputs[1])
+  t.link(rel.outputs[0], out.inputs['Vector'])
+  return group
+
+
+def projector_coords(t, space):
+  """The shaded point in the projector's space, from space, the
+  projector_space_group."""
+  node = t.add('ShaderNodeGroup')
+  node.node_tree = space
+  return node.outputs['Vector']
+
+
+def caustic_group(space):
   """A node group whose Caustic output is the moving caustic light.
 
   The pattern is two layers of Voronoi cell edges, wobbled by noise, in
-  the projector's object space: x and y across the tank, and its z as the
-  4D Voronoi's W, so sinking the projector evolves the pattern.  Light
-  falls from above, so it fades on surfaces that face away from it.
-
-  follow 'object_color' makes the group the fish bodies use
-  (FISH_CAUSTIC): the same pattern, but with the projector's place read
-  from each object's color, which the game sets as the projector moves
-  (tankful.game.scenery, CAUSTIC_BIAS), instead of from the projector.
-  Every object whose material reads a moving object's space is redrawn
-  at a cost each frame: about 1 ms for each fish body (docs/harness.md,
-  "Frame budget").
+  the projector's space (space, the projector_space_group): x and y
+  across the tank, and its z as the 4D Voronoi's W, so sinking the
+  projector evolves the pattern.  Light falls from above, so it fades on
+  surfaces that face away from it.
   """
-  group = bpy.data.node_groups.new(name, 'ShaderNodeTree')
+  group = bpy.data.node_groups.new('CausticProjection', 'ShaderNodeTree')
   group.interface.new_socket('Caustic', in_out='OUTPUT',
                              socket_type='NodeSocketFloat')
   # The pattern without the fade, for the water surface seen from below
@@ -177,25 +213,8 @@ def caustic_group(projector, name='CausticProjection', follow='projector'):
                              socket_type='NodeSocketFloat')
   t = Tree(group)
   out = t.add('NodeGroupOutput')
-  if follow == 'projector':
-    coords = t.add('ShaderNodeTexCoord', {'object': projector}).outputs['Object']
-  else:
-    # The color is the projector's drift in x and y, each plus CAUSTIC_BIAS,
-    # and how far it has sunk: never negative, as the color cannot be
-    info = t.add('ShaderNodeObjectInfo')
-    rgb = t.add('ShaderNodeSeparateColor')
-    t.link(info.outputs['Color'], rgb.inputs[0])
-    home = projector.location
-    place = t.add('ShaderNodeCombineXYZ',
-                  X=t.math('ADD', rgb.outputs['Red'], home.x - CAUSTIC_BIAS),
-                  Y=t.math('ADD', rgb.outputs['Green'], home.y - CAUSTIC_BIAS),
-                  Z=t.math('SUBTRACT', home.z, rgb.outputs['Blue']))
-    rel = t.add('ShaderNodeVectorMath', {'operation': 'SUBTRACT'})
-    t.link(t.add('ShaderNodeNewGeometry').outputs['Position'], rel.inputs[0])
-    t.link(place.outputs[0], rel.inputs[1])
-    coords = rel.outputs[0]
   xyz = t.add('ShaderNodeSeparateXYZ')
-  t.link(coords, xyz.inputs[0])
+  t.link(projector_coords(t, space), xyz.inputs[0])
   w = t.math('MULTIPLY', xyz.outputs['Z'], CAUSTIC_W)
   flat = t.add('ShaderNodeCombineXYZ', X=xyz.outputs['X'], Y=xyz.outputs['Y'])
   warp = t.add('ShaderNodeTexNoise', {'noise_dimensions': '4D'},
@@ -890,7 +909,7 @@ def build_water_surface(scene, tank, caustic):
   obj.location = (0, 0, env.WATER_LEVEL + 0.0005)
 
 
-def build_god_rays(scene, tank, caustic):
+def build_god_rays(scene, tank, space):
   """Soft slanted shafts of light under the surface, flickering slowly."""
   mat, t, out = new_material('GodRay', blended=True)
   mat.use_transparent_shadow = False
@@ -906,11 +925,11 @@ def build_god_rays(scene, tank, caustic):
   top = t.add('ShaderNodeMapRange', Value=uvs.outputs['Y'], From_Min=0.94,
               From_Max=1.0, To_Min=1.0, To_Max=0.0)
   # The flicker runs on the projector's time axis, like the caustics
-  proj = t.add('ShaderNodeTexCoord', {'object': bpy.data.objects[PROJECTOR]})
+  proj = projector_coords(t, space)
   pxyz = t.add('ShaderNodeSeparateXYZ')
-  t.link(proj.outputs['Object'], pxyz.inputs[0])
+  t.link(proj, pxyz.inputs[0])
   flicker = t.add('ShaderNodeTexNoise', {'noise_dimensions': '4D'},
-                  Vector=proj.outputs['Object'], Scale=2.0, Detail=1.0,
+                  Vector=proj, Scale=2.0, Detail=1.0,
                   W=t.math('MULTIPLY', pxyz.outputs['Z'], CAUSTIC_W * 0.5))
   strength = t.math('MULTIPLY', t.math('MULTIPLY', across, down.outputs[0]),
                     top.outputs[0])

@@ -284,6 +284,10 @@ without its `tools/species/<name>.py`), two runs of three readings each:
 | Without the pleco | 40-41 | 3.6 / 3.3 / 17.4 |
 | Every species, fish bodies off the projector (below) | 47-51 | 3.7 / 3.2 / 13.0 |
 | For comparison: every species, the projector held still | 54-59 | 3.8 / 3.4 / 3.7 |
+| Every species, the scenery off the projector too, but the god rays | 55-57 | 3.8 / 3.8 / 4.8 |
+| Every species, nothing reading the projector (now) | 54-57 | 3.8 / 3.9 / 4.2 |
+| The same again, measured alongside the next row | 55-56 | 3.8 / 3.6 / 4.1 |
+| Every species, the sim's neighbor checks trimmed (now, below) | 55-56 | 3.2 / 3.8 / 4.3 |
 
 So the angelfish and the gouramis cost the most: about 2.5 ms of
 `Rasterizer` per pair, all of it from the caustic projection on their
@@ -296,14 +300,38 @@ every frame: an object whose material reads a moving object's space is
 redrawn at a cost each frame, about 1 ms for each fish body, and the
 scenery's caustics (sand, rocks, plants, water and god rays), which read
 it the same way, cost about 13 ms of the frame between them (the last
-row).  The fish bodies now read the projector's place from their object
-color instead (`FISH_CAUSTIC`, `caustic_group` in `tools/scene_env.py`),
-which `tankful.game.scenery` sets on them as it moves the projector:
-the same pattern, rendered side by side to within 1/255, at no
-measurable cost.  The tetras' 2 ms is in `Logic`, the sim's step and
+row).  Every material that shows the caustics, the shimmer or the god
+rays' flicker now reads the projector's place from its object's color
+instead, through the `ProjectorSpace` node group
+(`projector_space_group` in `tools/scene_env.py`), and
+`tankful.game.scenery` sets that color on each such object as it moves
+the projector (`caustic_followers`, 28 objects): the same pattern,
+rendered side by side to within 1/255, and screenshots of the sand,
+water surface and god rays match the old ones while moving as much
+between frames.  That took `Rasterizer` from about 13 ms to 4.2 ms
+(the last two rows); setting the color on static objects costs nothing
+measurable.  The tetras' 2 ms is in `Logic`, the sim's step and
 the game's posing of the fish, which grew from about 2 ms at step 5 to
 3.7 ms with all 35 fish.  The pleco, the corydoras,
 the guppies and the shrimp cost 0-2 fps each, near the readings' spread.
+
+Timed inside the game, `Logic` with every species was the sim's step
+(3.0 ms), the scenery (0.35 ms) and the posing (`tankful.game.fishes`,
+0.25 ms for all 35 fish).  The tetras cost the most of the step because
+each fish checked every other fish twice a step, in `_mind_others` and
+`_keep_apart` (`tankful.sim.fish`), working out each one's distance:
+35 fish make about 2400 such checks a step, against 800 without the
+15 tetras, and each tetra checks its schoolmates a third time for the
+boids rules.  Fish of other kinds a separation (or a gap) or more apart
+along any one axis are now passed over before anything else is worked
+out, and `vec.length`, `vec.normalized` and `vec.closest_on_segment`
+(which the decor checks call about 650 times a step) are written out
+instead of calling the smaller helpers: the step went from 3.0 to 2.5 ms
+in the game, and `Logic` from 3.8 to 3.2 ms (the last two rows).  The
+sim moves exactly as before: every fish's place, heading and speed after
+3000 steps of the full tank are the same to the last bit.  Without the
+tetras the step takes about 40% of what it does with them, still the
+pairwise checks and each tetra's decor checks.
 
 So for more fish:
 
@@ -311,10 +339,13 @@ So for more fish:
   school does.  A fish with its own rig costs about 0.4 fps.
 - Small fish get a plain material: no caustic projection and no thin
   film (`tools/species/neon_tetra.py`).
-- A fish with caustics on its body reads them through `FISH_CAUSTIC`,
-  never the scenery's `CausticProjection` group, and no fish material
-  reads another object's space (a Texture Coordinate node's Object).
+- Caustics come only through the `CausticProjection` group (or
+  `ProjectorSpace`), and no material reads another object's space (a
+  Texture Coordinate node's Object) while that object moves: it cost
+  0.4-1 ms of the frame for each object reading it.
 - No fish casts a shadow.
 - The sim's step for 17 fish takes about 1 ms (`Logic`), and for all 35
-  about 3.7 ms; it checks the decor only near each fish, and school
-  members' bodies only against near neighbors.
+  about 2.5 ms (`Logic` 3.2 ms); each fish checks every other one, so
+  that grows with the square of the fish, but it passes over fish of
+  other kinds far off on any axis.  It checks the decor only near each
+  fish, and school members' bodies only against near neighbors.

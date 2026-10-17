@@ -246,22 +246,34 @@ class Fish:
   def _mind_others(self, want, others, skip=()):
     """Add to want the pull apart from fish too near, and, for fish of
     its own species, together when far apart.  A much smaller fish of
-    another kind pushes less."""
+    another kind pushes less.
+
+    Every fish checks every other each step, so the fish of other kinds
+    that are a separation or more apart along any axis, which can only
+    be farther, are passed over before anything else is worked out."""
     fwd = self.forward()
+    x, y, z = self.x, self.y, self.z
+    species = self.species
+    length = self.length
     for other in others:
       if other is self or other in skip:
         continue
-      off = (self.x - other.x, self.y - other.y, self.z - other.z)
-      d = vec.length(off)
-      sep = SEPARATION * max(self.length, other.length)
+      dx, dy, dz = x - other.x, y - other.y, z - other.z
+      other_length = other.length
+      sep = SEPARATION * max(length, other_length)
+      same = other.species is species
+      if not same and (abs(dx) >= sep or abs(dy) >= sep or abs(dz) >= sep):
+        continue
+      off = (dx, dy, dz)
+      d = math.sqrt(dx * dx + dy * dy + dz * dz)
       if d < sep:
         away = vec.normalized(off, (-fwd[0], -fwd[1], 0.0))
         w = (1.0 - d / sep) ** 2 * 3.0
-        if other.species is not self.species:
-          w *= min(1.0, other.length / self.length)
+        if not same:
+          w *= min(1.0, other_length / length)
         for axis in range(3):
           want[axis] += away[axis] * w
-      elif d > COHESION and other.species is self.species:
+      elif d > COHESION and same:
         toward = vec.scale(vec.normalized(off), -0.12)
         for axis in range(3):
           want[axis] += toward[axis]
@@ -361,18 +373,27 @@ class Fish:
                       + 2 * math.pi * fin_freq * dt) % (2 * math.pi)
 
   def _keep_apart(self, others):
+    species = self.species
+    length = self.length
     for other in others:
       if other is self:
         continue
-      off = (self.x - other.x, self.y - other.y, self.z - other.z)
-      d = vec.length(off)
-      if other.species is self.species:
-        gap = MIN_GAP * max(self.length, other.length)
-        share = 0.5
+      dx, dy, dz = self.x - other.x, self.y - other.y, self.z - other.z
+      other_length = other.length
+      if other.species is species:
+        gap = MIN_GAP * max(length, other_length)
       else:
-        gap = MIN_GAP * 0.5 * (self.length + other.length)
-        share = other.length / (self.length + other.length)
+        gap = MIN_GAP * 0.5 * (length + other_length)
+      # A gap or more apart along an axis is farther: most fish are
+      if abs(dx) >= gap or abs(dy) >= gap or abs(dz) >= gap:
+        continue
+      off = (dx, dy, dz)
+      d = math.sqrt(dx * dx + dy * dy + dz * dz)
       if d < gap:
+        if other.species is species:
+          share = 0.5
+        else:
+          share = other_length / (length + other_length)
         # Each fish takes its share of the overlap on its own step: half,
         # or the smaller fish most of it
         away = vec.normalized(off, (0.0, 1.0 if self.y >= other.y else -1.0,

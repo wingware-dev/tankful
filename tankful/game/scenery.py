@@ -3,11 +3,12 @@
 The objects come from tools/build_scene.py (and tools/scene_env.py),
 named after tankful.sim.environment's layout:
 
-- CausticProjector: an empty whose object space every caustic, shimmer
-  and god-ray shader reads; sinking it runs the pattern's time axis and
-  drifting it moves the pattern across the tank.  The fish bodies read
-  where it is from their object color instead (FISH_CAUSTIC), which is
-  set as it moves.
+- CausticProjector: an empty whose space every caustic, shimmer and
+  god-ray shader reads; sinking it runs the pattern's time axis and
+  drifting it moves the pattern across the tank.  The shaders read where
+  it is from their object's color (PROJECTOR_SPACE), which is set on
+  every such object as it moves: reading the moving empty itself would
+  cost far more (docs/harness.md, "Frame budget").
 - <plant>.Rig: an armature per plant with a chain of bones L<leaf>.<bone>
   per leaf, bent by tankful.sim.sway.
 - Bubble.NN: one object per slot of the tankful.sim.bubbles pool, moved,
@@ -29,10 +30,10 @@ PROJECTOR = 'CausticProjector'
 # tools/build_scene.py), which smears shading that changes quickly: much
 # faster than this and the caustics wash out to a flat glow
 CAUSTIC_SPEED = 0.1
-# The caustic group of the objects that read the projector's place from
-# their color, and what is added to its drift there to keep it positive
-# (tools/scene_env.py, caustic_group)
-FISH_CAUSTIC = 'CausticProjection.Fish'
+# The node group of the shaders that read the projector's place from
+# their object's color, and what is added to its drift there to keep it
+# positive (tools/scene_env.py, projector_space_group)
+PROJECTOR_SPACE = 'ProjectorSpace'
 CAUSTIC_BIAS = 1.0
 
 
@@ -46,7 +47,7 @@ class Scenery:
     self._projector_home = (list(self.projector.worldPosition)
                             if self.projector is not None else None)
     self.caustic_followers = [obj for obj in objects
-                              if reads_group(obj, FISH_CAUSTIC)]
+                              if reads_group(obj, PROJECTOR_SPACE)]
     self.plants = []
     for plant in env.plants():
       rig = objects.get(plant.name + '.Rig')
@@ -125,16 +126,28 @@ class Scenery:
 
 def reads_group(obj, group_name):
   """Whether a material of obj (a KX_GameObject) uses the node group
-  group_name directly in its node tree."""
+  group_name, in its node tree or in a group within it."""
   blender_obj = getattr(obj, 'blenderObject', None)
   if blender_obj is None:
     return False
-  for slot in blender_obj.material_slots:
-    tree = slot.material.node_tree if slot.material else None
-    if tree is None:
+  return any(slot.material is not None
+             and tree_uses(slot.material.node_tree, group_name, set())
+             for slot in blender_obj.material_slots)
+
+
+def tree_uses(tree, group_name, seen):
+  """Whether node tree uses the group group_name, at any depth; seen holds
+  the names of the groups already looked through."""
+  if tree is None:
+    return False
+  for node in tree.nodes:
+    if node.bl_idname != 'ShaderNodeGroup' or node.node_tree is None:
       continue
-    for node in tree.nodes:
-      if (node.bl_idname == 'ShaderNodeGroup' and node.node_tree is not None
-          and node.node_tree.name == group_name):
+    name = node.node_tree.name
+    if name == group_name:
+      return True
+    if name not in seen:
+      seen.add(name)
+      if tree_uses(node.node_tree, group_name, seen):
         return True
   return False

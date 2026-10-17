@@ -344,17 +344,21 @@ class Member(Fish):
     align = [0.0, 0.0, 0.0]
     center = [0.0, 0.0, 0.0]
     n = 0
+    x, y, z = self.x, self.y, self.z
     for m in school.members:
       if m is self:
         continue
-      off = (self.x - m.x, self.y - m.y, self.z - m.z)
-      d = vec.length(off)
+      dx, dy, dz = x - m.x, y - m.y, z - m.z
+      off = (dx, dy, dz)
+      d = math.sqrt(dx * dx + dy * dy + dz * dz)
       if d > view:
         continue
       n += 1
-      mf = m.forward()
-      for axis in range(3):
-        align[axis] += mf[axis]
+      # m.forward(), written out
+      cp = math.cos(m.pitch)
+      align[0] += cp * math.cos(m.yaw)
+      align[1] += cp * math.sin(m.yaw)
+      align[2] += math.sin(m.pitch)
       center[0] += m.x
       center[1] += m.y
       center[2] += m.z
