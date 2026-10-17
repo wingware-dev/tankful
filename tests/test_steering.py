@@ -7,7 +7,7 @@ from tankful.sim import school as sim_school
 from tankful.sim import species
 from tankful.sim import steering
 from tankful.sim import vec
-from tankful.sim.fish import CRUISE, HOVER
+from tankful.sim.fish import CRUISE, HOVER, STEER_TOP
 from tankful.sim.species import angelfish, cherry_shrimp, corydoras, pleco
 from tankful.sim.tank import Tank
 
@@ -28,6 +28,17 @@ def run(tank, control, seconds, keys=()):
   for _ in range(int(round(seconds / DT))):
     control.update(DT, keys)
     tank.step(DT)
+
+
+def mean_speed(tank, control, fish, seconds, keys=()):
+  """The mean speed of fish over seconds of running with keys."""
+  total = 0.0
+  steps = int(round(seconds / DT))
+  for _ in range(steps):
+    control.update(DT, keys)
+    tank.step(DT)
+    total += sum(f.speed for f in fish) / len(fish)
+  return total / steps
 
 
 class ControlStateTest(unittest.TestCase):
@@ -231,6 +242,17 @@ class SteeredFishTest(unittest.TestCase):
     (x0, x1), (y0, y1), (z0, z1) = f.bounds()
     self.assertTrue(x0 <= f.x <= x1 and y0 <= f.y <= y1 and z0 <= f.z <= z1)
 
+  def test_steered_it_swims_faster_than_of_itself(self):
+    f = named(self.tank, 'Angelfish.0')
+    run(self.tank, self.control, 2.0)
+    own = mean_speed(self.tank, self.control, [f], 4.0)
+    self.control.select(f)
+    run(self.tank, self.control, 1.0, ['right'])
+    steered = mean_speed(self.tank, self.control, [f], 4.0, ['right'])
+    self.assertGreater(steered, 1.5 * own)
+    self.assertGreater(steered, 1.3 * f.cruise_speed)
+    self.assertLessEqual(f.steered_speed(), STEER_TOP * f.max_speed)
+
   def test_stays_in_the_tank_steered_into_the_glass(self):
     f = named(self.tank, 'Angelfish.0')
     self.control.select(f)
@@ -252,7 +274,7 @@ class SteeredSchoolTest(unittest.TestCase):
     g0 = school.goal
     # Long enough to cross open water, not to reach the plants on the
     # right, which the goal slides round (School._limit_goal)
-    run(tank, control, 2.5, ['right'])
+    run(tank, control, 1.5, ['right'])
     self.assertGreater(school.goal[0], g0[0] + 0.1)
     self.assertAlmostEqual(school.goal[1], g0[1], delta=0.02)
     c1 = school.centroid()
@@ -263,6 +285,18 @@ class SteeredSchoolTest(unittest.TestCase):
     # The members aren't steered one by one
     self.assertTrue(all(m.steer is None for m in school.members))
     self.assertIs(school.steer, control.steer)
+
+  def test_steered_the_school_swims_faster_than_of_itself(self):
+    tank = stocked()
+    control = steering.Control()
+    run(tank, control, 2.0)
+    school = next(s for s in tank.schools if s.name == 'NeonTetras')
+    own = mean_speed(tank, control, school.members, 2.5)
+    control.select(school)
+    run(tank, control, 0.5, ['left'])
+    steered = mean_speed(tank, control, school.members, 2.5, ['left'])
+    self.assertGreater(steered, 1.3 * own)
+    self.assertLess(school.spread(), 2.5 * school.radius)
 
   def test_the_goal_turns_the_steered_way(self):
     tank = stocked()

@@ -41,6 +41,7 @@ from tankful.sim import daynight
 from tankful.sim import environment as env
 from tankful.sim import vec
 from tankful.sim.fish import BODY_REACH, MARGIN, MAX_STEP, Fish
+from tankful.sim.fish import STEER_SPEED as FISH_STEER_SPEED
 from tankful.sim.noise import SmoothNoise
 from tankful.sim.species.base import Resident
 
@@ -75,9 +76,10 @@ SWING = (1.4, 2.6)
 # The goal keeps in front of this y: the back of the tank is planted, and
 # a school in open water is one the viewer sees
 OPEN_BACK = 0.04
-# Steered: the goal's speed as a fraction of the members' cruise, and how
-# hard it holds its depth (per s)
-STEER_SPEED = 0.9
+# Steered: the goal's speed as a fraction of the members' cruise, faster
+# than it goes of itself as a steered fish is (tankful.sim.fish
+# STEER_SPEED), and how hard it holds its depth (per s)
+STEER_SPEED = GOAL_SPEED * FISH_STEER_SPEED
 STEER_HOLD = 2.0
 
 

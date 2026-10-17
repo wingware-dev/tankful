@@ -89,6 +89,10 @@ PLANT_NEAR = 0.03
 STEER_HOLD = 0.7
 STEER_HOLD_NEAR = 0.03
 STEER_CLIMB_RUN = 0.6
+# Steered, a fish swims faster than it does of itself: STEER_SPEED times
+# what it cruises at, though never past STEER_TOP of its most
+STEER_SPEED = 2.0
+STEER_TOP = 0.8
 # The body capsule (Fish.body), in lengths: from BODY_FRONT ahead of the
 # center to BODY_BACK behind it, BODY_RADIUS round.  The tail fin bends
 # and is left out, and the capsule is as thick as the body is from side
@@ -634,10 +638,18 @@ class Fish:
     target, glide = self._target_speed(want)
     steer = self.steered
     if steer:
-      # Steered, it cruises, slowing only to turn hard
+      # Steered, it hurries, slowing only to turn hard
       along = vec.dot(self.forward(), want)
-      user = self.swim_speed * (0.55 + 0.45 * max(0.0, along))
+      user = self.steered_speed() * (0.55 + 0.45 * max(0.0, along))
       target += (user - target) * steer.weight
+    else:
+      school_steer = getattr(self.school, 'steer', None)
+      if school_steer is not None:
+        # Steered as one of a school: as much quicker, to keep up with
+        # its goal (tankful.sim.school.School._steered_move)
+        boost = 1.0 + (STEER_SPEED - 1.0) * school_steer.weight
+        target = max(target, min(target * boost,
+                                 self.max_speed * STEER_TOP))
     startle = self.startled
     if startle:
       # Bumped: away fast, from a kick
@@ -659,6 +671,10 @@ class Fish:
     accel = (s.thrust * self.size * self.stroke * (1.0 - self.speed / top)
              - self.speed / glide)
     self.speed = vec.clamp(self.speed + accel * dt, 0.0, top)
+
+  def steered_speed(self):
+    """The speed it swims at while the user steers it."""
+    return min(self.swim_speed * STEER_SPEED, self.max_speed * STEER_TOP)
 
   def _target_speed(self, want):
     """The speed the fish strokes toward, and its glide time."""
