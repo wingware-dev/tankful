@@ -201,7 +201,11 @@ class TankFactorTests(unittest.TestCase):
   def test_snapshot_shows_the_factor(self):
     self.tank.set_factor(1.2, -0.3)
     self.assertEqual(self.tank.snapshot()['factor'],
-                     {'speed_scale': 1.2, 'depth_shift': -0.3})
+                     {'speed_scale': 1.2, 'depth_shift': -0.3,
+                      'skittish': 0.0, 'flicker': 0.0, 'startles': 0})
+    self.tank.set_factor(1.0, 0.0, skittish=0.8, flicker=1.0)
+    factor = self.tank.snapshot()['factor']
+    self.assertEqual((factor['skittish'], factor['flicker']), (0.8, 1.0))
 
   def test_slower_fish_cover_less_ground(self):
     def travel(scale):
