@@ -62,8 +62,11 @@ CRUISE, HOVER = 'cruise', 'hover'
 
 # The longest step taken at once, so a frame hitch cannot fling a fish
 MAX_STEP = 0.1
-# How far ahead of its walls and decor a fish starts to steer
+# How far ahead of its walls a fish starts to steer
 MARGIN = 0.10
+# And of the decor, past its clearance: nearer than the walls' so a fish
+# can swim down among the rocks, plants and driftwood, not only over them
+DECOR_MARGIN = 0.05
 # The sand's and surface's pushes each reach at most this share of the
 # swim box's height, so a tall fish's short box keeps room to swim in
 VERTICAL_MARGIN_SHARE = 0.25
@@ -130,6 +133,8 @@ class Fish:
   _startle_away = None
   _kick = False
   bumps = 0
+  # How far past its clearance the decor starts to push it (m)
+  decor_margin = DECOR_MARGIN
 
   def __init__(self, name, species, size=1.0, seed=0, position=(0, 0, 0.25),
                heading=0.0):
@@ -440,14 +445,15 @@ class Fish:
             want[axis] += sign * w
             danger = max(danger, min(1.0, near))
 
-    for obstacle in self._obstacles_near(pos, MARGIN + look):
+    margin = self.decor_margin
+    for obstacle in self._obstacles_near(pos, margin + look):
       clear = self.clearance(obstacle)
       for p in (pos, ahead):
         c = vec.closest_on_segment(p, obstacle.a, obstacle.b)
         off = vec.sub(p, c)
         gap = vec.length(off) - clear
-        if gap < MARGIN:
-          near = 1.0 - gap / MARGIN
+        if gap < margin:
+          near = 1.0 - gap / margin
           w = min(near, 1.5) ** 2 * (0.9 if obstacle.soft else 1.8)
           away = vec.normalized(off, (-fwd[0], -fwd[1], 0.0))
           for axis in range(3):

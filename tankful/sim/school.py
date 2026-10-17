@@ -40,7 +40,7 @@ import random
 from tankful.sim import daynight
 from tankful.sim import environment as env
 from tankful.sim import vec
-from tankful.sim.fish import BODY_REACH, MAX_STEP, Fish
+from tankful.sim.fish import BODY_REACH, MARGIN, MAX_STEP, Fish
 from tankful.sim.noise import SmoothNoise
 from tankful.sim.species.base import Resident
 
@@ -324,6 +324,10 @@ class Member(Fish):
   # only as long as a flick, and the rules draw it back in: any longer and
   # it is carried well clear of the rest
   startle_time = FLICK_TIME
+  # The decor pushes it from as far off as the walls do: the school's goal
+  # keeps a school's width from the decor anyway, and a member let nearer
+  # slips round the far side of a branch and loses the rest
+  decor_margin = MARGIN
 
   def __init__(self, name, species, school, size=1.0, seed=0,
                position=(0, 0, 0.25), heading=0.0):

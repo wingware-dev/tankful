@@ -179,6 +179,31 @@ class FishLimitsTests(unittest.TestCase):
     self.assertGreater(self.surface_push(0.06, 0.03),
                        self.surface_push(None, 0.03))
 
+  def decor_push(self, gap):
+    """The up/down push _steer_clear gives a still fish level in the
+    middle of its swim box over a rock whose clearance is gap below it."""
+    f = Fish('Probe', ANGELFISH, 1.0, 1, (0.0, 0.0, 0.3), 0.0)
+    (x0, x1), (y0, y1), (z0, z1) = f.bounds()
+    f.x, f.y, f.z = (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2
+    f.speed = 0.0
+    rock = env.Obstacle('Rock', None, None, 0.03, False)
+    clear = f.clearance(rock)
+    at = (f.x, f.y, f.z - clear - gap)
+    rock = rock._replace(a=at, b=at)
+    f._obstacles_near = lambda pos, reach: (rock,)
+    want = [0.0, 0.0, 0.0]
+    f._steer_clear(want)
+    return want[2]
+
+  def test_decor_margin(self):
+    # The decor pushes only within DECOR_MARGIN of its clearance, less
+    # than the walls' MARGIN, so a fish may swim down near it
+    self.assertLess(sim_fish.DECOR_MARGIN, sim_fish.MARGIN)
+    self.assertEqual(self.decor_push(sim_fish.DECOR_MARGIN + 0.01), 0.0)
+    near = self.decor_push(0.5 * sim_fish.DECOR_MARGIN)
+    self.assertGreater(near, 0.0)
+    self.assertGreater(self.decor_push(0.1 * sim_fish.DECOR_MARGIN), near)
+
   def test_vertical_margins_capped(self):
     # The angelfish's box is short: the sand and surface each push only
     # within their share of it, leaving the middle half free
