@@ -14,12 +14,14 @@ its Root bone takes its position and orientation instead of an object.
 The player spends time on every object that moves, so a school moves one
 object, not one per fish.
 
-Each fish's shadow is two discs on the sand under it, a dark core and a
-fainter halo, each on a bone of FishShadows.Rig (tools/scene_fish.py,
-build_shadows): shadow_pose places and scales them each frame, the core
-shrinking away and the halo spreading, then shrinking, as the fish
-rises, so the shadow fades with the fish's height.  The whole tank's
-shadows move one object.
+Each fish's shadow is discs on the sand under it, a dark core and a
+fainter halo of three faint discs stacked, each on a bone of
+FishShadows.Rig (tools/scene_fish.py, build_shadows): shadow_pose places
+and scales them each frame, the core shrinking away and the halo
+spreading as the fish rises, then its discs switching off one by one,
+so the halo fades in darkness more than it shrinks.  Only the first
+halo bone is placed: the others and the core are its children, and
+take only a scale.  The whole tank's shadows move one object.
 """
 
 import logging
@@ -32,6 +34,11 @@ from tankful.sim import vec
 log = logging.getLogger('tankful.fishes')
 
 SHADOW_RIG = 'FishShadows.Rig'
+# The halo's discs, in the order they switch off, the last one the bone
+# the rest of the fish's shadow hangs from (SHADOW_ROOT)
+HALO = ('Penumbra3', 'Penumbra2', 'Penumbra')
+SHADOW_ROOT = HALO[-1]
+SHADOW_PARTS = HALO + ('Umbra',)
 
 # A fish's shadow from above, across the body, as a fraction of its length
 SHADOW_WIDTH = {'angelfish': 0.22, 'pleco': 0.4, 'corydoras': 0.4,
@@ -41,13 +48,16 @@ DEFAULT_SHADOW_WIDTH = 0.3
 CORE_GONE = 0.16
 # How far the halo spreads beyond the footprint on each side: on the sand,
 # in footprint widths, then per meter above the sand, to at most HALO_MAX
-# (m).  Above HALO_HOLD (m) it shrinks, to nothing at HALO_GONE, so the
-# shadows of fish near the surface fade away
+# (m).  Between HALO_HOLD and HALO_GONE (m) its discs switch off one by
+# one, each shrinking away over HALO_BAND of that span, their bands
+# overlapping so the halo's darkness falls steadily, and the shadows of
+# fish near the surface fade away
 HALO_BASE = 1.0
 HALO_SPREAD = 0.3
 HALO_MAX = 0.06
 HALO_HOLD = 0.1
 HALO_GONE = 0.4
+HALO_BAND = 0.5
 # How far above the sand the discs float, so the sand doesn't cut into
 # them, and the span the sand's slope is measured over (m): wider than
 # its ripples, which the soft discs needn't follow
@@ -57,8 +67,8 @@ SLOPE_SPAN = 0.03
 
 def shadow_pose(f):
   """Where f's shadow is: (position, rotation quaternion (w, x, y, z),
-  {'Umbra': scale, 'Penumbra': scale}), each scale (x, y, z) of a disc of
-  unit diameter turned to f's heading and laid on the sand under it."""
+  {part: scale} for each of SHADOW_PARTS), each scale (x, y, z) of a disc
+  of unit diameter turned to f's heading and laid on the sand under it."""
   m = f.orientation()
   length = f.length
   width = length * SHADOW_WIDTH.get(f.species.name, DEFAULT_SHADOW_WIDTH)
@@ -85,10 +95,23 @@ def shadow_pose(f):
   pos = vec.add((f.x, f.y, floor), vec.scale(n, SHADOW_LIFT))
   core = 1.0 - min(1.0, rise / CORE_GONE)
   halo = width * HALO_BASE + min(HALO_MAX, HALO_SPREAD * rise)
-  fade = 1.0 - _smoothstep((rise - HALO_HOLD) / (HALO_GONE - HALO_HOLD))
-  return pos, vec.quaternion(rot), {
-    'Umbra': (foot * core, width * core, 1.0),
-    'Penumbra': ((foot + 2 * halo) * fade, (width + 2 * halo) * fade, 1.0)}
+  hx, hy = foot + 2 * halo, width + 2 * halo
+  scales = {'Umbra': (foot * core, width * core, 1.0)}
+  # Where the span is, in bands, and how far apart the bands start
+  t = (rise - HALO_HOLD) / ((HALO_GONE - HALO_HOLD) * HALO_BAND)
+  step = (1.0 / HALO_BAND - 1.0) / (len(HALO) - 1)
+  for i, part in enumerate(HALO):
+    fade = 1.0 - _smoothstep(t - i * step)
+    scales[part] = (hx * fade, hy * fade, 1.0)
+  return pos, vec.quaternion(rot), scales
+
+
+def relative_scales(scales):
+  """shadow_pose's scales for the bones under SHADOW_ROOT, which inherit
+  its scale: {part: scale} for each of SHADOW_PARTS but the root."""
+  rx, ry, _ = scales[SHADOW_ROOT]
+  return {part: (x / rx if rx else 0.0, y / ry if ry else 0.0, z)
+          for part, (x, y, z) in scales.items() if part != SHADOW_ROOT}
 
 
 def _smoothstep(t):
@@ -140,19 +163,20 @@ class Fishes:
       self._scalers[f] = (None, root)
       if rig not in self.school_rigs:
         self.school_rigs.append(rig)
-    # (fish, Umbra channel, Penumbra channel)
+    # (fish, SHADOW_ROOT channel, ((part, channel), ...) for the rest)
     self.shadows = []
     self.shadow_rig = objects.get(SHADOW_RIG)
     if self.shadow_rig is None:
       log.warning('no %s: the fish have no shadows', SHADOW_RIG)
       return
     for f, _, _ in self.rigs + self.members:
-      parts = [self.shadow_rig.channels.get('%s:%s' % (f.name, part))
-               for part in ('Umbra', 'Penumbra')]
-      if None in parts:
+      parts = {part: self.shadow_rig.channels.get('%s:%s' % (f.name, part))
+               for part in SHADOW_PARTS}
+      if None in parts.values():
         log.warning('fish %s has no shadow bones in %s', f.name, SHADOW_RIG)
         continue
-      self.shadows.append((f,) + tuple(parts))
+      root = parts.pop(SHADOW_ROOT)
+      self.shadows.append((f, root, tuple(parts.items())))
 
   def update(self):
     for f, rig, channels in self.rigs:
@@ -172,12 +196,14 @@ class Fishes:
       rig.worldPosition = (0.0, 0.0, 0.0)
       rig.update()
     if self.shadows:
-      for f, umbra, penumbra in self.shadows:
+      for f, root, parts in self.shadows:
         pos, rot, scales = shadow_pose(f)
-        for channel, part in ((umbra, 'Umbra'), (penumbra, 'Penumbra')):
-          channel.location = pos
-          channel.rotation_quaternion = rot
-          channel.scale = scales[part]
+        root.location = pos
+        root.rotation_quaternion = rot
+        root.scale = scales[SHADOW_ROOT]
+        relative = relative_scales(scales)
+        for part, channel in parts:
+          channel.scale = relative[part]
       # Re-evaluated only when moved, as the schools are
       self.shadow_rig.worldPosition = (0.0, 0.0, 0.0)
       self.shadow_rig.update()

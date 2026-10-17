@@ -377,6 +377,8 @@ without its `tools/species/<name>.py`), two runs of three readings each:
 | Every species, with the light switch, by day (below) | 52-54 | 3.4 / 4.0 / 4.2 |
 | The same, during a fade to night | 52-54 | 3.6 / 4.0 / 4.3 |
 | The same, at night | 55-57 | 3.5 / 2.2-4.2 / 4.4 |
+| Every species, each shadow's halo three discs (now, below) | 56-57 | 3.5 / 4.0 / 4.4 |
+| The same with the halo one disc, measured alongside | 55 | 3.5 / 3.9 / 4.3 |
 
 So the angelfish and the gouramis cost the most: about 2.5 ms of
 `Rasterizer` per pair, all of it from the caustic projection on their
@@ -422,20 +424,35 @@ sim moves exactly as before: every fish's place, heading and speed after
 tetras the step takes about 40% of what it does with them, still the
 pairwise checks and each tetra's decor checks.
 
-The fish's blob shadows (the last two rows, `docs/shots/08-shadows.png`)
-are two soft blended discs per fish on the sand under it, a dark core
-and a fainter halo, all 70 on the bones of one armature
-(`FishShadows.Rig`) and in one mesh (`build_shadows` in
+The fish's blob shadows (the rows with blob shadows under the fish,
+`docs/shots/08-shadows.png`)
+are four soft blended discs per fish on the sand under it, a dark core
+and a fainter halo of three faint discs stacked, all 140 on the bones of
+one armature (`FishShadows.Rig`) and in one mesh (`build_shadows` in
 `tools/scene_fish.py`); each frame `tankful.game.fishes.shadow_pose`
 lays them on the sand's slope under their fish and scales them, the
-core shrinking away and the halo spreading, then shrinking, as the fish
-rises.  Their material reads nothing but its UVs.  Measured in eight
-alternating pairs of runs, with and without them, from two project
-copies outside the working copy (another task's harness runs at the
-same time pulled both down to 30 fps at times; those readings are left
-out), they cost about 0.3 ms of `Logic` (placing them), 0.25 ms of
-`Depsgraph` (the armature's 70 bones) and 0.2 ms of `Rasterizer`, about
-1 fps, within the readings' spread.
+core shrinking away and the halo spreading as the fish rises, then the
+halo's discs switching off one by one, each shrinking away over its own
+band of heights, the bands overlapping, so a fish's shadow fades in
+darkness more than it shrinks as it rises into mid-water.  Only each
+fish's `Penumbra` bone, the halo disc that goes last, is placed each
+frame: the other three are its children, and take only a scale
+relative to it (`relative_scales`).  Their material reads nothing but
+its UVs.  Measured in eight alternating pairs of runs, with and without
+them, from two project copies outside the working copy (another task's
+harness runs at the same time pulled both down to 30 fps at times;
+those readings are left out), the first shadows, two discs per fish
+each placed on its own, cost about 0.3 ms of `Logic` (placing them),
+0.25 ms of `Depsgraph` (the armature's 70 bones) and 0.2 ms of
+`Rasterizer`, about 1 fps, within the readings' spread.  The halo's
+three discs (the last two rows, against the halo as one disc, in four
+alternating pairs from two project copies, with no other game running)
+cost about 0.04 ms more of `Logic`, 0.13 ms of `Depsgraph` (the 70 more
+bones) and 0.05 ms of `Rasterizer`, and no frame rate: with only one
+bone placed per fish, the game writes as much each frame as before.
+Screenshots of the same moment differ only under the fish in mid-water,
+whose shadows are a little lighter at their centers and wider, too
+little to see side by side, so `08-shadows.png` stands.
 
 The bubbles' pops show as rings spreading on the surface above the
 stream (the last two rows, `docs/shots/08-bubble-pop.png`), all drawn by
@@ -451,8 +468,9 @@ as much: every object the game changes each frame costs `Depsgraph`
 time, so a group of small things changing together goes on one object,
 as the schools' fish and the blob shadows do.
 
-The light switch (the last three rows, `docs/shots/08-night.png`, with
-`docs/shots/07-community.png` taken by day just before it in
+The light switch (the three rows with the light switch,
+`docs/shots/08-night.png`, with `docs/shots/07-community.png` taken by
+day just before it in
 `tools/scripts/08-night.json`) fades the tank between day and night
 over 6 s (`tankful.sim.daynight`, `tankful.game.lighting`).  It changes
 the shading of nearly everything, so it goes without per-frame shader

@@ -320,26 +320,38 @@ def build_fish(scene):
 
 # The fish cast no real shadows, which cost too much of the frame
 # (docs/harness.md), so each has a blob on the sand under it: a dark core
-# (Umbra) inside a fainter halo (Penumbra), each a disc on a bone of its
-# own in one armature, FishShadows.Rig, and all of them in one mesh,
-# FishShadows.  The game (tankful.game.fishes) puts each disc on the sand
-# under its fish and scales it: as the fish rises the core shrinks away
-# and the halo spreads, then shrinks too, so the shadow fades.  Nothing is read per frame but the
-# bones, and the whole lot moves one object.
+# (Umbra) inside a fainter halo of three faint discs stacked (HALO), each
+# a disc on a bone of its own in one armature, FishShadows.Rig, and all of
+# them in one mesh, FishShadows.  The game (tankful.game.fishes) puts the
+# discs on the sand under their fish and scales them: as the fish rises
+# the core shrinks away and the halo spreads, then its discs switch off
+# one by one, so the shadow fades.  The fish's other bones are children of
+# its last halo disc's (SHADOW_ROOT), so only that one is placed.  Nothing
+# is read per frame but the bones, and the whole lot moves one object.
 SHADOW_RIG = 'FishShadows.Rig'
-SHADOW_PARTS = ('Umbra', 'Penumbra')
+HALO = ('Penumbra3', 'Penumbra2', 'Penumbra')
+SHADOW_ROOT = HALO[-1]
+SHADOW_PARTS = HALO + ('Umbra',)
 
-# Each disc's darkness at its center (it fades to nothing at its edge),
-# for fish SMALL_FISH long (m) or more, and less for smaller ones, which
-# block less light and come in schools whose shadows overlap
+# The darkness at the center of the core and of the whole halo (each
+# disc fades to nothing at its edge), for fish SMALL_FISH long (m) or
+# more, and less for smaller ones, which block less light and come in
+# schools whose shadows overlap
 SHADOW_ALPHA = {'Umbra': 0.7, 'Penumbra': 0.32}
 SMALL_SHADOW_ALPHA = {'Umbra': 0.5, 'Penumbra': 0.1}
 SMALL_FISH = 0.045
 
 
+def layer_alpha(alpha, layers):
+  """The darkness of each of layers blended discs stacked that together
+  are alpha dark."""
+  return 1.0 - (1.0 - alpha) ** (1.0 / layers)
+
+
 def build_shadows(scene, sides=20):
   """FishShadows.Rig and FishShadows: per fish in the tank, a disc of unit
-  diameter for each of SHADOW_PARTS, on its bone <fish>:<part>."""
+  diameter for each of SHADOW_PARTS, on its bone <fish>:<part>, all but
+  SHADOW_ROOT's parented to it."""
   from tankful.sim import tank as sim_tank
   tank = sim_tank.Tank()
   fish = sim_species.stock(tank)
@@ -348,24 +360,37 @@ def build_shadows(scene, sides=20):
   bpy.context.view_layer.objects.active = rig
   bpy.ops.object.mode_set(mode='EDIT')
   for f in fish:
-    for part in SHADOW_PARTS:
-      # Along +y with no roll, so the bone's rest frame is the armature's
+    root = None
+    for part in (SHADOW_ROOT,) + tuple(p for p in SHADOW_PARTS
+                                       if p != SHADOW_ROOT):
+      # Along +y with no roll, so the bone's rest frame is the armature's,
+      # and a child's pose is its own scale in its parent's
       eb = data.edit_bones.new('%s:%s' % (f.name, part))
       eb.head = Vector((0, 0, 0))
       eb.tail = Vector((0, 0.05, 0))
       eb.roll = 0.0
+      if root is None:
+        root = eb
+      else:
+        eb.parent = root
+        eb.use_connect = False
   bpy.ops.object.mode_set(mode='OBJECT')
   for pb in rig.pose.bones:
     pb.rotation_mode = 'QUATERNION'
-  mats = [shadow_material('FishShadow.%s%s' % (part, suffix), alpha[part])
+  # Umbra, Penumbra, then the same for small fish
+  kinds = ('Umbra', 'Penumbra')
+  mats = [shadow_material('FishShadow.%s%s' % (kind, suffix),
+                          layer_alpha(alpha[kind],
+                                      len(HALO) if kind == 'Penumbra' else 1))
           for suffix, alpha in (('', SHADOW_ALPHA),
                                 ('.Small', SMALL_SHADOW_ALPHA))
-          for part in SHADOW_PARTS]
+          for kind in kinds]
   mb = MeshBuilder(1.0)
   for f in fish:
     mb.prefix = f.name + ':'
-    first = len(SHADOW_PARTS) if f.length < SMALL_FISH else 0
-    for index, part in enumerate(SHADOW_PARTS, first):
+    first = len(kinds) if f.length < SMALL_FISH else 0
+    for part in SHADOW_PARTS:
+      index = first + (0 if part == 'Umbra' else 1)
       # UV is the point's place on the disc, 1 at its edge
       weights = {part: 1.0}
       center = mb.vert((0, 0, 0), (0.0, 0.0), weights)
