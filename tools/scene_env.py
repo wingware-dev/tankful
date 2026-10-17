@@ -55,6 +55,7 @@ def build_environment(scene, tank, mats):
   build_plants(scene, tank, caustic)
   build_airstone(scene, tank)
   build_bubbles(scene, tank)
+  build_ripples(scene, tank)
   build_water_surface(scene, tank, caustic)
   build_god_rays(scene, tank, space)
   mats['glass_front'] = glass_front_material()
@@ -875,6 +876,92 @@ def build_bubbles(scene, tank):
     obj = link_object(scene, 'Bubble.%02d' % i, mesh, tank, shadow=False)
     obj.location = src
     obj.scale = (0.002,) * 3
+
+
+def build_ripples(scene, tank):
+  """Ripples: a disc of RIPPLE_RADIUS just under the water surface over
+  the bubble stream, which draws the rings of the ripple pool
+  (tankful.sim.bubbles.RipplePool).  The game sets the progress of each of
+  its three slots as its color's red, green and blue (1 for none), and the
+  shader draws each ring from that, as Ripple.spread and Ripple.strength
+  give it.  So nothing moves, the material needs no per-frame writes and
+  reads no other object, and only one object's color changes per frame.
+  The pops land within about a centimeter of the stream's axis, too
+  little to see at the grazing angle the viewer sees the surface from,
+  so the rings all spread from the disc's center."""
+  mat, t, out = new_material('Ripple', blended=True)
+  mat.use_transparent_shadow = False
+  info = t.add('ShaderNodeObjectInfo')
+  rgb = t.add('ShaderNodeSeparateColor')
+  t.link(info.outputs['Color'], rgb.inputs[0])
+  # UV U runs from the center (0) out to the disc's rim (1)
+  uv = t.add('ShaderNodeUVMap')
+  sep = t.add('ShaderNodeSeparateXYZ')
+  t.link(uv.outputs['UV'], sep.inputs[0])
+  u = sep.outputs['X']
+  total = None
+  for channel in ('Red', 'Green', 'Blue'):
+    p = rgb.outputs[channel]
+    left = t.math('SUBTRACT', 1.0, p, clamp=True)
+    ease = t.math('SUBTRACT', 1.0, t.math('MULTIPLY', left, left))
+    spread = t.math('MULTIPLY_ADD', ease, 1.0 - sim_bubbles.RIPPLE_START)
+    spread.node.inputs[2].default_value = sim_bubbles.RIPPLE_START
+    strength = t.math('POWER', left, 1.5)
+    # q is 1 at the ring: a bright ring, soft on both sides, over a
+    # faint fill inside it
+    q = t.math('DIVIDE', u, spread)
+    rise = t.add('ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'},
+                 Value=q, From_Min=0.55, From_Max=0.88, To_Min=0.0,
+                 To_Max=1.0)
+    fall = t.add('ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'},
+                 Value=q, From_Min=0.9, From_Max=1.0, To_Min=1.0, To_Max=0.0)
+    shape = t.math('MULTIPLY_ADD', rise.outputs[0], 0.85)
+    shape.node.inputs[2].default_value = 0.15
+    ring = t.math('MULTIPLY', t.math('MULTIPLY', shape, fall.outputs[0]),
+                  strength)
+    total = ring if total is None else t.math('ADD', total, ring)
+  fac = t.math('MULTIPLY', total, 1.0, clamp=True)
+  clear = t.add('ShaderNodeBsdfTransparent')
+  glow = t.add('ShaderNodeEmission', Color=(0.85, 0.97, 1.0, 1.0),
+               Strength=9.0)
+  mix = t.add('ShaderNodeMixShader')
+  t.link(fac, mix.inputs[0])
+  t.link(clear.outputs[0], mix.inputs[1])
+  t.link(glow.outputs[0], mix.inputs[2])
+  t.link(mix.outputs[0], out.inputs['Surface'])
+
+  bm = bmesh.new()
+  uv_layer = bm.loops.layers.uv.new('UVMap')
+  segments, rings = 32, 8
+  center = bm.verts.new((0.0, 0.0, 0.0))
+  rows = []
+  for i in range(1, rings + 1):
+    rr = i / rings
+    rows.append([bm.verts.new((rr * math.cos(2 * math.pi * k / segments),
+                               rr * math.sin(2 * math.pi * k / segments),
+                               0.0)) for k in range(segments)])
+
+  def face(verts, radii):
+    # Wound to face down, toward the viewer below the surface
+    f = bm.faces.new(verts[::-1])
+    for loop, rr in zip(f.loops, radii[::-1]):
+      loop[uv_layer].uv = (rr, 0.5)
+
+  for k in range(segments):
+    k1 = (k + 1) % segments
+    face([center, rows[0][k], rows[0][k1]], [0.0, 1 / rings, 1 / rings])
+    for i in range(rings - 1):
+      r0, r1 = (i + 1) / rings, (i + 2) / rings
+      face([rows[i][k], rows[i + 1][k], rows[i + 1][k1], rows[i][k1]],
+           [r0, r1, r1, r0])
+  bmesh.ops.scale(bm, vec=(sim_bubbles.RIPPLE_RADIUS,) * 3, verts=bm.verts)
+  obj = link_object(scene, 'Ripples', finish_mesh(bm, 'Ripples', mat, False),
+                    tank, shadow=False)
+  # Just under the surface (build_water_surface), over the stream
+  x, y, _ = env.airstone_position()
+  obj.location = (x, y, env.WATER_LEVEL - 0.001)
+  # No ripples until the game says so
+  obj.color = (1.0, 1.0, 1.0, 1.0)
 
 
 # Light effects

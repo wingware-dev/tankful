@@ -140,5 +140,106 @@ class BubblePoolTests(unittest.TestCase):
     self.assertEqual(pool.time, 0.0)
 
 
+class PopEventTests(unittest.TestCase):
+
+  def test_each_pop_is_reported_once_at_the_surface(self):
+    pool = BubblePool(SOURCE, SURFACE, seed=4)
+    events = []
+    for _ in range(int(20 / (1 / 60.0))):
+      pool.step(1 / 60.0)
+      events += pool.pop_events
+      for x, y, radius in pool.pop_events:
+        self.assertLess(abs(x - SOURCE[0]), 0.03)
+        self.assertLess(abs(y - SOURCE[1]), 0.03)
+        lo, hi = pool.radius_range
+        self.assertTrue(lo <= radius <= hi, radius)
+    # Every bubble that reached the surface, popped or still popping
+    popping = sum(1 for b in pool.bubbles if b.state == bubbles.POPPING)
+    self.assertEqual(len(events), pool.popped + popping)
+    self.assertGreater(len(events), 200)
+
+  def test_events_last_one_step(self):
+    pool = BubblePool(SOURCE, SURFACE, seed=4)
+    while not pool.pop_events:
+      pool.step(1 / 60.0)
+    pool.step(0.0)
+    self.assertEqual(pool.pop_events, [])
+
+  def test_no_events_before_the_first_pop(self):
+    pool = BubblePool(SOURCE, SURFACE)
+    self.assertEqual(pool.pop_events, [])
+    run(pool, 0.5)
+    self.assertEqual(pool.pop_events, [])
+
+
+class RipplePoolTests(unittest.TestCase):
+
+  def test_ripple_spreads_and_fades(self):
+    ripples = bubbles.RipplePool(capacity=1)
+    r = ripples.start(0.3, 0.16)
+    self.assertEqual(r.progress, 0.0)
+    self.assertAlmostEqual(r.spread, bubbles.RIPPLE_START)
+    self.assertEqual(r.strength, 1.0)
+    last = (r.radius, r.strength)
+    for _ in range(int(bubbles.RIPPLE_TIME / 0.05) - 1):
+      ripples.step(0.05)
+      self.assertTrue(r.active)
+      self.assertGreater(r.radius, last[0])
+      self.assertLess(r.strength, last[1])
+      self.assertLess(r.radius, bubbles.RIPPLE_RADIUS)
+      last = (r.radius, r.strength)
+    ripples.step(0.1)
+    self.assertFalse(r.active)
+    # A free slot reads as a spent ripple: spread out, and dark
+    self.assertEqual(r.progress, 1.0)
+    self.assertAlmostEqual(r.radius, bubbles.RIPPLE_RADIUS)
+    self.assertEqual(r.strength, 0.0)
+
+  def test_full_pool_skips_pops(self):
+    ripples = bubbles.RipplePool(capacity=2)
+    first = ripples.start(0.0, 0.0)
+    ripples.step(0.1)
+    second = ripples.start(0.0, 0.0)
+    self.assertIsNone(ripples.start(0.0, 0.0))
+    self.assertEqual(ripples.snapshot(), {'active': 2, 'capacity': 2,
+                                          'started': 2, 'skipped': 1})
+    # The oldest is not cut short
+    self.assertAlmostEqual(first.age, 0.1)
+    run(ripples, bubbles.RIPPLE_TIME - 0.05)
+    self.assertFalse(first.active)
+    self.assertTrue(second.active)
+    self.assertIs(ripples.start(0.0, 0.0), first)
+
+  def test_progresses_in_slot_order(self):
+    ripples = bubbles.RipplePool(capacity=3)
+    self.assertEqual(ripples.progresses(), (1.0, 1.0, 1.0))
+    ripples.start(0.0, 0.0)
+    ripples.step(bubbles.RIPPLE_TIME / 2)
+    ripples.start(0.0, 0.0)
+    p = ripples.progresses()
+    self.assertAlmostEqual(p[0], 0.5)
+    self.assertEqual(p[1:], (0.0, 1.0))
+
+  def test_stream_keeps_the_pool_busy(self):
+    pool = BubblePool(SOURCE, SURFACE, seed=2)
+    ripples = bubbles.RipplePool()
+    for _ in range(int(10 / (1 / 60.0))):
+      pool.step(1 / 60.0)
+      ripples.step(1 / 60.0)
+      for x, y, _ in pool.pop_events:
+        ripples.start(x, y)
+    snap = ripples.snapshot()
+    # Pops come many times a second: a ring starts soon after one ends
+    self.assertGreater(snap['started'], 20)
+    self.assertGreater(snap['skipped'], 0)
+    json.dumps(snap)
+
+  def test_bad_arguments(self):
+    with self.assertRaises(ValueError):
+      bubbles.RipplePool(capacity=0)
+    with self.assertRaises(ValueError):
+      bubbles.RipplePool().step(-0.1)
+
+
 if __name__ == '__main__':
   unittest.main()

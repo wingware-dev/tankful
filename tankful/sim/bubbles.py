@@ -6,6 +6,10 @@ bubble is emitted into a free slot, rises with a helical wobble that
 widens as it goes, grows a little as the pressure drops, and pops at the
 surface: it swells for POP_TIME and frees its slot.  With every slot
 busy, the emission waits for one.
+
+Each pop is reported in BubblePool.pop_events, for a RipplePool: a fixed
+pool of rings that spread on the surface from where bubbles popped, and
+fade, so the pop reads at the tank's scale.
 """
 
 import math
@@ -21,6 +25,19 @@ POP_SWELL = 0.6
 # The pool size the scene is built with: one bubble object per slot
 CAPACITY = 48
 
+# A ripple spreads from where a bubble popped for RIPPLE_TIME, from
+# RIPPLE_START of RIPPLE_RADIUS out to all of it, fading as it goes.  The
+# pops are at the back of the tank, where the viewer sees the surface
+# nearly edge on, so the rings spread wide to read at all.  The scene
+# draws all RIPPLES of them on one object, through its color's red, green
+# and blue (tools/scene_env.py, build_ripples, which repeats spread and
+# strength below in its shader): a pop while all are busy makes no
+# ripple, and with several pops a second, a few rings at a time read as
+# well as one per pop
+RIPPLE_TIME = 1.0
+RIPPLE_RADIUS = 0.045
+RIPPLE_START = 0.12
+RIPPLES = 3
 
 class Bubble:
 
@@ -70,6 +87,9 @@ class BubblePool:
     self.emitted = 0
     self.popped = 0
     self.stalled = 0
+    # (x, y, radius) of each bubble that reached the surface during the
+    # last step() call
+    self.pop_events = []
     self._next_emit = 0.0
 
   @property
@@ -82,6 +102,7 @@ class BubblePool:
   def step(self, dt):
     if dt < 0:
       raise ValueError('dt must not be negative: %r' % dt)
+    self.pop_events = []
     while dt > 0:
       h = min(dt, MAX_STEP)
       self._step(h)
@@ -151,6 +172,7 @@ class BubblePool:
       b.z = self.surface_z - 0.4 * b.radius
       b.state = POPPING
       b.pop_age = 0.0
+      self.pop_events.append((b.x, b.y, b.base_radius))
 
   def snapshot(self):
     return {
@@ -159,4 +181,85 @@ class BubblePool:
       'emitted': self.emitted,
       'popped': self.popped,
       'stalled': self.stalled,
+    }
+
+
+class Ripple:
+
+  __slots__ = ('active', 'x', 'y', 'age')
+
+  def __init__(self):
+    self.active = False
+    self.x = self.y = self.age = 0.0
+
+  @property
+  def progress(self):
+    """0 to 1 through the ripple, and 1 when there is none."""
+    return min(1.0, self.age / RIPPLE_TIME) if self.active else 1.0
+
+  @property
+  def spread(self):
+    """The ring's radius as a fraction of RIPPLE_RADIUS: quick at first,
+    slowing as it spreads."""
+    ease = 1.0 - (1.0 - self.progress) ** 2
+    return RIPPLE_START + (1.0 - RIPPLE_START) * ease
+
+  @property
+  def radius(self):
+    return RIPPLE_RADIUS * self.spread
+
+  @property
+  def strength(self):
+    """How bright the ring is, 1 fading to 0."""
+    return (1.0 - self.progress) ** 1.5
+
+
+class RipplePool:
+  """Up to capacity ripples on the surface, one started per pop while
+  a slot is free."""
+
+  def __init__(self, capacity=RIPPLES):
+    if capacity < 1:
+      raise ValueError('capacity must be at least 1: %r' % capacity)
+    self.ripples = [Ripple() for _ in range(capacity)]
+    self.started = 0
+    self.skipped = 0
+
+  @property
+  def capacity(self):
+    return len(self.ripples)
+
+  def start(self, x, y):
+    """A ripple at (x, y), in a free slot; None, and none started, with
+    every slot busy."""
+    for r in self.ripples:
+      if not r.active:
+        break
+    else:
+      self.skipped += 1
+      return None
+    r.active = True
+    r.x, r.y, r.age = x, y, 0.0
+    self.started += 1
+    return r
+
+  def step(self, dt):
+    if dt < 0:
+      raise ValueError('dt must not be negative: %r' % dt)
+    for r in self.ripples:
+      if r.active:
+        r.age += dt
+        if r.age >= RIPPLE_TIME:
+          r.active = False
+
+  def progresses(self):
+    """Each slot's Ripple.progress, in slot order: 1 for a free one."""
+    return tuple(r.progress for r in self.ripples)
+
+  def snapshot(self):
+    return {
+      'active': sum(1 for r in self.ripples if r.active),
+      'capacity': self.capacity,
+      'started': self.started,
+      'skipped': self.skipped,
     }

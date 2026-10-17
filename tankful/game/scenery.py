@@ -13,6 +13,8 @@ named after tankful.sim.environment's layout:
   per leaf, bent by tankful.sim.sway.
 - Bubble.NN: one object per slot of the tankful.sim.bubbles pool, moved,
   scaled and hidden to match it.
+- Ripples: a disc under the surface over the bubble stream, which draws
+  the ripple pool's rings, spreading and fading as its color says.
 """
 
 import logging
@@ -35,11 +37,13 @@ CAUSTIC_SPEED = 0.1
 # positive (tools/scene_env.py, projector_space_group)
 PROJECTOR_SPACE = 'ProjectorSpace'
 CAUSTIC_BIAS = 1.0
+# The object that draws the ripples (tools/scene_env.py, build_ripples)
+RIPPLES = 'Ripples'
 
 
 class Scenery:
 
-  def __init__(self, scene, pool=None):
+  def __init__(self, scene, pool=None, ripples=None):
     objects = scene.objects
     self.projector = objects.get(PROJECTOR)
     if self.projector is None:
@@ -69,12 +73,24 @@ class Scenery:
         break
       obj.visible = False
       self.bubbles.append(obj)
+    self.ripple_pool = ripples or sim_bubbles.RipplePool()
+    self.ripple_obj = objects.get(RIPPLES)
+    if self.ripple_obj is None:
+      log.warning('no %s in the scene: bubbles pop without ripples', RIPPLES)
+    elif len(self.ripple_pool.ripples) > 3:
+      raise ValueError('the %s object draws 3 ripples, not %d' % (
+        RIPPLES, len(self.ripple_pool.ripples)))
+    self._ripple_color = None
 
   def update(self, t, dt):
     self._move_projector(t)
     self._sway(t)
     self.pool.step(dt)
     self._place_bubbles()
+    self.ripple_pool.step(dt)
+    for x, y, size in self.pool.pop_events:
+      self.ripple_pool.start(x, y)
+    self._place_ripples()
 
   def _move_projector(self, t):
     if self.projector is None:
@@ -114,9 +130,23 @@ class Scenery:
       if not obj.visible:
         obj.visible = True
 
+  def _place_ripples(self):
+    # One object draws every ripple, each slot's progress in a channel of
+    # its color (tools/scene_env.py, build_ripples): a ring object of its
+    # own per ripple, moved and faded each frame, cost about 0.13 ms of
+    # Depsgraph apiece (docs/harness.md, "Frame budget")
+    if self.ripple_obj is None:
+      return
+    progress = self.ripple_pool.progresses()
+    color = progress + (1.0,) * (3 - len(progress)) + (1.0,)
+    if color != self._ripple_color:
+      self.ripple_obj.color = color
+      self._ripple_color = color
+
   def snapshot(self):
     return {
       'bubbles': self.pool.snapshot(),
+      'ripples': self.ripple_pool.snapshot(),
       'plants': len(self.plants),
       'caustic_followers': len(self.caustic_followers),
       'projector': [round(v, 3) for v in self.projector.worldPosition]

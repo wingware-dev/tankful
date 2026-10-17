@@ -5,6 +5,8 @@ from unittest import mock
 
 from tankful import launcher
 from tankful.game import scenery
+from tankful.sim import bubbles
+from tankful.sim.bubbles import RIPPLE_TIME
 
 
 class FakeObjects(list):
@@ -137,6 +139,59 @@ class CausticFollowersTest(unittest.TestCase):
   def test_others_keep_their_color(self):
     self.scenery._move_projector(10.0)
     self.assertEqual(self.tetras.color, (1.0, 1.0, 1.0, 1.0))
+
+
+class RipplesTest(unittest.TestCase):
+
+  def setUp(self):
+    self.disc = FakeObject(scenery.RIPPLES)
+    self.disc.color = (1.0, 1.0, 1.0, 1.0)
+    self.pool = mock.Mock(capacity=0, bubbles=[], pop_events=[])
+    with mock.patch.object(scenery.log, 'warning'):
+      self.scenery = scenery.Scenery(
+        mock.Mock(objects=FakeObjects([self.disc])), self.pool)
+
+  def update(self, dt=0.1, pops=()):
+    self.pool.pop_events = list(pops)
+    self.scenery.update(1.0, dt)
+
+  def test_pops_start_ripples_shown_in_the_color(self):
+    self.update(pops=[(0.3, 0.16, 0.004)])
+    self.assertEqual(self.disc.color, (0.0, 1.0, 1.0, 1.0))
+    self.update(pops=[(0.31, 0.16, 0.003)])
+    r, g, b, a = self.disc.color
+    self.assertAlmostEqual(r, 0.1 / RIPPLE_TIME)
+    self.assertEqual((g, b, a), (0.0, 1.0, 1.0))
+    # Two pops at once fill the last slot, and the one after has none
+    self.update(pops=[(0.3, 0.16, 0.004)] * 2)
+    self.assertEqual(self.disc.color[2], 0.0)
+    snap = self.scenery.snapshot()['ripples']
+    self.assertEqual((snap['started'], snap['skipped']), (3, 1))
+
+  def test_spent_ripples_go_dark_and_writes_stop(self):
+    self.update(pops=[(0.3, 0.16, 0.004)])
+    for _ in range(int(RIPPLE_TIME / 0.1) + 1):
+      self.update()
+    self.assertEqual(self.disc.color, (1.0, 1.0, 1.0, 1.0))
+    # Nothing changes now, so the color is not set again
+    self.disc.color = 'untouched'
+    self.update()
+    self.assertEqual(self.disc.color, 'untouched')
+
+  def test_scene_without_the_disc(self):
+    pool = mock.Mock(capacity=0, bubbles=[], pop_events=[(0.3, 0.16, 0.004)])
+    with mock.patch.object(scenery.log, 'warning') as warning:
+      s = scenery.Scenery(mock.Mock(objects=FakeObjects([])), pool)
+    self.assertTrue(any(scenery.RIPPLES in str(c) for c in
+                        warning.call_args_list))
+    s.update(1.0, 0.1)
+    self.assertEqual(s.snapshot()['ripples']['started'], 1)
+
+  def test_disc_draws_at_most_three(self):
+    with mock.patch.object(scenery.log, 'warning'), \
+         self.assertRaises(ValueError):
+      scenery.Scenery(mock.Mock(objects=FakeObjects([self.disc])),
+                      self.pool, bubbles.RipplePool(capacity=4))
 
 
 class SharedConstantsTest(unittest.TestCase):

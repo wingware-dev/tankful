@@ -290,6 +290,8 @@ without its `tools/species/<name>.py`), two runs of three readings each:
 | Every species, the sim's neighbor checks trimmed (now, below) | 55-56 | 3.2 / 3.8 / 4.3 |
 | The same again, measured alongside the next row | 54-57 | 3.1 / 4.0 / 4.1 |
 | Every species, with blob shadows under the fish (now, below) | 52-56 | 3.4 / 4.3 / 4.3 |
+| The same again, measured alongside the next row | 55-58 | 3.3 / 3.5 / 4.2 |
+| Every species, with ripples where the bubbles pop (now, below) | 55-57 | 3.3 / 3.6 / 4.1 |
 
 So the angelfish and the gouramis cost the most: about 2.5 ms of
 `Rasterizer` per pair, all of it from the caustic projection on their
@@ -349,6 +351,20 @@ same time pulled both down to 30 fps at times; those readings are left
 out), they cost about 0.3 ms of `Logic` (placing them), 0.25 ms of
 `Depsgraph` (the armature's 70 bones) and 0.2 ms of `Rasterizer`, about
 1 fps, within the readings' spread.
+
+The bubbles' pops show as rings spreading on the surface above the
+stream (the last two rows, `docs/shots/08-bubble-pop.png`), all drawn by
+one disc, `Ripples` (`build_ripples` in `tools/scene_env.py`), which
+never moves: its color's red, green and blue are the progress of the
+three slots of `tankful.sim.bubbles.RipplePool`, each started by a pop
+while it is free, and its shader draws each ring from that.  In four
+alternating pairs of runs it cost nothing measurable.  A ring object per
+ripple, moved, scaled and faded through its color each frame, cost about
+0.13 ms of `Depsgraph` apiece (20 rings, 1.5-2 ms; 6, 0.7 ms), and
+placing each only once per ripple, with only its color changing, cost
+as much: every object the game changes each frame costs `Depsgraph`
+time, so a group of small things changing together goes on one object,
+as the schools' fish and the blob shadows do.
 
 So for more fish:
 

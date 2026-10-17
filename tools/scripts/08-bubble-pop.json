@@ -1,0 +1,13 @@
+{
+  "commands": [
+    "wait 60f",
+    "state",
+    "wait 16",
+    "wait 18f",
+    "state",
+    "screenshot docs/shots/08-bubble-pop.png",
+    "wait 30f",
+    "state",
+    "quit"
+  ]
+}
