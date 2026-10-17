@@ -1,0 +1,17 @@
+{
+  "commands": [
+    "wait 60f",
+    "wait 4",
+    "state",
+    "key down f",
+    "wait 1f",
+    "key up f",
+    "key down 5",
+    "wait 1f",
+    "key up 5",
+    "wait 15",
+    "state",
+    "screenshot docs/shots/15-stock-down.png",
+    "quit"
+  ]
+}

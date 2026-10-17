@@ -63,7 +63,7 @@ class App:
     self.fishes = Fishes(scene, self.tank.fish)
     self.steering = Steering(scene, self.tank, self.fishes)
     self.factors = FactorHud(self.tank, self.lighting, scene=scene,
-                             window=self._window)
+                             window=self._window, scenery=self.scenery)
     atexit.register(self.factors.stop)
     self.input = game_input.InputState()
     self.channel = None

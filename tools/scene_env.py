@@ -26,6 +26,7 @@ from mathutils import Vector
 
 from tankful.sim import bubbles as sim_bubbles
 from tankful.sim import environment as env
+from tankful.sim import weather as sim_weather
 
 PROJECTOR = 'CausticProjector'
 # How fast W, the caustic pattern's time axis, runs per unit the projector
@@ -56,6 +57,7 @@ def build_environment(scene, tank, mats):
   build_airstone(scene, tank)
   build_bubbles(scene, tank)
   build_ripples(scene, tank)
+  build_rain(scene, tank)
   build_water_surface(scene, tank, caustic)
   build_god_rays(scene, tank, space)
   mats['glass_front'] = glass_front_material()
@@ -980,6 +982,109 @@ def build_ripples(scene, tank):
   obj.location = (x, y, env.WATER_LEVEL - 0.001)
   # No ripples until the game says so
   obj.color = (1.0, 1.0, 1.0, 1.0)
+
+
+def build_rain(scene, tank):
+  """RainRipples: a sheet just under the whole water surface that draws
+  raindrops landing and their rings (tankful.sim.weather).  The surface
+  is cut into cells of RAIN_CELL, in RAIN_LAYERS layers offset by half a
+  cell; in each cell a drop lands every 1 / RAIN_RATE seconds at a phase
+  of its own, at a random spot each time, as a bright splash and then a
+  ring that spreads and fades.  It shows only while the cell's random
+  draw for that drop is below the rain's strength.  The game sets the
+  rain clock as the object color's red, the strength as its green and
+  the rings' brightness as its alpha, and hides the sheet when dry, so
+  nothing moves and only one color changes per frame, as for Ripples."""
+  mat, t, out = new_material('Rain', blended=True)
+  mat.use_transparent_shadow = False
+  info = t.add('ShaderNodeObjectInfo')
+  rgb = t.add('ShaderNodeSeparateColor')
+  t.link(info.outputs['Color'], rgb.inputs[0])
+  clock, strength = rgb.outputs['Red'], rgb.outputs['Green']
+  r0, r1, width = sim_weather.RAIN_RING
+
+  def vmath(op, a, b=None):
+    node = t.add('ShaderNodeVectorMath', {'operation': op})
+    for sock, value in zip(node.inputs, (a, b)):
+      if value is None:
+        continue
+      if isinstance(value, tuple):
+        sock.default_value = value
+      else:
+        t.link(value, sock)
+    return node.outputs['Vector'] if op != 'DISTANCE' else node.outputs['Value']
+
+  def smooth(value, lo, hi, to_lo, to_hi):
+    node = t.add('ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'},
+                 Value=value, From_Min=lo, From_Max=hi, To_Min=to_lo,
+                 To_Max=to_hi)
+    return node.outputs[0]
+
+  # The shaded point in cells, flat
+  cells = vmath('MULTIPLY', object_coords(t), (1 / sim_weather.RAIN_CELL,
+                                               1 / sim_weather.RAIN_CELL, 0.0))
+  total = None
+  for layer in range(sim_weather.RAIN_LAYERS):
+    shift = 0.5 * layer
+    here = vmath('ADD', cells, (shift, shift, 0.0))
+    cell = vmath('FLOOR', here)
+    local = vmath('SUBTRACT', here, cell)
+    # The cell's phase, then which drop of the cell's this is and how
+    # far through it (p, 0 to 1)
+    phase = t.add('ShaderNodeTexWhiteNoise', {'noise_dimensions': '4D'},
+                  Vector=cell, W=7.0 * layer + 0.5)
+    tt = t.math('MULTIPLY_ADD', clock, sim_weather.RAIN_RATE)
+    t.link(phase.outputs['Value'], tt.node.inputs[2])
+    drop = t.math('ADD', t.math('FLOOR', tt), 101.0 * layer)
+    p = t.math('FRACT', tt)
+    draw = t.add('ShaderNodeTexWhiteNoise', {'noise_dimensions': '4D'},
+                 Vector=cell, W=drop)
+    rnd = t.add('ShaderNodeSeparateColor')
+    t.link(draw.outputs['Color'], rnd.inputs[0])
+    # Where it lands, inside the cell's middle so its ring stays in it
+    xy = []
+    for channel in ('Red', 'Green'):
+      v = t.math('MULTIPLY_ADD', rnd.outputs[channel], 0.4)
+      v.node.inputs[2].default_value = 0.3
+      xy.append(v)
+    spot = t.add('ShaderNodeCombineXYZ', X=xy[0], Y=xy[1])
+    d = vmath('DISTANCE', local, spot.outputs[0])
+    left = t.math('SUBTRACT', 1.0, p)
+    ease = t.math('SUBTRACT', 1.0, t.math('MULTIPLY', left, left))
+    radius = t.math('MULTIPLY_ADD', ease, r1 - r0)
+    radius.node.inputs[2].default_value = r0
+    ring = smooth(t.math('ABSOLUTE', t.math('SUBTRACT', d, radius)),
+                  0.0, width, 1.0, 0.0)
+    ring = t.math('MULTIPLY', ring, t.math('POWER', left, 1.5))
+    # The drop's splash, bright at the spot as it lands
+    splash = t.math('MULTIPLY', smooth(d, 0.0, 0.05, 1.0, 0.0),
+                    smooth(p, 0.0, 0.12, 1.5, 0.0))
+    shows = t.math('GREATER_THAN', strength, rnd.outputs['Blue'])
+    here_total = t.math('MULTIPLY', t.math('ADD', ring, splash), shows)
+    total = here_total if total is None else t.math('ADD', total, here_total)
+  fac = t.math('MULTIPLY', total, 0.8, clamp=True)
+  clear = t.add('ShaderNodeBsdfTransparent')
+  glow = t.add('ShaderNodeEmission', Color=(0.85, 0.97, 1.0, 1.0),
+               Strength=t.math('MULTIPLY', info.outputs['Alpha'], 9.0))
+  mix = t.add('ShaderNodeMixShader')
+  t.link(fac, mix.inputs[0])
+  t.link(clear.outputs[0], mix.inputs[1])
+  t.link(glow.outputs[0], mix.inputs[2])
+  t.link(mix.outputs[0], out.inputs['Surface'])
+
+  w = env.TANK_W - 2 * env.GLASS - 0.002
+  d = env.TANK_D - 2 * env.GLASS - 0.002
+  bm = bmesh.new()
+  bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=0.5)
+  bmesh.ops.scale(bm, vec=(w, d, 1), verts=bm.verts)
+  # Facing down, toward the viewer below the surface
+  bmesh.ops.reverse_faces(bm, faces=bm.faces)
+  obj = link_object(scene, 'RainRipples',
+                    finish_mesh(bm, 'RainRipples', mat, False), tank,
+                    shadow=False)
+  # Just under the surface (build_water_surface) and the bubbles' ripples
+  obj.location = (0, 0, env.WATER_LEVEL - 0.0015)
+  obj.color = (0.0, 0.0, 0.0, 1.0)
 
 
 # Light effects

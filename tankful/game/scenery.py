@@ -16,6 +16,9 @@ named after tankful.sim.environment's layout:
   scaled and hidden to match it.
 - Ripples: a disc under the surface over the bubble stream, which draws
   the ripple pool's rings, spreading and fading as its color says.
+- RainRipples: a sheet under the whole surface that draws the rain's
+  drops and rings (tankful.sim.weather) from its color: the rain clock,
+  the rain's strength and the rings' brightness.  Hidden when dry.
 """
 
 import logging
@@ -24,6 +27,7 @@ import math
 from tankful.sim import bubbles as sim_bubbles
 from tankful.sim import environment as env
 from tankful.sim import sway
+from tankful.sim import weather
 
 log = logging.getLogger('tankful.scenery')
 
@@ -40,6 +44,8 @@ PROJECTOR_SPACE = 'ProjectorSpace'
 CAUSTIC_BIAS = 1.0
 # The object that draws the ripples (tools/scene_env.py, build_ripples)
 RIPPLES = 'Ripples'
+# The object that draws the rain (tools/scene_env.py, build_rain)
+RAIN = 'RainRipples'
 
 
 class Scenery:
@@ -82,6 +88,12 @@ class Scenery:
       raise ValueError('the %s object draws 3 ripples, not %d' % (
         RIPPLES, len(self.ripple_pool.ripples)))
     self._ripple_color = None
+    self.rain_obj = objects.get(RAIN)
+    if self.rain_obj is None:
+      log.warning('no %s in the scene: no rain on the surface', RAIN)
+    else:
+      self.rain_obj.visible = False
+    self.rain = 0.0
     # The day's look until set_look says otherwise
     self._day_rate = self.pool.rate
     self.caustics = 1.0
@@ -98,6 +110,10 @@ class Scenery:
     self._bubble_color = tuple(look.bubbles) + (1.0,)
     self.pool.rate = self._day_rate * look.bubble_rate
 
+  def set_rain(self, strength):
+    """How hard it rains on the surface, 0 (dry) to 1 (a downpour)."""
+    self.rain = min(1.0, max(0.0, strength))
+
   def update(self, t, dt):
     self._move_projector(t)
     self._sway(t)
@@ -107,6 +123,7 @@ class Scenery:
     for x, y, size in self.pool.pop_events:
       self.ripple_pool.start(x, y)
     self._place_ripples()
+    self._place_rain(t)
 
   def _move_projector(self, t):
     if self.projector is None:
@@ -168,6 +185,18 @@ class Scenery:
       self.ripple_obj.color = color
       self._ripple_color = color
 
+  def _place_rain(self, t):
+    obj = self.rain_obj
+    if obj is None:
+      return
+    raining = self.rain >= weather.RAIN_MIN
+    if obj.visible != raining:
+      obj.visible = raining
+    if raining:
+      # Red is the clock that moves the drops, green the rain's strength,
+      # alpha the rings' brightness (tools/scene_env.py, build_rain)
+      obj.color = (weather.rain_clock(t), self.rain, 0.0, self.glow)
+
   def snapshot(self):
     return {
       'bubbles': self.pool.snapshot(),
@@ -176,6 +205,7 @@ class Scenery:
       'caustic_followers': len(self.caustic_followers),
       'caustics': round(self.caustics, 3),
       'bubble_rate': round(self.pool.rate, 3),
+      'rain': round(self.rain, 3),
       'projector': [round(v, 3) for v in self.projector.worldPosition]
       if self.projector is not None else None,
     }

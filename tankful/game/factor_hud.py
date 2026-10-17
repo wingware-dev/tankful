@@ -9,12 +9,14 @@ gear a small label shows the factor and its live value, marked offline
 when its source fails (tankful.factors.controller.FactorController.label).
 
 Each frame the controller's eased Effects go to the tank (the fishes'
-speed and depth band, tankful.sim.tank.Tank.set_factor), the lighting
-(the lamp's energy and color and the caustics' strength, through
-Lighting.adjust, so the scenery's caustics follow too) and the moon
-(tankful.sim.daynight.Light.set_moon).  The Effects are taken in small
-steps (EFFECT_STEP), so once eased in they stop changing and the
-lighting stops writing.
+speed, depth band and skittishness, and the lightning,
+tankful.sim.tank.Tank.set_factor), the lighting (the lamp's energy and
+color, the panel's and glass's tint and the caustics' strength, through
+Lighting.adjust, so the scenery's caustics follow too, with the
+lightning's flashes, tankful.sim.weather), the rain on the surface
+(Scenery.set_rain) and the moon (tankful.sim.daynight.Light.set_moon).
+The Effects are taken in small steps (EFFECT_STEP), so once eased in
+they stop changing and the lighting stops writing.
 
 The menu's state and layout are plain Python (FactorMenu); only draw()
 needs UPBGE's blf and gpu, through the scene's post_draw.
@@ -59,6 +61,11 @@ GEAR_COLOR = (0.9, 0.93, 0.95, 0.85)
 EFFECT_STEP = 0.005
 # Caustics no stronger than this times the light's own
 MAX_CAUSTICS = 1.5
+# A full lightning flash: the lamp this many times brighter again, the
+# back panel and the glass's sheens too, and the lamp's color
+FLASH_LAMP = 3.0
+FLASH_GLOW = 1.5
+FLASH_COLOR = (0.85, 0.9, 1.0)
 # The moon eases toward the factor's night light (or back to the
 # default) over about this many seconds
 MOON_TIME = 2.0
@@ -201,15 +208,25 @@ def quantize(e):
   return dataclasses.replace(e, **changes)
 
 
-def adjust_look(look, e):
+def adjust_look(look, e, flash=0.0):
   """look (a tankful.sim.daynight.Look) with Effects e in: the lamp's
-  energy by e.light_level, its color by e.tint, and the caustics'
-  strength by the light level and e.caustic_sharpness (none at 0)."""
+  energy by e.light_level, its color, the back panel's glow and the
+  glass's sheens by e.tint, and the caustics' strength by the light level
+  and e.caustic_sharpness (none at 0).  flash (0 to 1) is a lightning
+  flash (tankful.sim.weather.Lightning.level): the lamp, the panel, the
+  sheens and the caustics brighten, and the lamp goes a cold white."""
   caustics = min(MAX_CAUSTICS, e.light_level * e.caustic_sharpness)
+  lamp_color = tuple(c * t for c, t in zip(look.lamp_color, e.tint))
+  bright = 1.0 + FLASH_GLOW * flash
+  if flash:
+    lamp_color = tuple(c + (f - c) * flash
+                       for c, f in zip(lamp_color, FLASH_COLOR))
   return look._replace(
-    lamp=look.lamp * e.light_level,
-    lamp_color=tuple(c * t for c, t in zip(look.lamp_color, e.tint)),
-    caustics=look.caustics * caustics)
+    lamp=look.lamp * e.light_level * (1.0 + FLASH_LAMP * flash),
+    lamp_color=lamp_color,
+    panel=tuple(c * t * bright for c, t in zip(look.panel, e.tint)),
+    sheen=tuple(c * t * bright for c, t in zip(look.sheen, e.tint)),
+    caustics=look.caustics * caustics * (1.0 + flash))
 
 
 def in_rect(rect, x, y):
@@ -256,15 +273,16 @@ class FactorHud:
   """
 
   def __init__(self, tank, lighting, controller=None, scene=None,
-               window=None):
+               window=None, scenery=None):
     """window: a function giving the window's (width, height), for
-    draw()."""
+    draw().  scenery: the tankful.game.scenery.Scenery, for the rain."""
     if controller is None:
       controller = controller_mod.FactorController(
         make_source=standins.for_env())
     self.controller = controller
     self.tank = tank
     self.lighting = lighting
+    self.scenery = scenery
     self.menu = FactorMenu()
     self.moon = MoonFollower(tank.light.moon)
     self.effects = effects_mod.NEUTRAL
@@ -279,7 +297,7 @@ class FactorHud:
       scene.post_draw.append(self.draw)
 
   def adjust_look(self, look):
-    return adjust_look(look, self.effects)
+    return adjust_look(look, self.effects, self.tank.lightning.level)
 
   def hit(self, window, x, y):
     return self.menu.hit(window, x, y)
@@ -293,7 +311,10 @@ class FactorHud:
       factor = self.controller.select(picked)
       log.info('factor %s', factor.key)
     self.effects = quantize(self.controller.update(dt))
-    self.tank.set_factor(self.effects.speed_scale, self.effects.depth_shift)
+    e = self.effects
+    self.tank.set_factor(e.speed_scale, e.depth_shift, e.skittish, e.flicker)
+    if self.scenery is not None:
+      self.scenery.set_rain(e.surface_agitation)
     moon = self.moon.update(self.controller.target().night_light, dt)
     if moon != self._moon_set:
       self.tank.light.set_moon(moon)

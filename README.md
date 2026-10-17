@@ -54,7 +54,9 @@ left, or the F key, picks an outside factor for the tank's mood: None,
 Weather, Time & Moon, Battery or Stock (pick with a click, a number key,
 or the arrows and Enter).  A label beside the gear shows its live value,
 or offline when its source can't be reached; the choice is kept in a
-per-user settings file (`tankful/factors/settings.py`).  Click a fish
+per-user settings file (`tankful/factors/settings.py`).  Under Weather,
+rain falls on the surface in drops and rings and the fish keep lower, a
+storm adds lightning that startles them, and snow cools the light.  Click a fish
 to make it current, drawn a little larger with a faint yellow outline (a
 school, the guppies, the corydoras or the shrimp are selected as a
 group), and steer it with the arrow keys across the tank and up and

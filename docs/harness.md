@@ -53,6 +53,20 @@ to fail:
     TANKFUL_CONFIG_DIR=/tmp/tankful-cfg TANKFUL_FACTOR_STANDINS=1 \
       python tools/harness.py tools/scripts/11-factor-picker.json
 
+The picked factor is saved in that directory's settings, so a script
+that starts from None needs a fresh one.  The Stock stand-in is a down
+day (-1.80%) unless `TANKFUL_STANDIN_STOCK=up` (+1.60%), as the
+`15-stock-up.json` and `15-stock-down.json` scripts expect:
+
+    TANKFUL_CONFIG_DIR=$(mktemp -d) TANKFUL_FACTOR_STANDINS=1 \
+      TANKFUL_STANDIN_STOCK=up python tools/harness.py tools/scripts/15-stock-up.json
+
+The Weather stand-in rains (14°C, rain), as `12-weather-rain.json`
+expects, unless `TANKFUL_STANDIN_WEATHER` says `storm`, `snow`, `clear`
+or `cloudy`.  The storm's lightning is seeded and steps with the sim,
+so under the harness it strikes at the same game time every run (the
+first about 12.2 s into a script that picks Weather at 1 s).
+
 ## Fixed timestep
 
 Under `--harness` the sim does not step with real frame time, which
@@ -426,6 +440,16 @@ along them, and a rim much under 2.5 px wide (as 1.6 mm round a
 tetra) is wiped out by the frame accumulation, so the shell is at least
 2.5 mm wide.  The `state` command's `steering.screen` gives each fish's
 window pixel, for scripts to click on.
+
+The Weather factor's rain (`docs/shots/12-weather-rain.png`) is one
+still sheet under the surface, `RainRipples` (`build_rain` in
+`tools/scene_env.py`), whose shader draws every drop and ring from its
+object color (`tankful.sim.weather`), hidden when dry: with it raining
+hard, and in a storm with lightning, the frame rate stayed at 52-55
+fps.  A lightning flash rewrites the lamp, the panel and the glass for
+the few frames it lasts, and never the room.  Its flashes are short
+enough that the frame accumulation leaves them a little grainy, which
+reads as a flash.
 
 So for more fish:
 
