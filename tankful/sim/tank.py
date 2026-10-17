@@ -3,12 +3,20 @@
 import random
 
 from tankful.sim import daynight
+from tankful.sim import fish as fish_mod
 from tankful.sim import weather
 
 # The steps the external factor's speed scale and depth shift are taken
 # in (set_factor): each step is a new species for the fish, so an easing
 # value settles instead of making a new one every frame
 FACTOR_STEP = 0.01
+# A depth band squeezed against the surface or the sand by a depth shift
+# keeps at least this width (shift_band)
+MIN_SHIFTED_WIDTH = 0.12
+# On a full up shift the surface pushes a fish down only this near its
+# swim box's top (m), so it can reach a band raised to the surface
+# (factor_species)
+MIN_SURFACE_MARGIN = 0.03
 # How skittish fish swim at full skittishness: their flicks this many
 # times as often, their wander this much wider, their turns this much
 # quicker, and their hovering this many times as rare (factor_species)
@@ -165,12 +173,29 @@ class Tank:
 
 def shift_band(band, shift):
   """A depth band (lo, hi, fractions from the sand to the surface) moved
-  by shift: toward the surface for shift above 0, all the way up at 1,
-  and toward the sand below 0, all the way down at -1.  Its width stays."""
+  by shift: toward the surface for shift above 0 and toward the sand
+  below 0.  Its center goes that fraction of the way from where it is to
+  the surface or the sand, so a high band rises about as visibly as a
+  low one sinks, and at 1 or -1 the center is at the end.  A band pushed
+  past an end is squeezed against it, never narrower than
+  MIN_SHIFTED_WIDTH (or its own width), so it never leaves 0 to 1: a band
+  on the sand stays there on a down day."""
   lo, hi = band
   shift = min(1.0, max(-1.0, shift))
-  move = shift * (1.0 - hi) if shift > 0 else shift * lo
-  return (lo + move, hi + move)
+  if not shift:
+    return (lo, hi)
+  half = (hi - lo) / 2.0
+  center = (lo + hi) / 2.0
+  end = 1.0 if shift > 0 else 0.0
+  center += abs(shift) * (end - center)
+  lo, hi = max(0.0, center - half), min(1.0, center + half)
+  width = min(MIN_SHIFTED_WIDTH, 2.0 * half)
+  if hi - lo < width:
+    if shift > 0:
+      lo = hi - width
+    else:
+      hi = lo + width
+  return (lo, hi)
 
 
 def _step(value):
@@ -195,8 +220,30 @@ def factor_species(species, speed_scale, depth_shift, skittish=0.0):
              'turn_accel': species.turn_accel * turn,
              'hover_chance': species.hover_chance
              / (1.0 + SKITTISH_HOVER * skittish)}
+  if depth_shift > 0:
+    changes['surface_margin'] = lift_margin(species.surface_margin,
+                                            depth_shift)
   night = species.night
-  if night is not None and night.depth_band is not None:
-    changes['night'] = night._replace(
-      depth_band=shift_band(night.depth_band, depth_shift))
+  if night is not None:
+    night_changes = {}
+    if night.depth_band is not None:
+      night_changes['depth_band'] = shift_band(night.depth_band, depth_shift)
+    if depth_shift > 0 and night.surface_margin is not None:
+      night_changes['surface_margin'] = lift_margin(night.surface_margin,
+                                                    depth_shift)
+    if night_changes:
+      changes['night'] = night._replace(**night_changes)
   return species._replace(**changes)
+
+
+def lift_margin(margin, shift):
+  """A species' surface_margin (None for the fish's default) eased
+  toward MIN_SURFACE_MARGIN by an up shift (0 to 1): the surface's push
+  starts within a band's reach of its top, and a margin already as small
+  stays."""
+  if margin is None:
+    margin = fish_mod.MARGIN
+  shift = min(1.0, max(0.0, shift))
+  if margin <= MIN_SURFACE_MARGIN:
+    return margin
+  return margin + (MIN_SURFACE_MARGIN - margin) * shift

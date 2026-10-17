@@ -3,9 +3,12 @@ import math
 import unittest
 
 from tankful.game.main import parse_size
+from tankful.sim import fish as fish_mod
 from tankful.sim.species import angelfish
+from tankful.sim.species import guppy
 from tankful.sim.species import neon_tetra
-from tankful.sim.tank import Tank, factor_species, shift_band
+from tankful.sim.tank import (MIN_SURFACE_MARGIN, Tank, factor_species,
+                               lift_margin, shift_band)
 
 
 class TankTests(unittest.TestCase):
@@ -32,16 +35,64 @@ class ShiftBandTests(unittest.TestCase):
 
   def test_full_shifts_reach_either_end(self):
     lo, hi = shift_band((0.3, 0.6), 1.0)
-    self.assertAlmostEqual(lo, 0.7)
+    self.assertAlmostEqual(lo, 0.85)
     self.assertAlmostEqual(hi, 1.0)
     lo, hi = shift_band((0.3, 0.6), -1.0)
     self.assertAlmostEqual(lo, 0.0)
-    self.assertAlmostEqual(hi, 0.3)
+    self.assertAlmostEqual(hi, 0.15)
 
-  def test_half_shift_goes_half_way_and_keeps_width(self):
+  def test_half_shift_moves_the_center_half_way_and_keeps_width(self):
     lo, hi = shift_band((0.2, 0.5), -0.5)
-    self.assertAlmostEqual(lo, 0.1)
+    self.assertAlmostEqual((lo + hi) / 2, 0.175)
     self.assertAlmostEqual(hi - lo, 0.3)
+    lo, hi = shift_band((0.2, 0.5), 0.5)
+    self.assertAlmostEqual((lo + hi) / 2, 0.675)
+    self.assertAlmostEqual(hi - lo, 0.3)
+
+  def test_high_bands_rise_most_of_their_room(self):
+    # The day bands of angelfish, guppies and tetras: a 0.8 up day lifts
+    # each center by over half the room above it (shift * (1 - hi), all
+    # an up day once had, left guppies 0.06 higher), as a down day sinks
+    # it by over half the room below
+    for band in ((0.4, 0.8), (0.55, 0.93), (0.3, 0.62)):
+      center = sum(band) / 2
+      up = sum(shift_band(band, 0.8)) / 2 - center
+      down = center - sum(shift_band(band, -0.8)) / 2
+      self.assertGreater(up, 0.5 * (1 - center), band)
+      self.assertGreater(up, 0.12, band)
+      self.assertGreater(down, 0.5 * center, band)
+    # The gourami's band is at the surface already: it stays there,
+    # squeezed only to the minimum width
+    lo, hi = shift_band((0.86, 1.0), 0.8)
+    self.assertEqual(hi, 1.0)
+    self.assertAlmostEqual(lo, 0.88)
+
+  def test_bands_stay_within_the_tank(self):
+    for band in ((0.0, 0.1), (0.0, 0.2), (0.0, 1.0), (0.4, 0.8),
+                 (0.86, 1.0), (0.9, 1.0)):
+      for shift in (-1.0, -0.9, -0.4, 0.4, 0.8, 1.0):
+        lo, hi = shift_band(band, shift)
+        self.assertGreaterEqual(lo, 0.0, (band, shift))
+        self.assertLessEqual(hi, 1.0, (band, shift))
+        self.assertGreaterEqual(hi - lo, min(0.12, band[1] - band[0]) - 1e-9)
+        self.assertLessEqual(hi - lo, band[1] - band[0] + 1e-9)
+
+  def test_sand_bands_stay_on_the_sand_on_down_days(self):
+    # Corydoras and cherry shrimp
+    for band in ((0.0, 0.1), (0.0, 0.2)):
+      for shift in (-0.2, -0.9, -1.0):
+        lo, hi = shift_band(band, shift)
+        self.assertAlmostEqual(lo, 0.0)
+        self.assertLessEqual(hi, band[1])
+        self.assertGreaterEqual(hi, min(0.12, band[1]))
+
+  def test_squeezed_bands_keep_a_minimum_width(self):
+    lo, hi = shift_band((0.55, 0.93), 1.0)
+    self.assertAlmostEqual(hi, 1.0)
+    self.assertAlmostEqual(hi - lo, 0.19)
+    lo, hi = shift_band((0.4, 0.8), -0.95)
+    self.assertAlmostEqual(lo, 0.0)
+    self.assertGreaterEqual(hi - lo, 0.12)
 
   def test_out_of_range_is_clamped(self):
     self.assertEqual(shift_band((0.3, 0.6), 3.0), shift_band((0.3, 0.6), 1.0))
@@ -59,6 +110,49 @@ class FactorSpeciesTests(unittest.TestCase):
     self.assertAlmostEqual(f.night.depth_band[0], 0.0)
     self.assertEqual(f.name, s.name)
     self.assertEqual(f.length, s.length)
+
+  def test_up_shifts_let_fish_nearer_the_surface(self):
+    s = guppy.SPECIES
+    self.assertIsNone(s.surface_margin)
+    up = factor_species(s, 1.0, 0.8)
+    self.assertLess(up.surface_margin, fish_mod.MARGIN)
+    self.assertGreaterEqual(up.surface_margin, MIN_SURFACE_MARGIN)
+    self.assertLessEqual(up.night.surface_margin, s.night.surface_margin)
+    down = factor_species(s, 1.0, -0.8)
+    self.assertIsNone(down.surface_margin)
+    self.assertEqual(down.night.surface_margin, s.night.surface_margin)
+
+  def test_lift_margin(self):
+    self.assertAlmostEqual(lift_margin(None, 0.0), fish_mod.MARGIN)
+    self.assertAlmostEqual(lift_margin(None, 1.0), MIN_SURFACE_MARGIN)
+    self.assertAlmostEqual(lift_margin(0.1, 0.5),
+                           (0.1 + MIN_SURFACE_MARGIN) / 2)
+    self.assertEqual(lift_margin(0.02, 1.0), 0.02)
+    self.assertAlmostEqual(lift_margin(0.1, 3.0), MIN_SURFACE_MARGIN)
+
+
+class DepthShiftSwimTests(unittest.TestCase):
+  """Guppies, which swim near the surface, rise visibly on an up day,
+  though they have only about 0.1 m above them to rise into (an up day
+  once lifted them under 0.01 m), and sink on a down day."""
+
+  def mean_height(self, shift):
+    tank = Tank()
+    guppy.stock(tank)
+    tank.set_factor(1.0, shift)
+    heights = []
+    for i in range(30 * 60):
+      tank.step(1 / 60)
+      if i >= 10 * 60 and i % 30 == 0:
+        heights.extend(f.z for f in tank.fish)
+    return sum(heights) / len(heights)
+
+  def test_up_lifts_and_down_sinks(self):
+    neutral = self.mean_height(0.0)
+    up = self.mean_height(0.8) - neutral
+    down = neutral - self.mean_height(-0.8)
+    self.assertGreater(up, 0.03)
+    self.assertGreater(down, 0.1)
 
 
 class TankFactorTests(unittest.TestCase):
