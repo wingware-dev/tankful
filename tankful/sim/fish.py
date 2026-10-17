@@ -485,8 +485,10 @@ class Fish:
 
   def _mind_others(self, want, others, skip=()):
     """Add to want the pull apart from fish too near, and, for fish of
-    its own species, together when far apart.  A much smaller fish of
-    another kind pushes less.  A fish it bumps into startles it
+    its own species, together when far apart.  A smaller fish of another
+    kind pushes less, by the ratio of their lengths, and less again up
+    or down, so a big fish is not lifted off its depth by a crowd of
+    small ones below; they make way for it instead.  A fish it bumps into startles it
     (_bump), and while startled it darts away.
 
     Every fish checks every other each step, so the fish of other kinds
@@ -517,10 +519,14 @@ class Fish:
       if d < sep:
         away = vec.normalized(off, (-fwd[0], -fwd[1], 0.0))
         w = (1.0 - d / sep) ** 2 * 3.0
+        w_up = w
         if not same:
-          w *= min(1.0, other_length / length)
-        for axis in range(3):
-          want[axis] += away[axis] * w
+          ratio = min(1.0, other_length / length)
+          w *= ratio
+          w_up = w * ratio
+        want[0] += away[0] * w
+        want[1] += away[1] * w
+        want[2] += away[2] * w_up
       elif d > COHESION and same:
         toward = vec.scale(vec.normalized(off), -0.12)
         for axis in range(3):

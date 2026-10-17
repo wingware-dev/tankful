@@ -290,9 +290,10 @@ class School:
 
   def settle(self):
     """Push apart members whose bodies touch, after they have all moved
-    this step."""
+    this step.  A member parted from one may touch another, so it goes
+    round again, as often as a packed school takes after a long step."""
     moved = set()
-    for _ in range(4):
+    for _ in range(6):
       again = False
       for i, a in enumerate(self.members):
         for b in self.members[i + 1:]:

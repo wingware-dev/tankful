@@ -264,6 +264,26 @@ class FishNeighborTests(unittest.TestCase):
     want = self.mind(self.neighbor(ANGELFISH, off))
     self.assertAlmostEqual(want[2], 0.12)
 
+  def test_mind_smaller_others_less_up_and_down(self):
+    # A fish of another kind a quarter its length pushes it a quarter as
+    # hard across, but a sixteenth as hard up or down, so it may swim
+    # over a crowd of small fish below
+    small = self.other_kind._replace(length=ANGELFISH.length / 4)
+    sep = sim_fish.SEPARATION * ANGELFISH.length
+    # Near enough to touch: no startle, only the push apart
+    self.fish.startles_others = False
+    for axis in range(3):
+      off = [0.0, 0.0, 0.0]
+      off[axis] = 0.5 * sep
+      pushes = []
+      for species in (self.other_kind, small):
+        other = self.neighbor(species, off)
+        other.startles_others = False
+        pushes.append(self.mind(other)[axis])
+      full, less = pushes
+      self.assertGreater(full, 0)
+      self.assertAlmostEqual(less, full / (16 if axis == 2 else 4))
+
   def keep_apart(self, other):
     before = (self.fish.x, self.fish.y, self.fish.z)
     self.fish._keep_apart([self.fish, other])
