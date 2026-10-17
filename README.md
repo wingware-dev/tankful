@@ -49,7 +49,17 @@ The light switch on the wall beside the tank, or the L key, turns the
 tank to night and back, fading over a few seconds to dim blue
 moonlight; the fish settle for the night (tetras rest low, angelfish
 and gouramis hover by the plants, guppies under the surface) while the
-corydoras, the pleco and the shrimp get busier.  Escape quits.
+corydoras, the pleco and the shrimp get busier.  The gear at the top
+left, or the F key, picks an outside factor for the tank's mood: None,
+Weather, Time & Moon, Battery or Stock (pick with a click, a number key,
+or the arrows and Enter).  A label beside the gear shows its live value,
+or offline when its source can't be reached; the choice is kept in a
+per-user settings file (`tankful/factors/settings.py`).  Click a fish
+to make it current, drawn a little larger with a faint yellow outline (a
+school, the guppies, the corydoras or the shrimp are selected as a
+group), and steer it with the arrow keys across the tank and up and
+down; let go of the keys and it eases back to swimming on its own.
+Click open water to deselect.  Escape quits.
 Options:
 
 - `--rebuild`: rebuild the scene even if up to date.

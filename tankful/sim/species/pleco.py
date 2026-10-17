@@ -26,6 +26,11 @@ RELEASING and ATTACHING follow a set path in a set time rather than
 steering, so the fish always ends exactly on the surface.  release()
 lets go early.
 
+Steered by the user (Fish.steer, tankful.sim.steering), it lets go of
+its surface, and once DARTING swims where it is steered instead of to
+its spot, which it doesn't settle on meanwhile.  Let go, it picks a new
+spot from where it is.
+
 While it is on a surface the fish's frame is its own (Pleco.forward and
 orientation): forward along the surface, its back along the normal.
 """
@@ -274,6 +279,8 @@ class Pleco(Fish):
     self._depart = None
     self._heading_noise = SmoothNoise(seed * 7 + 5, 0.08)
     self._inch_noise = SmoothNoise(seed * 7 + 6, 0.05)
+    # Whether the user steered it on this dart
+    self._was_steered = False
     # Cling to the surface nearest the start
     p = start[:3]
     surface = min((s for group in self.surfaces.values() for s in group),
@@ -386,6 +393,8 @@ class Pleco(Fish):
     self.state_time += dt
     self.rasp_phase = (self.rasp_phase
                        + 2 * math.pi * RASP_RATE * dt) % (2 * math.pi)
+    if self.steer is not None and self.state == ATTACHED:
+      self.release()
     if self.state == DARTING:
       self._dart(dt, others)
       return
@@ -461,6 +470,14 @@ class Pleco(Fish):
     if math.dist(point, (self.x, self.y, self.z)) < 2 * APPROACH:
       self._skip.add(depart_obstacle)
     Fish.step(self, dt, others)
+    if self.steer is not None:
+      # The user's: no settling while steered
+      self._was_steered = True
+      return
+    if self._was_steered:
+      # Let go: on to a new spot from here
+      self._was_steered = False
+      self._retarget()
     if math.dist((self.x, self.y, self.z), self._approach()) < ARRIVE:
       self._settle()
     elif self.state_time > DART_TIMEOUT:
@@ -514,6 +531,7 @@ class Pleco(Fish):
       'target': self.target.surface.name if self.target else None,
       'attach_left': round(self.attach_left, 2),
       'darts': self.darts,
+      'steered': self.steer is not None,
     })
     return snap
 

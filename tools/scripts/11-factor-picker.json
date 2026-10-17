@@ -1,0 +1,19 @@
+{
+  "commands": [
+    "wait 60f",
+    "wait 4",
+    "state",
+    "key down f",
+    "wait 1f",
+    "key up f",
+    "state",
+    "click 130 136",
+    "wait 8",
+    "state",
+    "click 33 33",
+    "wait 2f",
+    "state",
+    "screenshot docs/shots/11-factor-picker.png",
+    "quit"
+  ]
+}

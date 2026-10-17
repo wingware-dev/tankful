@@ -26,6 +26,14 @@ still and holds itself with its fins.
 Hard limits back the steering up: the center never leaves the swim box
 or enters the decor, whatever a step's dt.
 
+The user may steer a fish (tankful.sim.steering): while Fish.steer is
+set, its weight blends the direction the arrow keys ask for, in the
+screen plane at the depth (y) the fish had when it was taken, into what
+the fish wants, and the fish cruises rather than hovers.  It turns,
+pitches and banks toward that as it does toward its own wants, so it
+faces the way it goes.  A species with states of its own takes the
+steer up in them (the pleco lets go of the glass first).
+
 Coordinates as in tankful.sim.tank: x to the viewer's right, y away from
 the viewer, z up.  yaw is the heading about z from +x, counterclockwise
 seen from above; pitch is nose up; roll is about the fish's own forward
@@ -59,6 +67,12 @@ MIN_CRUISE = 6.0
 # there
 PLANT_KEEP = 0.5
 PLANT_NEAR = 0.03
+# Steered (tankful.sim.steering): how hard a fish holds its depth, and
+# within how far of it (m) it eases off, and how much it moves across
+# the screen when asked only to climb or dive
+STEER_HOLD = 0.7
+STEER_HOLD_NEAR = 0.03
+STEER_CLIMB_RUN = 0.6
 
 
 class Fish:
@@ -71,6 +85,10 @@ class Fish:
   # How far it is from where it keeps by the plants at night (m), or None
   # (Fish._seek_plants)
   plant_gap = None
+  # The user's tankful.sim.steering.Steer while it is steered, and the
+  # depth (y) it keeps meanwhile
+  steer = None
+  _steer_y = None
 
   def __init__(self, name, species, size=1.0, seed=0, position=(0, 0, 0.25),
                heading=0.0):
@@ -201,8 +219,14 @@ class Fish:
       return
     self.time += dt
     self.mode_time += dt
-    self._update_mode(dt)
+    steer = self.steered
+    if steer:
+      self.mode = CRUISE
+    else:
+      self._update_mode(dt)
     want, z_want = self._desired(others)
+    if steer:
+      want = self._steered(want, steer)
     self._turn(dt, want)
     self._pitch(dt, want)
     self._swim(dt, want)
@@ -217,6 +241,34 @@ class Fish:
     self._limit_position()
     self._bank(dt)
     self._gait(dt)
+
+  @property
+  def steered(self):
+    """The Steer on the fish if it has any say now (weight above 0),
+    else None.  Sets the depth it holds when first steered, and forgets
+    it once let go."""
+    steer = self.steer
+    if steer is None:
+      self._steer_y = None
+      return None
+    if self._steer_y is None:
+      self._steer_y = self.y
+    return steer if steer.weight > 0 else None
+
+  def _steered(self, want, steer):
+    """want blended by steer's weight toward its direction: across the
+    screen (x) and up or down (z), drawn back to the held depth.  Asked
+    only to climb or dive, the fish keeps moving the way it faces across
+    the screen, as a fish can't rise straight up."""
+    dx, dz = steer.direction
+    if abs(dx) < 1e-6:
+      dx = math.copysign(STEER_CLIMB_RUN, math.cos(self.yaw))
+    dy = vec.clamp((self._steer_y - self.y) / STEER_HOLD_NEAR,
+                   -1.0, 1.0) * STEER_HOLD
+    user = vec.normalized((dx, dy, dz))
+    w = steer.weight
+    mixed = tuple(want[i] * (1.0 - w) + user[i] * w for i in range(3))
+    return vec.normalized(mixed, user)
 
   def _update_mode(self, dt):
     s = self.species
@@ -402,6 +454,12 @@ class Fish:
   def _swim(self, dt, want):
     s = self.species
     target, glide = self._target_speed(want)
+    steer = self.steered
+    if steer:
+      # Steered, it cruises, slowing only to turn hard
+      along = vec.dot(self.forward(), want)
+      user = self.swim_speed * (0.55 + 0.45 * max(0.0, along))
+      target += (user - target) * steer.weight
     # Burst and glide: stroke up past the target, then coast down below it
     if self.speed < target * 0.8:
       self.stroking = True

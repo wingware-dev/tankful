@@ -105,6 +105,8 @@ class Fishes:
     self.rigs = []
     self.members = []
     self.school_rigs = []
+    # What scales each fish: its rig, or its Root bone (set_scale)
+    self._scalers = {}
     present = set(species.present())
     for f in fish:
       if f.species.name not in present:
@@ -128,12 +130,14 @@ class Fishes:
         channels[bone] = channel
       if f.school is None:
         self.rigs.append((f, rig, channels))
+        self._scalers[f] = (rig, None)
         continue
       root = rig.channels.get(prefix + 'Root')
       if root is None:
         log.warning('fish %s has no Root bone in %s', f.name, rig.name)
         continue
       self.members.append((f, root, channels))
+      self._scalers[f] = (None, root)
       if rig not in self.school_rigs:
         self.school_rigs.append(rig)
     # (fish, Umbra channel, Penumbra channel)
@@ -177,6 +181,20 @@ class Fishes:
       # Re-evaluated only when moved, as the schools are
       self.shadow_rig.worldPosition = (0.0, 0.0, 0.0)
       self.shadow_rig.update()
+
+  def drawn(self):
+    """The fish with a rig to draw them."""
+    return set(self._scalers)
+
+  def set_scale(self, f, scale):
+    """Draw f scale times its size (tankful.game.steering), leaving its
+    shadow be: its rig scaled, or a school member's Root bone, both kept
+    until set again."""
+    rig, root = self._scalers.get(f, (None, None))
+    if rig is not None:
+      rig.localScale = (scale, scale, scale)
+    elif root is not None:
+      root.scale = (scale, scale, scale)
 
   @staticmethod
   def _pose(f, channels):

@@ -15,10 +15,12 @@ from tankful.factors import settings as settings_mod
 class FactorController:
 
   def __init__(self, settings=None, settings_path=None, thread=None,
-               save=True, time_constant=2.0):
+               save=True, time_constant=2.0, make_source=None):
     """settings: a dict, else loaded from settings_path (else the default
     path).  thread: a FetchThread, for the tests; made and started here
-    when None.  save=False never writes the settings file.
+    when None.  save=False never writes the settings file.  make_source:
+    make_source(factor, settings) gives the factor's Source in place of
+    its own, for stand-ins (tankful.factors.standins).
     """
     self.settings_path = settings_path
     if settings is None:
@@ -28,8 +30,9 @@ class FactorController:
     self.time_constant = time_constant
     self.thread = thread or base.FetchThread().start()
     self.effects = effects.NEUTRAL
+    self._make_source = make_source
     self.factor = registry.get(settings.get('factor'))
-    self.thread.set_source(self.factor.make_source(self.settings))
+    self.thread.set_source(self._source())
 
   @property
   def key(self):
@@ -41,8 +44,13 @@ class FactorController:
     self.settings['factor'] = self.factor.key
     if self._save:
       settings_mod.save(self.settings, self.settings_path)
-    self.thread.set_source(self.factor.make_source(self.settings))
+    self.thread.set_source(self._source())
     return self.factor
+
+  def _source(self):
+    if self._make_source is not None:
+      return self._make_source(self.factor, self.settings)
+    return self.factor.make_source(self.settings)
 
   def status(self):
     return self.thread.status()

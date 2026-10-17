@@ -26,6 +26,11 @@ quick dart aside at a burst of speed, after which the rules draw it
 back in.  The members' bodies (capsules along their spines) never
 overlap: whatever the steering does, each step ends by pushing apart
 any that touch (School.settle).
+
+The user steers a school as one (tankful.sim.steering): while
+School.steer is set, its weight blends the goal's motion toward the
+arrows' direction in the screen plane, at the goal's depth (y) when it
+was taken, and the members follow the goal in formation as always.
 """
 
 import collections
@@ -74,12 +79,22 @@ SWING = (1.4, 2.6)
 # The goal keeps in front of this y: the back of the tank is planted, and
 # a school in open water is one the viewer sees
 OPEN_BACK = 0.04
+# Steered: the goal's speed as a fraction of the members' cruise, and how
+# hard it holds its depth (per s)
+STEER_SPEED = 0.9
+STEER_HOLD = 2.0
+
+
 
 
 class School:
 
   # How far into the night it is, 0 to 1: the tank sets it each step
   night = 0.0
+  # The user's tankful.sim.steering.Steer while it is steered, and the
+  # goal's depth (y) meanwhile
+  steer = None
+  _steer_y = None
 
   def __init__(self, name, species, seed=0, start=(0.0, 0.0, 0.25, 0.0)):
     self.name = name
@@ -157,10 +172,24 @@ class School:
     if dt == 0:
       return
     self.time += dt
+    steer = self.steer
+    if steer is None:
+      self._steer_y = None
+    elif self._steer_y is None:
+      self._steer_y = self.goal[1]
+    w = steer.weight if steer is not None else 0.0
     busy = daynight.factor(self.species, 'activity', self.night)
-    if not self.swing and self.rng.random() < SWING_CHANCE * busy * dt:
+    if w:
+      # No swinging round while the user has it
+      self.swing = 0.0
+    elif not self.swing and self.rng.random() < SWING_CHANCE * busy * dt:
       self.swing = self.rng.choice((-1, 1)) * self.rng.uniform(*SWING)
     want = self._goal_want()
+    if w and abs(steer.direction[0]) > 1e-6:
+      # Heading the way it is steered, so the school carries on that way
+      # when let go
+      flat = (math.copysign(1.0, steer.direction[0]), 0.0)
+      want = [want[i] * (1.0 - w) + flat[i] * w * 3.0 for i in range(2)]
     if self.swing:
       turn = math.copysign(min(abs(self.swing), GOAL_SWING_TURN * dt),
                            self.swing)
@@ -175,11 +204,22 @@ class School:
                   * daynight.factor(self.species, 'speed', self.night)
                   * (1.0 - 0.5 * self.danger))
     x, y, z = self.goal
-    x += math.cos(self.yaw) * self.speed * dt
-    y += math.sin(self.yaw) * self.speed * dt
-    z += vec.clamp(self._depth_target() - z, -1.0, 1.0) * 0.4 * dt
-    self.goal = (x, y, z)
+    move = (math.cos(self.yaw) * self.speed,
+            math.sin(self.yaw) * self.speed,
+            vec.clamp(self._depth_target() - z, -1.0, 1.0) * 0.4)
+    if w:
+      move = vec.lerp(move, self._steered_move(steer), w)
+    self.goal = (x + move[0] * dt, y + move[1] * dt, z + move[2] * dt)
     self._limit_goal()
+
+  def _steered_move(self, steer):
+    """The goal's velocity as steer asks: along its direction in the
+    screen plane, drawn back to the held depth."""
+    dx, dz = steer.direction
+    speed = (self.species.cruise_speed * STEER_SPEED
+             * daynight.factor(self.species, 'speed', self.night))
+    return (dx * speed, (self._steer_y - self.goal[1]) * STEER_HOLD,
+            dz * speed)
 
   def _depth_target(self):
     lo, hi = daynight.depth_band(self.species, self.night)

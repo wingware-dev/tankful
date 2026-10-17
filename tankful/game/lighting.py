@@ -63,7 +63,10 @@ class Lighting:
     self._room = None
     self._rocker_on = None
     self._window = None
-    self.look = daynight.look(light.level, light.moon)
+    # A function from the light's Look to the one to show, or None: the
+    # external factor's (tankful.game.factor_hud.adjust_look)
+    self.adjust = None
+    self.look = self.target_look()
 
   # The switch
 
@@ -97,9 +100,14 @@ class Lighting:
 
   # Each frame
 
+  def target_look(self):
+    """The Look for the light now, with the factor's adjust in."""
+    look = daynight.look(self.light.level, self.light.moon)
+    return look if self.adjust is None else self.adjust(look)
+
   def update(self):
     light = self.light
-    self.look = daynight.look(light.level, light.moon)
+    self.look = self.target_look()
     if light.on != self._rocker_on and self.rocker is not None:
       tilt = -env.SWITCH_TILT if light.on else env.SWITCH_TILT
       self.rocker.localOrientation = rotation_x(tilt)

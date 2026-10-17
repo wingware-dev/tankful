@@ -313,6 +313,7 @@ def build_fish(scene):
       print('scene_fish: skipping species %s, its modules not all written'
             % name)
   build_shadows(scene)
+  build_outlines(scene)
 
 
 # The shadows
@@ -396,5 +397,85 @@ def shadow_material(name, alpha):
   mix = t.add('ShaderNodeMixShader', Fac=fade)
   t.link(clear.outputs[0], mix.inputs[1])
   t.link(black.outputs[0], mix.inputs[2])
+  t.link(mix.outputs[0], out.inputs['Surface'])
+  return mat
+
+
+# The outlines
+
+# A selected fish (tankful.game.steering) shows a faint yellow outline:
+# an inverted hull, <group>.Outline, a copy of its body pushed out along
+# the normals by OUTLINE_WIDTH of its length (at least OUTLINE_MIN, m),
+# turned inside out and culled from the front, so only its rim round the
+# body's silhouette shows.  Each is skinned to its body's rig with the
+# same weights, so it bends and scales with the fish, and one per rig
+# covers a whole school.  The game hides them until their group is
+# selected.
+OUTLINE_SUFFIX = '.Outline'
+OUTLINE_WIDTH = 0.035
+OUTLINE_MIN = 0.0025
+OUTLINE_COLOR = (1.0, 0.86, 0.25, 1.0)
+OUTLINE_ALPHA = 0.55
+OUTLINE_GLOW = 1.0
+
+
+def build_outlines(scene):
+  """<key>.Outline for each fish's or group's body <key> on <key>.Rig."""
+  from tankful.sim import school as sim_school
+  from tankful.sim import tank as sim_tank
+  tank = sim_tank.Tank()
+  lengths = {}
+  for f in sim_species.stock(tank):
+    key = sim_school.group_of(f).name
+    lengths[key] = max(lengths.get(key, 0.0), f.length)
+  mat = outline_material('FishOutline')
+  for key, length in lengths.items():
+    body = bpy.data.objects.get(key)
+    rig = bpy.data.objects.get(key + '.Rig')
+    if body is None or rig is None or body.type != 'MESH':
+      print('scene_fish: no body or rig for %s, so no outline' % key)
+      continue
+    build_outline(scene, body, rig, max(OUTLINE_MIN, OUTLINE_WIDTH * length),
+                  mat)
+
+
+def build_outline(scene, body, rig, width, mat):
+  bm = bmesh.new()
+  bm.from_mesh(body.data)
+  # Outward, whichever way the builder wound the faces
+  bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+  bm.normal_update()
+  for v in bm.verts:
+    v.co += v.normal * width
+  bmesh.ops.reverse_faces(bm, faces=list(bm.faces))
+  for face in bm.faces:
+    face.material_index = 0
+  name = body.name + OUTLINE_SUFFIX
+  mesh = bpy.data.meshes.new(name)
+  bm.to_mesh(mesh)
+  bm.free()
+  mesh.materials.append(mat)
+  for poly in mesh.polygons:
+    poly.use_smooth = True
+  obj = link_object(scene, name, mesh, rig, shadow=False)
+  obj.matrix_parent_inverse = body.matrix_parent_inverse.copy()
+  obj.matrix_basis = body.matrix_basis.copy()
+  for group in body.vertex_groups:
+    obj.vertex_groups.new(name=group.name)
+  skin(obj, rig)
+  return obj
+
+
+def outline_material(name):
+  """A glowing yellow, OUTLINE_ALPHA opaque, culled from the front: on an
+  inverted hull it shows only past the body's edge."""
+  mat, t, out = new_material(name, blended=True)
+  mat.use_backface_culling = True
+  glow = t.add('ShaderNodeEmission', Strength=OUTLINE_GLOW)
+  glow.inputs['Color'].default_value = OUTLINE_COLOR
+  clear = t.add('ShaderNodeBsdfTransparent')
+  mix = t.add('ShaderNodeMixShader', Fac=OUTLINE_ALPHA)
+  t.link(clear.outputs[0], mix.inputs[1])
+  t.link(glow.outputs[0], mix.inputs[2])
   t.link(mix.outputs[0], out.inputs['Surface'])
   return mat

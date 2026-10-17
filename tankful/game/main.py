@@ -9,15 +9,18 @@ frame time, and only while a wait command runs, so a script's waits
 alone set the game time and its runs and shots repeat (docs/harness.md).
 """
 
+import atexit
 import logging
 import os
 import sys
 import time
 
 from tankful.game import input as game_input
+from tankful.game.factor_hud import FactorHud
 from tankful.game.fishes import Fishes
 from tankful.game.lighting import Lighting, world_background
 from tankful.game.scenery import Scenery
+from tankful.game.steering import Steering
 from tankful.sim import species
 from tankful.sim.tank import Tank
 
@@ -58,6 +61,10 @@ class App:
     self.scenery = Scenery(scene)
     self.lighting = Lighting(scene, self.tank.light, world_background())
     self.fishes = Fishes(scene, self.tank.fish)
+    self.steering = Steering(scene, self.tank, self.fishes)
+    self.factors = FactorHud(self.tank, self.lighting, scene=scene,
+                             window=self._window)
+    atexit.register(self.factors.stop)
     self.input = game_input.InputState()
     self.channel = None
     self._last = time.monotonic()
@@ -82,15 +89,26 @@ class App:
     if self.channel is not None:
       self.channel.poll()
       dt = sim_step(self.channel.processor)
-    self.lighting.handle_input(self.input, (bge.render.getWindowWidth(),
-                                            bge.render.getWindowHeight()))
+    window = self._window()
+    # While the factor menu is open, clicks and arrows are its
+    menu_open = self.factors.menu.open
+    self.factors.frame(self.input, window, dt)
+    flipped = self.lighting.handle_input(self.input, window)
+    self.steering.frame(self.input, window, dt, keys=not menu_open,
+                        taken=lambda x, y: flipped or menu_open
+                        or self.factors.hit(window, x, y))
     if dt:
       self.tank.step(dt)
     self.lighting.update()
     self.scenery.set_look(self.lighting.look)
     self.scenery.update(self.tank.time, dt)
     self.fishes.update()
+    self.steering.show()
     self.input.end_frame()
+
+  def _window(self):
+    render = self.bge.render
+    return (render.getWindowWidth(), render.getWindowHeight())
 
   def state(self):
     render = self.bge.render
@@ -102,7 +120,9 @@ class App:
       'tank': self.tank.snapshot(),
       'scenery': self.scenery.snapshot(),
       'lighting': self.lighting.snapshot(),
+      'factor': self.factors.snapshot(),
       'fishes': self.fishes.snapshot(),
+      'steering': self.steering.snapshot(),
       'input': self.input.snapshot(),
       'window': [render.getWindowWidth(), render.getWindowHeight()],
       'fps': round(self.bge.logic.getAverageFrameRate(), 1),

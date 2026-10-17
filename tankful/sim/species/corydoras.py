@@ -16,6 +16,10 @@ front of the decor (Floor), apart from its trips up for air.  Its state
 - DASH: now and then (AIR_EVERY) it darts straight up to the surface,
   gulps air with its snout out of the water, and dives back down to the
   sand nearby.
+- STEERED: the user steers it (Fish.steer, tankful.sim.steering): from
+  whatever it was doing it levels out and swims as a fish does
+  (tankful.sim.fish), where it is steered.  Let go, it dives back down
+  to the sand nearby, as after a gulp of air.
 
 On the sand (all but DASH) its height follows from how far it is tipped
 nose down (Corydoras.tilt) and a hop's lift: the center is BELLY lengths
@@ -36,7 +40,7 @@ from tankful.sim import environment as env
 from tankful.sim import swim
 from tankful.sim import vec
 from tankful.sim.daynight import Night
-from tankful.sim.fish import MAX_STEP, Fish
+from tankful.sim.fish import CRUISE, MAX_STEP, Fish
 from tankful.sim.noise import SmoothNoise
 from tankful.sim.species.base import Resident, Species
 
@@ -67,7 +71,7 @@ SPECIES = Species(
 # The group's name, and so its armature's (Corydoras.Rig)
 GROUP_NAME = 'Corydoras'
 
-SIFT, HOP, REST, DASH = 'sift', 'hop', 'rest', 'dash'
+SIFT, HOP, REST, DASH, STEERED = 'sift', 'hop', 'rest', 'dash', 'steered'
 # A dash's phases
 RISE, GULP, DIVE = 'rise', 'gulp', 'dive'
 
@@ -257,8 +261,10 @@ class Corydoras(Fish):
     self.roll = 0.0
 
   def _limit_position(self):
-    # Its states keep it on the floor: nothing to do until they start
-    pass
+    # Its states keep it on the floor: nothing to do until they start,
+    # but swimming free as it is steered
+    if self.state == STEERED:
+      super()._limit_position()
 
   def _set_state(self, state, length=0.0):
     self.state = state
@@ -276,6 +282,11 @@ class Corydoras(Fish):
       raise ValueError('dt must not be negative: %r' % dt)
     dt = min(dt, MAX_STEP)
     if dt == 0:
+      return
+    if self.steer is not None and self.state != STEERED:
+      self._take_steer()
+    if self.state == STEERED:
+      self._steered_step(dt, others)
       return
     self.time += dt
     self.state_time += dt
@@ -418,6 +429,36 @@ class Corydoras(Fish):
       else:
         self._set_state(REST, self._span(REST_TIME))
 
+  # Steered by the user
+
+  def _take_steer(self):
+    """Leave off whatever it was doing, to swim as it is steered."""
+    self.target = None
+    self.phase = None
+    self._hop = None
+    self._dash = None
+    self.lift = 0.0
+    self.mode = CRUISE
+    self.speed = max(self.speed, 0.3 * self.cruise_speed)
+    self.stroking, self.stroke = True, 1.0
+    self._set_state(STEERED)
+
+  def _steered_step(self, dt, others):
+    self.state_time += dt
+    self._age_puffs(dt)
+    self._tilt_toward(0.0, dt)
+    if self.steer is None:
+      # Let go: back down to the sand near by
+      here = (self.x, self.y)
+      self._dash = {'start': (self.x, self.y, self.z),
+                    'top': (self.x, self.y, self.z),
+                    'land': self._choose_landing(here, others)}
+      self.target = self._dash['land']
+      self._set_state(DASH)
+      self._start_dive()
+      return
+    Fish.step(self, dt, others)
+
   # Dashes for air
 
   def _start_dash(self, others):
@@ -517,7 +558,8 @@ class Corydoras(Fish):
     run = vec.length(off)
     flat = vec.scale(off, 1.0 / run) if run > 1e-6 else (0.0, 0.0, 0.0)
     back = min(0.05, run * 0.6)
-    d['dive'] = (top, (top[0], top[1], top[2] - 0.12),
+    # Down from the top, but not into the sand when it starts low
+    d['dive'] = (top, (top[0], top[1], max(top[2] - 0.12, end_z + 0.015)),
                  (land[0] - flat[0] * back, land[1] - flat[1] * back,
                   end_z + 0.015),
                  (land[0], land[1], end_z))

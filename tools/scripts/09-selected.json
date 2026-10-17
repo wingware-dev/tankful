@@ -1,0 +1,26 @@
+{
+  "commands": [
+    "wait 60f",
+    "wait 4",
+    "state",
+    "click 705 364",
+    "wait 0.5",
+    "state",
+    "key down left",
+    "wait 2",
+    "key down up",
+    "wait 1.2",
+    "state",
+    "screenshot docs/shots/09-selected.png",
+    "key up up",
+    "key up left",
+    "wait 0.5",
+    "state",
+    "wait 2",
+    "state",
+    "click 5 400",
+    "wait 2f",
+    "state",
+    "quit"
+  ]
+}

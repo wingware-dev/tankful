@@ -42,6 +42,17 @@ script behaves the same on every OS.  Screenshots use
 `bge.render.makeScreenshot`.  The game end is
 `tankful/game/harness_channel.py`, polled once per frame without blocking.
 
+The external factors (the F menu, `tankful/game/factor_hud.py`) read
+the network, the battery and a settings file, none of which repeats.
+For scripts, set `TANKFUL_CONFIG_DIR` to a scratch directory, so the
+viewer's own settings are neither read nor overwritten, and
+`TANKFUL_FACTOR_STANDINS=1`, so each factor reads a fixed stand-in
+reading (`tankful/factors/standins.py`), or `=offline` for every source
+to fail:
+
+    TANKFUL_CONFIG_DIR=/tmp/tankful-cfg TANKFUL_FACTOR_STANDINS=1 \
+      python tools/harness.py tools/scripts/11-factor-picker.json
+
 ## Fixed timestep
 
 Under `--harness` the sim does not step with real frame time, which
@@ -401,6 +412,20 @@ than the row above, within the spread between sessions.
 The one dip in those runs, to about 23 fps for half a second about 9 s
 of game time into every run, comes whether the light is touched or not
 (task T59 one-time-stall-9s-into-run (be8a3495)).
+
+A selected fish or group (step 9, `tankful/game/steering.py`,
+`docs/shots/09-selected.png`) is drawn 1.1 times its size, its rig or
+its members' Root bones scaled, and shows `<group>.Outline`, an inverted
+hull of its body skinned to the same rig (`build_outlines` in
+`tools/scene_fish.py`), hidden until then.  Only a change of selection
+touches the scene, so selecting and steering cost nothing measurable
+(53-58 fps through `tools/scripts/09-selected.json`).  Two things
+mattered for the hull to show at all: the bodies' faces are wound
+inward, so the shell recomputes its normals outward before pushing out
+along them, and a rim much under 2.5 px wide (as 1.6 mm round a
+tetra) is wiped out by the frame accumulation, so the shell is at least
+2.5 mm wide.  The `state` command's `steering.screen` gives each fish's
+window pixel, for scripts to click on.
 
 So for more fish:
 

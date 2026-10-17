@@ -25,7 +25,9 @@ the top of a moss clump (tankful.sim.environment.plants).  Its state
 
 LIFTING and LANDING follow a set path in a set time rather than
 steering, so the shrimp always ends exactly on its legs.  lift() lifts
-off early.  On a surface its frame is its own (Shrimp.forward and
+off early.  Steered by the user (Fish.steer, tankful.sim.steering), it
+lifts off, and once SWIMMING swims where it is steered, landing nowhere
+meanwhile; let go, it picks a new spot from where it is.  On a surface its frame is its own (Shrimp.forward and
 orientation): forward along the surface, its back along the normal.
 
 The shrimp are one Colony, which the model builds as one object
@@ -318,6 +320,8 @@ class Shrimp(Fish):
     self._depart = None
     self._heading_noise = SmoothNoise(seed * 7 + 5, 0.15)
     self._walk_noise = SmoothNoise(seed * 7 + 6, 0.12)
+    # Whether the user steered it on this swim
+    self._was_steered = False
     # Stand on the surface nearest the start
     p = start[:3]
     surface = min((s for group in self.surfaces.values() for s in group),
@@ -439,6 +443,8 @@ class Shrimp(Fish):
     self.state_time += dt
     self.feel_phase = (self.feel_phase + 2 * math.pi * 0.35 * dt) % (
       2 * math.pi)
+    if self.steer is not None and self.state == PICKING:
+      self.lift(others)
     if self.state == SWIMMING:
       self._swim_to(dt, others)
       return
@@ -531,6 +537,14 @@ class Shrimp(Fish):
     if math.dist(point, (self.x, self.y, self.z)) < 2 * APPROACH:
       self._skip.add(depart_obstacle)
     Fish.step(self, dt, others)
+    if self.steer is not None:
+      # The user's: no landing while steered
+      self._was_steered = True
+      return
+    if self._was_steered:
+      # Let go: on to a new spot from here
+      self._was_steered = False
+      self._retarget(others)
     if math.dist((self.x, self.y, self.z), self._approach()) < ARRIVE:
       self._land()
     elif self.state_time > SWIM_TIMEOUT or self._taken(others):
