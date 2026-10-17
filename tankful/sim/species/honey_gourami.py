@@ -26,6 +26,7 @@ import math
 
 from tankful.sim import vec
 from tankful.sim import swim
+from tankful.sim.daynight import Night
 from tankful.sim.fish import MAX_STEP, Fish
 from tankful.sim.species.base import Resident, Species
 
@@ -46,6 +47,9 @@ SPECIES = Species(
   fin_beat=3.0, fin_swing=0.45,
   # A surface fish: the surface pushes it down only near the top
   surface_margin=0.06,
+  # At night they hang still by the tall plants, a little below the top
+  night=Night(speed=0.5, depth_band=(0.65, 0.9), hover=4.0, hover_time=2.0,
+              plants=1.2),
 )
 
 FEELERS = ('Feeler.L', 'Feeler.R')

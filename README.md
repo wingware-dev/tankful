@@ -45,7 +45,12 @@ or `%ProgramFiles%\UPBGE`.
 This rebuilds `build/tankful.blend` from `tools/build_scene.py` when it
 is missing or older than that script or the other sources it is made
 from (`launcher.SCENE_SOURCES`), then starts the UPBGE player.
-Escape quits.  Options:
+The light switch on the wall beside the tank, or the L key, turns the
+tank to night and back, fading over a few seconds to dim blue
+moonlight; the fish settle for the night (tetras rest low, angelfish
+and gouramis hover by the plants, guppies under the surface) while the
+corydoras, the pleco and the shrimp get busier.  Escape quits.
+Options:
 
 - `--rebuild`: rebuild the scene even if up to date.
 - `--backend offscreen|xvfb|docker`: run without a visible window (see

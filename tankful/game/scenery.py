@@ -8,7 +8,8 @@ named after tankful.sim.environment's layout:
   drifting it moves the pattern across the tank.  The shaders read where
   it is from their object's color (PROJECTOR_SPACE), which is set on
   every such object as it moves: reading the moving empty itself would
-  cost far more (docs/harness.md, "Frame budget").
+  cost far more (docs/harness.md, "Frame budget").  The color's alpha is
+  the caustics' strength, dimmed at night (set_look).
 - <plant>.Rig: an armature per plant with a chain of bones L<leaf>.<bone>
   per leaf, bent by tankful.sim.sway.
 - Bubble.NN: one object per slot of the tankful.sim.bubbles pool, moved,
@@ -81,6 +82,21 @@ class Scenery:
       raise ValueError('the %s object draws 3 ripples, not %d' % (
         RIPPLES, len(self.ripple_pool.ripples)))
     self._ripple_color = None
+    # The day's look until set_look says otherwise
+    self._day_rate = self.pool.rate
+    self.caustics = 1.0
+    self.glow = 1.0
+    self._bubble_color = (1.0, 1.0, 1.0, 1.0)
+    self._bubbles_tinted = self._bubble_color
+
+  def set_look(self, look):
+    """Show the caustics, god rays, bubbles and ripples as look (a
+    tankful.sim.daynight.Look) says: dimmer at night, and fewer
+    bubbles."""
+    self.caustics = look.caustics
+    self.glow = sum(look.bubbles) / 3.0
+    self._bubble_color = tuple(look.bubbles) + (1.0,)
+    self.pool.rate = self._day_rate * look.bubble_rate
 
   def update(self, t, dt):
     self._move_projector(t)
@@ -101,7 +117,9 @@ class Scenery:
     dy = 0.015 * math.cos(0.04 * t)
     sunk = CAUSTIC_SPEED * t
     self.projector.worldPosition = (x + dx, y + dy, z - sunk)
-    color = (dx + CAUSTIC_BIAS, dy + CAUSTIC_BIAS, sunk, 1.0)
+    # Its alpha is the caustics' strength (tools/scene_env.py,
+    # projector_space_group)
+    color = (dx + CAUSTIC_BIAS, dy + CAUSTIC_BIAS, sunk, self.caustics)
     for obj in self.caustic_followers:
       obj.color = color
 
@@ -115,6 +133,12 @@ class Scenery:
       rig.update()
 
   def _place_bubbles(self):
+    if self._bubble_color != self._bubbles_tinted:
+      # Their glow's tint (tools/scene_env.py, build_bubbles): only while
+      # the light fades
+      for obj in self.bubbles:
+        obj.color = self._bubble_color
+      self._bubbles_tinted = self._bubble_color
     for bubble, obj in zip(self.pool.bubbles, self.bubbles):
       if not bubble.active:
         if obj.visible:
@@ -138,7 +162,8 @@ class Scenery:
     if self.ripple_obj is None:
       return
     progress = self.ripple_pool.progresses()
-    color = progress + (1.0,) * (3 - len(progress)) + (1.0,)
+    # Alpha is the rings' brightness
+    color = progress + (1.0,) * (3 - len(progress)) + (self.glow,)
     if color != self._ripple_color:
       self.ripple_obj.color = color
       self._ripple_color = color
@@ -149,6 +174,8 @@ class Scenery:
       'ripples': self.ripple_pool.snapshot(),
       'plants': len(self.plants),
       'caustic_followers': len(self.caustic_followers),
+      'caustics': round(self.caustics, 3),
+      'bubble_rate': round(self.pool.rate, 3),
       'projector': [round(v, 3) for v in self.projector.worldPosition]
       if self.projector is not None else None,
     }

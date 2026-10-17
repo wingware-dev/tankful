@@ -35,6 +35,7 @@ import math
 from tankful.sim import environment as env
 from tankful.sim import swim
 from tankful.sim import vec
+from tankful.sim.daynight import Night
 from tankful.sim.fish import MAX_STEP, Fish
 from tankful.sim.noise import SmoothNoise
 from tankful.sim.species.base import Resident, Species
@@ -60,6 +61,9 @@ SPECIES = Species(
   wave_min=0.12, wave_max=0.55,
   fin_beat=3.0, fin_swing=0.2,
   turn_accel=14.0, roll_rate=3.0,
+  # Nocturnal: at night it clings for shorter spells, inches along faster
+  # and darts a little faster between spots
+  night=Night(speed=1.3, activity=2.5),
 )
 
 ATTACHED, RELEASING, DARTING, ATTACHING = (
@@ -416,12 +420,14 @@ class Pleco(Fish):
       # Inch along in pulses, one per rasp, pausing now and then
       pace = vec.clamp(0.6 + self._inch_noise(self.time), 0.0, 1.0)
       pulse = 2.0 * max(0.0, math.sin(self.rasp_phase)) ** 2
-      self.speed = INCH_SPEED * self.length * pace * pulse
+      self.speed = (INCH_SPEED * self.length * pace * pulse
+                    * self.by_night('speed'))
       moved = vec.add(self.contact, vec.scale(self.heading, self.speed * dt))
       self.contact, self.normal = surface.contact(surface.clamp(moved))
       self.heading = tangent(self.heading, self.normal) or self.heading
     self._place()
-    self.attach_left -= dt
+    # Nocturnal: at night it moves on to new spots sooner
+    self.attach_left -= dt * self.by_night('activity')
     if self.attach_left <= 0:
       self.release()
 
@@ -484,7 +490,7 @@ class Pleco(Fish):
   def _target_speed(self, want):
     d = math.dist((self.x, self.y, self.z), self._approach())
     along = vec.dot(self.forward(), want)
-    target = (self.cruise_speed * vec.clamp(d / 0.12, 0.3, 1.0)
+    target = (self.swim_speed * vec.clamp(d / 0.12, 0.3, 1.0)
               * (0.5 + 0.5 * max(0.0, along)))
     return target, self.species.glide_time
 

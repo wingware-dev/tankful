@@ -45,7 +45,13 @@ import error in either fails the build and the tests, as it should.
 
 - `SPECIES`: a `tankful.sim.species.base.Species`, its size, speeds,
   turn limits, depth band, gait and so on (the fields are commented in
-  `base.py`).
+  `base.py`).  Its `night`, a `tankful.sim.daynight.Night`, says how it
+  behaves when the light is off: slower or faster, another depth band,
+  more hovering, drawn to the plants, busier or drowsier, a school
+  spaced wider.  `tankful.sim.fish.Fish` applies the speed, depth band,
+  hovering, plants and surface margin; a fish with a state machine of
+  its own reads the factors itself with `fish.by_night(name)` (as the
+  pleco's timers do with `activity`).
 - `stock(tank)`: adds its fish to the tank and returns them.  Use the
   shared helpers:
   - a fish of its own, `tankful.sim.fish.stock(tank, residents)` with a

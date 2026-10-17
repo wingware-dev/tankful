@@ -1,0 +1,17 @@
+{
+  "commands": [
+    "wait 60f",
+    "wait 10",
+    "state",
+    "screenshot docs/shots/07-community.png",
+    "wait 12",
+    "state",
+    "click 1207 203",
+    "wait 3",
+    "state",
+    "wait 12",
+    "state",
+    "screenshot docs/shots/08-night.png",
+    "quit"
+  ]
+}

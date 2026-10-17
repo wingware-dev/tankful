@@ -26,7 +26,8 @@ for _path in (ROOT, os.path.dirname(os.path.abspath(__file__))):
     sys.path.insert(0, _path)
 
 from tankful.sim.environment import (  # noqa: E402
-  TANK_W, TANK_D, TANK_H, GLASS, WATER_LEVEL)
+  TANK_W, TANK_D, TANK_H, GLASS, WATER_LEVEL, SWITCH_CENTER, SWITCH_SIZE,
+  SWITCH_TILT)
 
 TRIM = 0.012
 WINDOW = (1280, 720)
@@ -86,6 +87,7 @@ def build(output):
   box(scene, 'BackWall', (0, TANK_D / 2 + 0.35, 0.6), (6.0, 0.02, 3.0),
       mats['wall'])
 
+  build_switch(scene)
   setup_camera(scene)
   setup_light(scene)
   setup_logic(scene)
@@ -199,6 +201,32 @@ def build_trim(scene, tank, mat):
       box(scene, 'Trim', (x, y, h / 2), (t, t, h), mat, parent=tank)
 
 
+def build_switch(scene):
+  """The light switch on the wall beside the tank (SWITCH_CENTER): a
+  plate, and a rocker the game tips to show on or off
+  (tankful.game.lighting).  Both glow a little, so it can be found in the
+  dark: the rocker's amber, as a lit switch's is."""
+  import bpy
+  x, y, z = SWITCH_CENTER
+  w, h = SWITCH_SIZE
+  plate_mat = material('SwitchPlate', (0.82, 0.80, 0.76, 1.0), roughness=0.35)
+  rocker_mat = material('SwitchRocker', (0.86, 0.84, 0.80, 1.0),
+                        roughness=0.3)
+  for mat, glow, strength in ((plate_mat, (0.8, 0.8, 0.78, 1.0), 0.12),
+                              (rocker_mat, (1.0, 0.55, 0.15, 1.0), 0.35)):
+    bsdf = mat.node_tree.nodes['Principled BSDF']
+    bsdf.inputs['Emission Color'].default_value = glow
+    bsdf.inputs['Emission Strength'].default_value = strength
+  plate = box(scene, 'LightSwitch', (x, y, z), (w, 0.008, h), plate_mat,
+              shadow=False)
+  rocker = box(scene, 'LightSwitch.Rocker', (0, -0.006, 0),
+               (w * 0.32, 0.01, h * 0.42), rocker_mat, parent=plate,
+               shadow=False)
+  # On, as the game starts
+  rocker.rotation_euler = (-SWITCH_TILT, 0, 0)
+  return plate, rocker
+
+
 def setup_camera(scene):
   import bpy
   cam_data = bpy.data.cameras.new('Camera')
@@ -232,6 +260,11 @@ def setup_light(scene):
   # Blurs the shadow map lookups, which hides the remaining noise of the
   # soft shadow's few rays (see setup_render)
   data.shadow_filter_radius = 4.0
+  # A set reach: EEVEE's otherwise follows the energy, which the light
+  # switch fades (tankful.game.lighting), and changing it stalls a frame
+  if hasattr(data, 'use_custom_distance'):
+    data.use_custom_distance = True
+    data.cutoff_distance = 4.0
   light = bpy.data.objects.new('TankLight', data)
   light.location = (0, 0, TANK_H + 0.35)
   scene.collection.objects.link(light)

@@ -34,6 +34,7 @@ import math
 
 from tankful.sim import swim
 from tankful.sim import vec
+from tankful.sim.daynight import Night
 from tankful.sim.fish import CRUISE, HOVER, Fish
 from tankful.sim.species.base import Resident, Species
 
@@ -54,6 +55,9 @@ SPECIES = Species(
   fin_beat=7.0, fin_swing=0.35,
   turn_accel=16.0, roll_rate=3.0,
   flick_chance=0.12, flick_turn=1.0,
+  # At night they rest just under the surface, hardly flicking or chasing
+  night=Night(speed=0.35, depth_band=(0.9, 1.0), hover=8.0, hover_time=3.0,
+              activity=0.15, surface_margin=0.04),
 )
 
 MALE, FEMALE = 'male', 'female'
@@ -153,7 +157,8 @@ class Guppy(Fish):
     s = self.species
     if self.flick_left > 0:
       self.flick_left = max(0.0, self.flick_left - dt)
-    elif self.danger < 0.3 and self.rng.random() < s.flick_chance * dt:
+    elif self.danger < 0.3 and self.rng.random() < (
+        s.flick_chance * self.by_night('activity') * dt):
       self.flick_left = FLICK_TIME
       self.flick_turn = (self.rng.choice((-1, 1)) * s.flick_turn
                          * self.rng.uniform(0.6, 1.0))
@@ -170,7 +175,8 @@ class Guppy(Fish):
   def _update_chase(self, dt):
     if self.chase is None:
       self.rest_left -= dt
-      if self.rest_left <= 0 and self.rng.random() < CHASE_CHANCE * dt:
+      if self.rest_left <= 0 and self.rng.random() < (
+          CHASE_CHANCE * self.by_night('activity') * dt):
         her = self._nearest_female()
         if her is not None:
           self.chase = her

@@ -8,7 +8,12 @@ Each step a fish blends what it wants into one desired direction:
   near them, hardest when nearest;
 - decor (tankful.sim.environment.obstacles) the same way, gentler for
   the soft plants;
-- the other fish: kept apart, and drawn together when far apart.
+- the other fish: kept apart, and drawn together when far apart;
+- at night, the plants, for the species whose Night says so.
+
+At night (Fish.night, tankful.sim.daynight) the species' Night also
+changes its speed, depth band, hovering and how near the surface it may
+rest (by_night).
 
 It then turns toward that direction within its limits: a heading rate
 that grows with speed up to max_turn_rate (a fish pivots slowly on the
@@ -30,6 +35,7 @@ axis, positive rolling its back toward its right side.
 import math
 import random
 
+from tankful.sim import daynight
 from tankful.sim import environment as env
 from tankful.sim import vec
 from tankful.sim.noise import SmoothNoise
@@ -48,12 +54,23 @@ COHESION = 0.40
 MIN_GAP = 0.75
 # At least this long cruising between hovers
 MIN_CRUISE = 6.0
+# At night, a fish drawn to the plants keeps within this many of its
+# lengths of their leaves, and hovers more once within PLANT_NEAR (m) of
+# there
+PLANT_KEEP = 0.5
+PLANT_NEAR = 0.03
 
 
 class Fish:
 
   # The tankful.sim.school.School the fish swims in, if any
   school = None
+  # How far into the night it is, 0 by day to 1 (tankful.sim.daynight):
+  # the tank sets it each step
+  night = 0.0
+  # How far it is from where it keeps by the plants at night (m), or None
+  # (Fish._seek_plants)
+  plant_gap = None
 
   def __init__(self, name, species, size=1.0, seed=0, position=(0, 0, 0.25),
                heading=0.0):
@@ -90,6 +107,8 @@ class Fish:
     self._boxes = [tuple((min(o.a[i], o.b[i]) - o.radius,
                           max(o.a[i], o.b[i]) + o.radius) for i in range(3))
                    for o in self._obstacles]
+    # The plant clumps, which some fish keep near at night
+    self._plants = [o for o in self._obstacles if o.soft]
     self._limit_position()
 
   # Limits, scaled with the fish
@@ -104,7 +123,37 @@ class Fish:
 
   @property
   def cruise_speed(self):
+    """The species' cruising speed for this fish, by day: the pose and
+    gait measure pace against it.  swim_speed is what it cruises at
+    now."""
     return self.species.cruise_speed * self.size
+
+  # Night (tankful.sim.daynight)
+
+  def by_night(self, name):
+    """The factor the species' Night gives for name (a Night field such
+    as 'speed'), blended in by how far into the night it is: 1 by day."""
+    return daynight.factor(self.species, name, self.night)
+
+  @property
+  def swim_speed(self):
+    """The speed it cruises at now: slower or faster at night."""
+    return self.cruise_speed * self.by_night('speed')
+
+  def depth_band(self):
+    """The preferred depth band now (as Species.depth_band)."""
+    return daynight.depth_band(self.species, self.night)
+
+  def surface_margin(self):
+    """How far below the top of its swim box the surface starts to push
+    it down (m)."""
+    top = self.species.surface_margin
+    if top is None:
+      top = MARGIN
+    mod = self.species.night
+    if mod is None or mod.surface_margin is None or not self.night:
+      return top
+    return daynight.blend(top, mod.surface_margin, self.night)
 
   def max_turn(self, speed=None):
     """The fastest heading change, in rad/s, at speed (default: now)."""
@@ -176,9 +225,17 @@ class Fish:
       if self.hover_left <= 0 or self.danger > 0.8:
         self.mode, self.mode_time = CRUISE, 0.0
     elif (self.mode_time > MIN_CRUISE and self.danger < 0.5
-          and self.rng.random() < s.hover_chance * dt):
+          and self.rng.random() < s.hover_chance * self._hover_factor() * dt):
       self.mode, self.mode_time = HOVER, 0.0
-      self.hover_left = self.rng.uniform(*s.hover_time)
+      self.hover_left = (self.rng.uniform(*s.hover_time)
+                         * self.by_night('hover_time'))
+
+  def _hover_factor(self):
+    """How much more often than by day it stops to hover now.  A fish
+    drawn to the plants at night hovers more only once it is there."""
+    if self.plant_gap is not None and self.plant_gap > PLANT_NEAR:
+      return 1.0
+    return self.by_night('hover')
 
   def _desired(self, others):
     """The direction the fish wants to go (a unit vector), and its target
@@ -191,12 +248,40 @@ class Fish:
     want = [math.cos(h), math.sin(h), 0.0]
     z_want = self._depth_target()
     want[2] = vec.clamp((z_want - self.z) / 0.08, -1.0, 1.0) * 0.45
+    self._seek_plants(want)
     self.danger = self._steer_clear(want)
     self._mind_others(want, others)
     return vec.normalized(tuple(want), self.forward()), z_want
 
+  def _seek_plants(self, want):
+    """At night, add to want a pull toward the nearest plant clump, as
+    hard as the species' Night says, easing off as the fish comes within
+    PLANT_KEEP of its body lengths of the leaves.  Sets plant_gap: how
+    far it is from there (m), or None when not drawn to the plants."""
+    mod = self.species.night
+    pull = mod.plants * self.night if mod is not None else 0.0
+    if pull <= 0 or not self._plants:
+      self.plant_gap = None
+      return
+    pos = (self.x, self.y, self.z)
+    best = None
+    for plant in self._plants:
+      c = vec.closest_on_segment(pos, plant.a, plant.b)
+      d = math.dist(pos, c) - self.clearance(plant)
+      if best is None or d < best[0]:
+        best = (d, c)
+    d, c = best
+    gap = d - PLANT_KEEP * self.length
+    self.plant_gap = max(0.0, gap)
+    if gap <= 0:
+      return
+    toward = vec.normalized(vec.sub(c, pos), self.forward())
+    w = pull * min(1.0, gap / 0.1)
+    for axis in range(3):
+      want[axis] += toward[axis] * w
+
   def _depth_target(self):
-    lo, hi = self.species.depth_band
+    lo, hi = self.depth_band()
     _, _, (z0, z1) = self.bounds()
     frac = lo + (hi - lo) * (0.5 + 0.5 * self._depth(self.time))
     return z0 + (z1 - z0) * frac
@@ -213,9 +298,7 @@ class Fish:
     ahead = (self.x + fwd[0] * look, self.y + fwd[1] * look,
              self.z + fwd[2] * look)
     danger = 0.0
-    top = self.species.surface_margin
-    if top is None:
-      top = MARGIN
+    top = self.surface_margin()
     for axis, (a, b) in enumerate(((x0, x1), (y0, y1), (z0, z1))):
       # The surface's margin is the species' own
       hi = top if axis == 2 else MARGIN
@@ -336,12 +419,13 @@ class Fish:
     """The speed the fish strokes toward, and its glide time."""
     s = self.species
     if self.mode == HOVER:
-      return s.hover_speed * self.size, s.glide_time * 0.35
+      return (s.hover_speed * self.size * self.by_night('speed'),
+              s.glide_time * 0.35)
     pace = 0.8 + 0.35 * self._pace(self.time)
     fwd = self.forward()
     # Slow down to turn hard, and near walls and decor
     along = vec.dot(fwd, want)
-    target = (self.cruise_speed * pace * (0.55 + 0.45 * max(0.0, along))
+    target = (self.swim_speed * pace * (0.55 + 0.45 * max(0.0, along))
               * (1.0 - 0.45 * self.danger))
     return target, s.glide_time
 

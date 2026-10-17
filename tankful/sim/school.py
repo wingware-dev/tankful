@@ -19,7 +19,9 @@ with the goal:
   when it is ahead and easing off when it is behind;
 
 then, as any fish, the pushes off the glass, sand, surface and decor,
-and away from fish outside the school.  Now and then a member flicks: a
+and away from fish outside the school.  At night (School.night) the
+species' Night (tankful.sim.daynight) slows the goal, moves its depth
+band and spaces the members wider with a weaker pull together.  Now and then a member flicks: a
 quick dart aside at a burst of speed, after which the rules draw it
 back in.  The members' bodies (capsules along their spines) never
 overlap: whatever the steering does, each step ends by pushing apart
@@ -30,6 +32,7 @@ import collections
 import math
 import random
 
+from tankful.sim import daynight
 from tankful.sim import environment as env
 from tankful.sim import vec
 from tankful.sim.fish import MAX_STEP, Fish
@@ -75,6 +78,9 @@ OPEN_BACK = 0.04
 
 class School:
 
+  # How far into the night it is, 0 to 1: the tank sets it each step
+  night = 0.0
+
   def __init__(self, name, species, seed=0, start=(0.0, 0.0, 0.25, 0.0)):
     self.name = name
     self.species = species
@@ -105,6 +111,13 @@ class School:
     """About how far the members spread from the school's center."""
     n = max(1, len(self.members))
     return 0.5 * SPACING * self.species.length * n ** (1 / 3.0)
+
+  @property
+  def loosen(self):
+    """How much wider the members space themselves now: more at night.
+    The goal keeps to the day's radius from the decor: any more and it
+    is boxed in among the driftwood and plants."""
+    return daynight.factor(self.species, 'loosen', self.night)
 
   def centroid(self):
     n = len(self.members)
@@ -144,7 +157,8 @@ class School:
     if dt == 0:
       return
     self.time += dt
-    if not self.swing and self.rng.random() < SWING_CHANCE * dt:
+    busy = daynight.factor(self.species, 'activity', self.night)
+    if not self.swing and self.rng.random() < SWING_CHANCE * busy * dt:
       self.swing = self.rng.choice((-1, 1)) * self.rng.uniform(*SWING)
     want = self._goal_want()
     if self.swing:
@@ -158,6 +172,7 @@ class School:
       turn = vec.clamp(err * 1.5, -GOAL_TURN, GOAL_TURN) * dt
     self.yaw = vec.wrap_angle(self.yaw + turn)
     self.speed = (self.species.cruise_speed * GOAL_SPEED
+                  * daynight.factor(self.species, 'speed', self.night)
                   * (1.0 - 0.5 * self.danger))
     x, y, z = self.goal
     x += math.cos(self.yaw) * self.speed * dt
@@ -167,7 +182,7 @@ class School:
     self._limit_goal()
 
   def _depth_target(self):
-    lo, hi = self.species.depth_band
+    lo, hi = daynight.depth_band(self.species, self.night)
     _, _, (z0, z1) = self.bounds()
     return z0 + (z1 - z0) * (lo + (hi - lo) * (0.5 + 0.5 *
                                                self._depth(self.time)))
@@ -327,7 +342,8 @@ class Member(Fish):
     s = self.species
     if self.flick_left > 0:
       self.flick_left = max(0.0, self.flick_left - dt)
-    elif self.danger < 0.3 and self.rng.random() < s.flick_chance * dt:
+    elif self.danger < 0.3 and self.rng.random() < (
+        s.flick_chance * self.by_night('activity') * dt):
       self.flick_left = FLICK_TIME
       self.flick_turn = (self.rng.choice((-1, 1)) * s.flick_turn
                          * self.rng.uniform(0.6, 1.0))
@@ -339,7 +355,10 @@ class Member(Fish):
     school = self.school
     length = self.length
     fwd = self.forward()
-    sep_r, view = SPACING * length, VIEW * length
+    # At night they space out, and hold together less
+    loosen = school.loosen
+    sep_r, view = SPACING * loosen * length, VIEW * length
+    w_align, w_cohesion = W_ALIGNMENT / loosen, W_COHESION / loosen
     sep = [0.0, 0.0, 0.0]
     align = [0.0, 0.0, 0.0]
     center = [0.0, 0.0, 0.0]
@@ -377,7 +396,7 @@ class Member(Fish):
       pull = min(1.0, vec.length(c) / (0.5 * view))
       c = vec.normalized(c, fwd)
       for axis in range(3):
-        want[axis] += (a[axis] * W_ALIGNMENT + c[axis] * W_COHESION * pull
+        want[axis] += (a[axis] * w_align + c[axis] * w_cohesion * pull
                        + sep[axis] * W_SEPARATION)
     off = vec.sub(school.goal, (self.x, self.y, self.z))
     d = vec.length(off)

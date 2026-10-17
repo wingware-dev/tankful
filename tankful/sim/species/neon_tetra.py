@@ -9,6 +9,7 @@ import math
 
 from tankful.sim import school as sim_school
 from tankful.sim import swim
+from tankful.sim.daynight import Night
 from tankful.sim.species.base import Species
 
 SPECIES = Species(
@@ -28,6 +29,8 @@ SPECIES = Species(
   fin_beat=6.0, fin_swing=0.3,
   turn_accel=14.0, roll_rate=2.5,
   flick_chance=0.07, flick_turn=0.9,
+  # At night the school slows, loosens and rests low over the sand
+  night=Night(speed=0.4, depth_band=(0.0, 0.18), activity=0.2, loosen=1.8),
 )
 
 BONES = ('Head',) + swim.SPINE

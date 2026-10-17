@@ -163,7 +163,10 @@ def projector_space_group(projector):
   color, which the game sets as it moves the projector
   (tankful.game.scenery).  The color is the projector's drift in x and y,
   each plus CAUSTIC_BIAS, and how far it has sunk: never negative, as the
-  color cannot be.  The projector is neither turned nor scaled.
+  color cannot be.  The projector is neither turned nor scaled.  Its
+  alpha, the Strength output, is how strong the caustics, shimmer and god
+  rays are: 1 by day (and in the built scene), dimmed at night
+  (tankful.sim.daynight.look).
 
   Reading the moving projector itself would cost far more: every object
   whose material reads a moving object's space is redrawn at a cost each
@@ -172,9 +175,12 @@ def projector_space_group(projector):
   group = bpy.data.node_groups.new(PROJECTOR_SPACE, 'ShaderNodeTree')
   group.interface.new_socket('Vector', in_out='OUTPUT',
                              socket_type='NodeSocketVector')
+  group.interface.new_socket('Strength', in_out='OUTPUT',
+                             socket_type='NodeSocketFloat')
   t = Tree(group)
   out = t.add('NodeGroupOutput')
   info = t.add('ShaderNodeObjectInfo')
+  t.link(info.outputs['Alpha'], out.inputs['Strength'])
   rgb = t.add('ShaderNodeSeparateColor')
   t.link(info.outputs['Color'], rgb.inputs[0])
   home = projector.location
@@ -189,12 +195,12 @@ def projector_space_group(projector):
   return group
 
 
-def projector_coords(t, space):
+def projector_coords(t, space, output='Vector'):
   """The shaded point in the projector's space, from space, the
-  projector_space_group."""
+  projector_space_group (or its output, as Strength)."""
   node = t.add('ShaderNodeGroup')
   node.node_tree = space
-  return node.outputs['Vector']
+  return node.outputs[output]
 
 
 def caustic_group(space):
@@ -204,7 +210,8 @@ def caustic_group(space):
   the projector's space (space, the projector_space_group): x and y
   across the tank, and its z as the 4D Voronoi's W, so sinking the
   projector evolves the pattern.  Light falls from above, so it fades on
-  surfaces that face away from it.
+  surfaces that face away from it.  Both outputs are scaled by the
+  space's Strength.
   """
   group = bpy.data.node_groups.new('CausticProjection', 'ShaderNodeTree')
   group.interface.new_socket('Caustic', in_out='OUTPUT',
@@ -242,6 +249,8 @@ def caustic_group(space):
                  To_Min=weight, To_Max=0.0)
     layers.append(edge.outputs[0])
   both = t.math('ADD', layers[0], layers[1], clamp=True)
+  # As strong as the light says (dimmed at night)
+  both = t.math('MULTIPLY', both, projector_coords(t, space, 'Strength'))
   t.link(both, out.inputs['Pattern'])
   geom = t.add('ShaderNodeNewGeometry')
   nz = t.add('ShaderNodeSeparateXYZ')
@@ -362,6 +371,10 @@ def build_back_panel(scene, tank):
   color = t.ramp(fac, [(0.0, (0.004, 0.02, 0.02)),
                        (0.4, (0.015, 0.09, 0.10)),
                        (1.0, (0.06, 0.30, 0.42))])
+  # Dimmed and tinted at night by the object's color, which the game sets
+  # (tankful.game.lighting); white in the built scene
+  info = t.add('ShaderNodeObjectInfo')
+  color = t.mix(1.0, color, info.outputs['Color'], blend='MULTIPLY')
   emit = t.add('ShaderNodeEmission', Strength=1.6)
   t.link(color, emit.inputs['Color'])
   t.link(emit.outputs[0], out.inputs['Surface'])
@@ -854,8 +867,12 @@ def build_bubbles(scene, tank):
   clear = t.add('ShaderNodeBsdfTransparent')
   shell = t.add('ShaderNodeBsdfGlossy', Roughness=0.05,
                 Color=(0.95, 1.0, 1.0, 1.0))
-  glow = t.add('ShaderNodeEmission', Color=(0.8, 0.95, 1.0, 1.0),
-               Strength=2.2)
+  glow = t.add('ShaderNodeEmission', Strength=2.2)
+  # The glow is dimmed and tinted at night by the object's color, which
+  # the game sets (tankful.game.scenery); white in the built scene
+  info = t.add('ShaderNodeObjectInfo')
+  t.link(t.mix(1.0, (0.8, 0.95, 1.0, 1.0), info.outputs['Color'],
+               blend='MULTIPLY'), glow.inputs['Color'])
   lit = t.add('ShaderNodeAddShader')
   t.link(shell.outputs[0], lit.inputs[0])
   t.link(glow.outputs[0], lit.inputs[1])
@@ -922,8 +939,9 @@ def build_ripples(scene, tank):
     total = ring if total is None else t.math('ADD', total, ring)
   fac = t.math('MULTIPLY', total, 1.0, clamp=True)
   clear = t.add('ShaderNodeBsdfTransparent')
+  # The color's alpha is the rings' brightness: dimmed at night
   glow = t.add('ShaderNodeEmission', Color=(0.85, 0.97, 1.0, 1.0),
-               Strength=9.0)
+               Strength=t.math('MULTIPLY', info.outputs['Alpha'], 9.0))
   mix = t.add('ShaderNodeMixShader')
   t.link(fac, mix.inputs[0])
   t.link(clear.outputs[0], mix.inputs[1])
@@ -1024,6 +1042,8 @@ def build_god_rays(scene, tank, space):
     'MULTIPLY_ADD', flicker.outputs['Fac'], 1.6))
   strength.node.inputs[2].default_value = -0.35
   strength = t.math('MULTIPLY', strength, 0.16, clamp=True)
+  strength = t.math('MULTIPLY', strength,
+                    projector_coords(t, space, 'Strength'))
   clear = t.add('ShaderNodeBsdfTransparent')
   glow = t.add('ShaderNodeEmission', Color=(1.0, 0.97, 0.85, 1.0),
                Strength=1.0)
@@ -1069,8 +1089,12 @@ def glass_front_material():
                  t.math('ADD', noise.outputs['Fac'], 0.3))
   clear = t.add('ShaderNodeBsdfTransparent', Color=(0.93, 0.98, 0.97, 1.0))
   glossy = t.add('ShaderNodeBsdfGlossy', Roughness=0.02)
-  glow = t.add('ShaderNodeEmission', Color=(0.85, 0.9, 1.0, 1.0),
-               Strength=1.0)
+  glow = t.add('ShaderNodeEmission', Strength=1.0)
+  # The room's reflection fades with the room at night: the object's
+  # color, which the game sets (tankful.game.lighting), dims the sheens
+  info = t.add('ShaderNodeObjectInfo')
+  t.link(t.mix(1.0, (0.85, 0.9, 1.0, 1.0), info.outputs['Color'],
+               blend='MULTIPLY'), glow.inputs['Color'])
   shine = t.add('ShaderNodeAddShader')
   t.link(glossy.outputs[0], shine.inputs[0])
   t.link(glow.outputs[0], shine.inputs[1])

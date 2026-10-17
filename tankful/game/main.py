@@ -16,6 +16,7 @@ import time
 
 from tankful.game import input as game_input
 from tankful.game.fishes import Fishes
+from tankful.game.lighting import Lighting, world_background
 from tankful.game.scenery import Scenery
 from tankful.sim import species
 from tankful.sim.tank import Tank
@@ -55,6 +56,7 @@ class App:
     species.stock(self.tank)
     scene = bge.logic.getCurrentScene()
     self.scenery = Scenery(scene)
+    self.lighting = Lighting(scene, self.tank.light, world_background())
     self.fishes = Fishes(scene, self.tank.fish)
     self.input = game_input.InputState()
     self.channel = None
@@ -80,8 +82,12 @@ class App:
     if self.channel is not None:
       self.channel.poll()
       dt = sim_step(self.channel.processor)
+    self.lighting.handle_input(self.input, (bge.render.getWindowWidth(),
+                                            bge.render.getWindowHeight()))
     if dt:
       self.tank.step(dt)
+    self.lighting.update()
+    self.scenery.set_look(self.lighting.look)
     self.scenery.update(self.tank.time, dt)
     self.fishes.update()
     self.input.end_frame()
@@ -95,6 +101,7 @@ class App:
       'window_frames': frames,
       'tank': self.tank.snapshot(),
       'scenery': self.scenery.snapshot(),
+      'lighting': self.lighting.snapshot(),
       'fishes': self.fishes.snapshot(),
       'input': self.input.snapshot(),
       'window': [render.getWindowWidth(), render.getWindowHeight()],

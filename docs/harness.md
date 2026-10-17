@@ -292,6 +292,9 @@ without its `tools/species/<name>.py`), two runs of three readings each:
 | Every species, with blob shadows under the fish (now, below) | 52-56 | 3.4 / 4.3 / 4.3 |
 | The same again, measured alongside the next row | 55-58 | 3.3 / 3.5 / 4.2 |
 | Every species, with ripples where the bubbles pop (now, below) | 55-57 | 3.3 / 3.6 / 4.1 |
+| Every species, with the light switch, by day (below) | 52-54 | 3.4 / 4.0 / 4.2 |
+| The same, during a fade to night | 52-54 | 3.6 / 4.0 / 4.3 |
+| The same, at night | 55-57 | 3.5 / 2.2-4.2 / 4.4 |
 
 So the angelfish and the gouramis cost the most: about 2.5 ms of
 `Rasterizer` per pair, all of it from the caustic projection on their
@@ -365,6 +368,39 @@ placing each only once per ripple, with only its color changing, cost
 as much: every object the game changes each frame costs `Depsgraph`
 time, so a group of small things changing together goes on one object,
 as the schools' fish and the blob shadows do.
+
+The light switch (the last three rows, `docs/shots/08-night.png`, with
+`docs/shots/07-community.png` taken by day just before it in
+`tools/scripts/08-night.json`) fades the tank between day and night
+over 6 s (`tankful.sim.daynight`, `tankful.game.lighting`).  It changes
+the shading of nearly everything, so it goes without per-frame shader
+writes wherever it can:
+
+- The caustics', shimmer's and god rays' strength is the alpha of the
+  same object color that carries the projector's place (the
+  `ProjectorSpace` group's Strength output), and the back panel's glow,
+  the front glass's sheens, the bubbles' glow and the ripples'
+  brightness are their objects' colors too.  None of it costs anything
+  measurable, and the bubbles' and glass's colors are only set while the
+  look changes.
+- The lamp's energy and color are set through `bpy`, only during a
+  fade: no measurable cost.  But the lamp's reach followed its energy,
+  and as the energy fell the player stalled for about half a second
+  once in each fade; the lamp now has a set reach (`cutoff_distance`,
+  `setup_light` in `tools/build_scene.py`).
+- The room (the world's background color, which also lights the tank
+  faintly) is a shader value: written every frame of a fade, it cost
+  about 3.5 ms a frame (44-46 fps).  It is now written in steps of
+  0.002 (`ROOM_STEP`, about 30 writes in a fade), which costs nothing
+  measurable.  Left at its day value, the room and the stand stayed a
+  lit gray at night.
+
+Measured in several runs, with readings every 0.5 s through the fade,
+not alongside the earlier rows: the day readings are a little lower
+than the row above, within the spread between sessions.
+The one dip in those runs, to about 23 fps for half a second about 9 s
+of game time into every run, comes whether the light is touched or not
+(task T59 one-time-stall-9s-into-run (be8a3495)).
 
 So for more fish:
 

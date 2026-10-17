@@ -35,6 +35,7 @@ import math
 from tankful.sim import environment as env
 from tankful.sim import swim
 from tankful.sim import vec
+from tankful.sim.daynight import Night
 from tankful.sim.fish import MAX_STEP, Fish
 from tankful.sim.noise import SmoothNoise
 from tankful.sim.species.base import Resident, Species
@@ -59,6 +60,8 @@ SPECIES = Species(
   wave_min=0.08, wave_max=0.5,
   fin_beat=5.0, fin_swing=0.35,
   turn_accel=14.0, roll_rate=3.0,
+  # Nocturnal: busier at night (Corydoras._span)
+  night=Night(activity=2.2),
 )
 
 # The group's name, and so its armature's (Corydoras.Rig)
@@ -282,7 +285,7 @@ class Corydoras(Fish):
     if self.state == DASH:
       self._dash_step(dt)
     else:
-      self.air_left -= dt
+      self.air_left -= dt * self.by_night('activity')
       if self.state == SIFT:
         self._sift(dt, others)
       elif self.state == HOP:
@@ -320,10 +323,20 @@ class Corydoras(Fish):
   def _next_state(self, others):
     if self.air_left <= 0:
       self._start_dash(others)
-    elif self.state == SIFT and self.rng.random() < REST_CHANCE:
-      self._set_state(REST, self.rng.uniform(*REST_TIME))
+    elif self.state == SIFT and self.rng.random() < self._rest_chance():
+      self._set_state(REST, self._span(REST_TIME))
     else:
       self._start_hop(others)
+
+  # At night (tankful.sim.daynight) they are busier: shorter sifts and
+  # rests, fewer rests and more trips for air
+
+  def _span(self, span):
+    """A sift's or rest's length from span, shorter the busier it is."""
+    return self.rng.uniform(*span) / self.by_night('activity')
+
+  def _rest_chance(self):
+    return REST_CHANCE / self.by_night('activity')
 
   # Hops
 
@@ -373,7 +386,7 @@ class Corydoras(Fish):
       yaw1 = math.atan2(target[1] - self.y, target[0] - self.x)
     d = math.dist((self.x, self.y), target)
     self.target = target
-    then = REST if self.rng.random() < REST_CHANCE * 0.5 else SIFT
+    then = REST if self.rng.random() < self._rest_chance() * 0.5 else SIFT
     self._hop = ((self.x, self.y), target, self.yaw, yaw1, self.tilt,
                  1.0 if then == SIFT else 0.0, d > 1e-6)
     self._next = then
@@ -401,9 +414,9 @@ class Corydoras(Fish):
       then = self._next
       if then == SIFT:
         self.next_puff = 0.0
-        self._set_state(SIFT, self.rng.uniform(*SIFT_TIME))
+        self._set_state(SIFT, self._span(SIFT_TIME))
       else:
-        self._set_state(REST, self.rng.uniform(*REST_TIME))
+        self._set_state(REST, self._span(REST_TIME))
 
   # Dashes for air
 
@@ -490,7 +503,7 @@ class Corydoras(Fish):
         self.target = None
         self.phase = None
         self.next_puff = 0.0
-        self._set_state(SIFT, self.rng.uniform(*SIFT_TIME))
+        self._set_state(SIFT, self._span(SIFT_TIME))
 
   def _start_dive(self):
     d = self._dash

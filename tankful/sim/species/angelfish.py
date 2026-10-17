@@ -16,6 +16,7 @@ import math
 
 from tankful.sim import fish as sim_fish
 from tankful.sim import swim
+from tankful.sim.daynight import Night
 from tankful.sim.species.base import Resident, Species
 
 SPECIES = Species(
@@ -33,6 +34,9 @@ SPECIES = Species(
   beat_base=0.9, beat_per_speed=1.6,
   wave_min=0.10, wave_max=0.42,
   fin_beat=2.2, fin_swing=0.55,
+  # At night they drift slowly down among the plants and hover there
+  night=Night(speed=0.45, depth_band=(0.25, 0.6), hover=5.0, hover_time=2.0,
+              plants=1.2),
 )
 
 FINS = ('Pec.L', 'Pec.R', 'Pelvic.L', 'Pelvic.R', 'Dorsal', 'Anal')

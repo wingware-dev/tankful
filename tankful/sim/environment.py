@@ -105,6 +105,15 @@ def plants():
 AIRSTONE_XY = (0.30, 0.165)
 AIRSTONE_SIZE = (0.05, 0.022, 0.016)
 
+# The light switch (tankful.sim.daynight): a plate on the wall behind the
+# tank, to its right where the camera sees it beside the glass, with a
+# rocker that tips up for on and down for off (tools/build_scene.py,
+# build_switch; tankful.game.lighting).  Its center, its plate's width
+# and height (m), and the rocker's tilt (radians)
+SWITCH_CENTER = (0.9, TANK_D / 2 + 0.335, 0.42)
+SWITCH_SIZE = (0.08, 0.13)
+SWITCH_TILT = 0.3
+
 
 def airstone_position():
   """The point bubbles leave the airstone from."""

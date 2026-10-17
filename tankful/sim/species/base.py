@@ -46,7 +46,10 @@ Species = collections.namedtuple('Species', (
   # fish down (m); None for tankful.sim.fish.MARGIN, as for the glass and
   # sand.  Surface fish set it smaller, to keep up near the surface
   'surface_margin',
-), defaults=(2.5, 0.7, 0.0, 0.0, None))
+  # How it behaves at full night (tankful.sim.daynight.Night), or None
+  # for as by day
+  'night',
+), defaults=(2.5, 0.7, 0.0, 0.0, None, None))
 
 # One fish: its object name, its Species, its size (which scales the
 # species' length), a seed for its noise, and where it starts (x, y, z,

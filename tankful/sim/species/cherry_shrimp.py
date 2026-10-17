@@ -40,6 +40,7 @@ import math
 from tankful.sim import environment as env
 from tankful.sim import swim
 from tankful.sim import vec
+from tankful.sim.daynight import Night
 from tankful.sim.fish import MAX_STEP, MIN_GAP, Fish
 from tankful.sim.noise import SmoothNoise
 from tankful.sim.species.base import Resident, Species
@@ -65,6 +66,9 @@ SPECIES = Species(
   wave_min=0.0, wave_max=0.0,
   fin_beat=1.2, fin_swing=0.2,
   turn_accel=10.0, roll_rate=3.0,
+  # Nocturnal: at night it picks for shorter spells, walks faster and
+  # hops between spots more often
+  night=Night(speed=1.3, activity=2.0),
 )
 
 PICKING, LIFTING, SWIMMING, LANDING = (
@@ -471,7 +475,8 @@ class Shrimp(Fish):
     # Walk now and then; pick while still, and slower while walking
     goal = 1.0 if self._walk_noise(self.time) > 1.0 - 2 * WALKING else 0.0
     self.walking += vec.clamp(goal - self.walking, -3 * dt, 3 * dt)
-    self.speed = WALK_SPEED * self.length * self.walking
+    self.speed = (WALK_SPEED * self.length * self.walking
+                  * self.by_night('speed'))
     self.step_phase = (self.step_phase + 2 * math.pi * STEP_RATE
                        * self.walking * dt) % (2 * math.pi)
     self.pick_phase = (self.pick_phase + 2 * math.pi * PICK_RATE
@@ -480,7 +485,8 @@ class Shrimp(Fish):
     self.contact, self.normal = surface.contact(surface.clamp(moved))
     self.heading = tangent(self.heading, self.normal) or self.heading
     self._place()
-    self.pick_left -= dt
+    # Nocturnal: at night it moves on to new spots sooner
+    self.pick_left -= dt * self.by_night('activity')
     # It hops off when its time is up, or when another kind of fish
     # crowds it
     if self.pick_left <= 0 or self._crowded(others):
@@ -569,7 +575,7 @@ class Shrimp(Fish):
   def _target_speed(self, want):
     d = math.dist((self.x, self.y, self.z), self._approach())
     along = vec.dot(self.forward(), want)
-    target = (self.cruise_speed * vec.clamp(d / 0.06, 0.3, 1.0)
+    target = (self.swim_speed * vec.clamp(d / 0.06, 0.3, 1.0)
               * (0.5 + 0.5 * max(0.0, along)))
     return target, self.species.glide_time
 
