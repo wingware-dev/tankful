@@ -28,6 +28,7 @@ The menu's state and layout are plain Python (FactorMenu); only draw()
 needs UPBGE's blf and gpu, through the scene's post_draw.
 """
 
+import contextlib
 import dataclasses
 import logging
 import math
@@ -443,37 +444,10 @@ class FactorHud:
       log.exception('factor HUD: draw failed, HUD off')
 
   def _draw(self, window):
-    import blf
-    import gpu
-    from gpu_extras.batch import batch_for_shader
-    from mathutils import Matrix
-
-    w, h = window
     menu = self.menu
     s = menu.scale(window)
-    shader = gpu.shader.from_builtin('UNIFORM_COLOR')
-
-    def fill(triangles, color):
-      # Our rects are from the top left; GL's from the bottom left
-      verts = [(x, h - y) for tri in triangles for x, y in tri]
-      batch = batch_for_shader(shader, 'TRIS', {'pos': verts})
-      shader.uniform_float('color', color)
-      batch.draw(shader)
-
-    def text(x, y_center, value, size, color):
-      blf.size(0, size * s)
-      blf.color(0, *color)
-      _, th = blf.dimensions(0, 'Ag')
-      blf.position(0, x, h - y_center - th / 3, 0)
-      blf.draw(0, value)
-
-    ortho = Matrix(((2.0 / w, 0, 0, -1), (0, 2.0 / h, 0, -1),
-                    (0, 0, -1, 0), (0, 0, 0, 1)))
-    gpu.state.blend_set('ALPHA')
-    gpu.state.depth_test_set('NONE')
-    with gpu.matrix.push_pop(), gpu.matrix.push_pop_projection():
-      gpu.matrix.load_matrix(Matrix.Identity(4))
-      gpu.matrix.load_projection_matrix(ortho)
+    with overlay(window, s) as paint:
+      fill, text = paint.fill, paint.text
       left, top, right, bottom = menu.gear_rect(window)
       fill(gear_triangles((left + right) / 2, (top + bottom) / 2,
                           (right - left) / 2), GEAR_COLOR)
@@ -499,4 +473,57 @@ class FactorHud:
           text(rect[0] + pad, y, str(i + 1), TEXT, DIM_TEXT_COLOR)
           text(rect[0] + pad + 22 * s, y, factor.label, TEXT,
                TEXT_COLOR if factor.available else DIM_TEXT_COLOR)
+
+
+class _Painter:
+  """fill() and text() in window pixels from the top left, at scale s,
+  for overlay()."""
+
+  def __init__(self, h, s):
+    import blf
+    import gpu
+    self._blf = blf
+    self._h = h
+    self.s = s
+    self._shader = gpu.shader.from_builtin('UNIFORM_COLOR')
+
+  def fill(self, triangles, color):
+    from gpu_extras.batch import batch_for_shader
+    # Our rects are from the top left; GL's from the bottom left
+    h = self._h
+    verts = [(x, h - y) for tri in triangles for x, y in tri]
+    batch = batch_for_shader(self._shader, 'TRIS', {'pos': verts})
+    self._shader.uniform_float('color', color)
+    batch.draw(self._shader)
+
+  def text_width(self, value, size):
+    self._blf.size(0, size * self.s)
+    return self._blf.dimensions(0, value)[0]
+
+  def text(self, x, y_center, value, size, color):
+    blf = self._blf
+    blf.size(0, size * self.s)
+    blf.color(0, *color)
+    _, th = blf.dimensions(0, 'Ag')
+    blf.position(0, x, self._h - y_center - th / 3, 0)
+    blf.draw(0, value)
+
+
+@contextlib.contextmanager
+def overlay(window, s):
+  """Draw over the scene in window pixels (UPBGE's gpu and blf, from a
+  post_draw): yields a _Painter, at scale s."""
+  import gpu
+  from mathutils import Matrix
+  w, h = window
+  ortho = Matrix(((2.0 / w, 0, 0, -1), (0, 2.0 / h, 0, -1),
+                  (0, 0, -1, 0), (0, 0, 0, 1)))
+  gpu.state.blend_set('ALPHA')
+  gpu.state.depth_test_set('NONE')
+  try:
+    with gpu.matrix.push_pop(), gpu.matrix.push_pop_projection():
+      gpu.matrix.load_matrix(Matrix.Identity(4))
+      gpu.matrix.load_projection_matrix(ortho)
+      yield _Painter(h, s)
+  finally:
     gpu.state.blend_set('NONE')

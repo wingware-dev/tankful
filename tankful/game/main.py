@@ -18,6 +18,7 @@ import time
 from tankful.game import input as game_input
 from tankful.game.factor_hud import FactorHud
 from tankful.game.fishes import Fishes
+from tankful.game.hint import SelectionHint
 from tankful.game.lighting import Lighting, world_background
 from tankful.game.scenery import Scenery
 from tankful.game.steering import Steering
@@ -64,6 +65,7 @@ class App:
     self.steering = Steering(scene, self.tank, self.fishes)
     self.factors = FactorHud(self.tank, self.lighting, scene=scene,
                              window=self._window, scenery=self.scenery)
+    self.hint = SelectionHint(scene=scene, window=self._window)
     atexit.register(self.factors.stop)
     self.input = game_input.InputState()
     self.channel = None
@@ -97,6 +99,7 @@ class App:
     self.steering.frame(self.input, window, dt, keys=not menu_open,
                         taken=lambda x, y: flipped or menu_open
                         or self.factors.hit(window, x, y))
+    self.hint.update(self.steering.control.selected, dt)
     if dt:
       self.tank.step(dt)
     self.lighting.update()
@@ -123,6 +126,7 @@ class App:
       'factor': self.factors.snapshot(),
       'fishes': self.fishes.snapshot(),
       'steering': self.steering.snapshot(),
+      'hint': self.hint.snapshot(),
       'input': self.input.snapshot(),
       'window': [render.getWindowWidth(), render.getWindowHeight()],
       'fps': round(self.bge.logic.getAverageFrameRate(), 1),

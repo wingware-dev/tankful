@@ -1,0 +1,19 @@
+{
+  "commands": [
+    "wait 60f",
+    "wait 4",
+    "state",
+    "click 705 364",
+    "wait 1",
+    "state",
+    "key down left",
+    "wait 1",
+    "state",
+    "screenshot docs/shots/16-steering-hint.png",
+    "key up left",
+    "wait 6",
+    "state",
+    "screenshot build/shots/16-steering-hint-gone.png",
+    "quit"
+  ]
+}
