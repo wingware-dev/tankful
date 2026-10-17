@@ -2,6 +2,7 @@ import math
 import unittest
 
 from tankful.sim import species
+from tankful.sim import steering
 from tankful.sim import swim
 from tankful.sim import vec
 from tankful.sim.school import group_of
@@ -246,6 +247,56 @@ class GuppyChaseTests(unittest.TestCase):
     gs[4].x = m.x + 0.1
     gs[5].x = m.x + 0.05
     self.assertIs(m._nearest_female(), gs[5])
+
+
+class GuppyStuckTests(unittest.TestCase):
+  """A guppy caught where the right sword plant's and vallisneria's
+  clearances meet the glass, on a down day, rises out (Fish._rise)."""
+
+  POCKET = (0.419, 0.087, 0.17)
+
+  def caught(self):
+    tank, gs = alone()
+    tank.set_factor(depth_shift=-0.9)
+    f = next(g for g in gs if g.name == 'Guppy.F1')
+    # The rest well off, so none chases or flees her
+    for k, g in enumerate(g for g in gs if g is not f):
+      g.x, g.y, g.z = -0.3 + 0.08 * k, -0.05, 0.25
+    f.x, f.y, f.z = self.POCKET
+    f.yaw = math.pi
+    return tank, f
+
+  def away(self, f):
+    return math.hypot(f.x - self.POCKET[0], f.y - self.POCKET[1])
+
+  def test_rises_out_of_a_pocket(self):
+    tank, f = self.caught()
+    rose = False
+    for t in run(tank, 6.0):
+      rose = rose or f._rise_left > 0
+      if self.away(f) > 0.08:
+        break
+    self.assertTrue(rose)
+    self.assertGreater(self.away(f), 0.08, t)
+    # And it keeps off the pocket for a while after
+    for _ in run(tank, 4.0):
+      self.assertGreater(self.away(f), 0.04)
+
+  def test_stays_without_rising(self):
+    # Without the rise it stays caught, as it did before
+    tank, f = self.caught()
+    f._track_headway = lambda dt, start: None
+    for _ in run(tank, 6.0):
+      pass
+    self.assertLess(self.away(f), 0.01)
+
+  def test_not_while_steered(self):
+    # The user asking it into the pocket is not its being stuck
+    tank, f = self.caught()
+    f.steer = steering.Steer([f])
+    f.steer.direction, f.steer.weight = (1.0, 0.0), 1.0
+    for _ in run(tank, 3.0):
+      self.assertEqual(f._rise_left, 0.0)
 
 
 class GuppyPoseTests(unittest.TestCase):

@@ -106,6 +106,19 @@ STARTLE_CALM = 2.5
 STARTLE_KICK = 0.8
 STARTLE_SPEED = 0.7
 W_STARTLE = 4.0
+# Stuck (Fish._track_headway): a fish that makes less than STUCK_HEADWAY
+# of the way it swims for STUCK_TIME (s), as when _limit_position keeps
+# putting it back in a pocket of decor, rises for RISE_TIME (s) with
+# RISE_WANT in place of its depth pull, as the water above the decor is
+# always open.  For AVOID_TIME (s) after, it keeps AVOID_RADIUS (m) off
+# where it was stuck, pushed out as hard as W_AVOID
+STUCK_HEADWAY = 0.3
+STUCK_TIME = 1.5
+RISE_TIME = 2.5
+RISE_WANT = 0.8
+AVOID_TIME = 10.0
+AVOID_RADIUS = 0.10
+W_AVOID = 1.0
 
 
 class Fish:
@@ -135,6 +148,12 @@ class Fish:
   bumps = 0
   # How far past its clearance the decor starts to push it (m)
   decor_margin = DECOR_MARGIN
+  # Stuck (Fish._track_headway): how long it has made no headway, how
+  # long it has left to rise and to avoid where it was stuck, and where
+  _stuck_time = 0.0
+  _rise_left = 0.0
+  _avoid_left = 0.0
+  _stuck_at = None
 
   def __init__(self, name, species, size=1.0, seed=0, position=(0, 0, 0.25),
                heading=0.0):
@@ -308,6 +327,7 @@ class Fish:
     self._turn(dt, want)
     self._pitch(dt, want)
     self._swim(dt, want)
+    start = (self.x, self.y, self.z)
     fwd = self.forward()
     self.x += fwd[0] * self.speed * dt
     self.y += fwd[1] * self.speed * dt
@@ -317,6 +337,7 @@ class Fish:
       self.z += vec.clamp(z_want - self.z, -1, 1) * 0.02 * dt
     self._keep_apart(others)
     self._limit_position()
+    self._track_headway(dt, start)
     self._bank(dt)
     self._gait(dt)
 
@@ -379,6 +400,7 @@ class Fish:
     z_want = self._depth_target()
     want[2] = vec.clamp((z_want - self.z) / 0.08, -1.0, 1.0) * 0.45
     self._seek_plants(want)
+    self._rise(want)
     self.danger = self._steer_clear(want)
     self._mind_others(want, others)
     return vec.normalized(tuple(want), self.forward()), z_want
@@ -736,6 +758,43 @@ class Fish:
       if not moved:
         return
     self._clamp_to_bounds()
+
+  def _track_headway(self, dt, start):
+    """Count how long the fish has made less than STUCK_HEADWAY of the
+    way it swims, from start; past STUCK_TIME it rises (Fish._rise).  Not
+    while its own states hold it, nor while the user steers it, whose
+    asking it into the glass is not being stuck."""
+    self._rise_left = max(0.0, self._rise_left - dt)
+    self._avoid_left = max(0.0, self._avoid_left - dt)
+    swum = self.speed * dt
+    if self.anchored or self.user_steered or swum <= 1e-9:
+      self._stuck_time = 0.0
+      return
+    moved = math.dist(start, (self.x, self.y, self.z))
+    if moved < STUCK_HEADWAY * swum:
+      self._stuck_time += dt
+    else:
+      self._stuck_time = max(0.0, self._stuck_time - dt)
+    if self._stuck_time > STUCK_TIME:
+      self._stuck_time = 0.0
+      self._rise_left = RISE_TIME
+      self._avoid_left = AVOID_TIME
+      self._stuck_at = (self.x, self.y)
+
+  def _rise(self, want):
+    """Rising out of where it was stuck, set want's climb to RISE_WANT;
+    for a while after, add a push across, off where it was stuck."""
+    if self._rise_left > 0:
+      want[2] = RISE_WANT
+    if self._avoid_left > 0 and self._stuck_at is not None:
+      dx, dy = self.x - self._stuck_at[0], self.y - self._stuck_at[1]
+      d = math.hypot(dx, dy)
+      if d < AVOID_RADIUS:
+        w = W_AVOID * (1.0 - d / AVOID_RADIUS)
+        away = vec.normalized((dx, dy, 0.0), (-math.cos(self.yaw),
+                                               -math.sin(self.yaw), 0.0))
+        want[0] += away[0] * w
+        want[1] += away[1] * w
 
   def _clamp_to_bounds(self):
     (x0, x1), (y0, y1), (z0, z1) = self.bounds()

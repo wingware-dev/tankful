@@ -262,6 +262,7 @@ class Guppy(Fish):
       want[0] += math.cos(h) * 4.0
       want[1] += math.sin(h) * 4.0
     want[2] = vec.clamp(want[2], -0.7, 0.7)
+    self._rise(want)
     self.danger = self._steer_clear(want)
     self._mind_others(want, others)
     return vec.normalized(tuple(want), fwd), z_want
