@@ -87,16 +87,16 @@ def plants():
                                  (-0.12, 0.17, 8), (0.18, 0.165, 9),
                                  (0.42, 0.14, 12))):
     add('vallisneria', 'Vallisneria.%d' % i, x, y,
-        rng.uniform(0.33, 0.40), n, 0.16, rng.uniform(0.28, 0.36))
+        rng.uniform(0.33, 0.40), n, 0.24, rng.uniform(0.14, 0.19))
   # Amazon swords: broad rosettes in the midground
   for i, (x, y) in enumerate(((-0.07, 0.10), (0.36, 0.03))):
     add('sword', 'Sword.%d' % i, x, y, rng.uniform(0.17, 0.21), 11,
-        0.06, rng.uniform(0.22, 0.28))
+        0.16, rng.uniform(0.12, 0.16))
   # Moss: low clumps on the sand and against the decor
   for i, (x, y) in enumerate(((-0.25, -0.06), (-0.04, -0.02), (0.20, -0.05),
                               (0.12, 0.11), (-0.40, -0.02))):
     add('moss', 'Moss.%d' % i, x, y, rng.uniform(0.025, 0.04), 14,
-        0.03, rng.uniform(0.25, 0.4))
+        0.05, rng.uniform(0.18, 0.26))
   return out
 
 

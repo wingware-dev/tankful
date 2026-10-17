@@ -1,11 +1,17 @@
 """Plant sway: the bend of each bone in a leaf chain over time.
 
-A slow, gusting current pushes every plant the same way, and a wave
-travels up each leaf, so the tips move most and lag the base.  The game
-applies the angles to the plant armatures' bones (tankful.game.scenery).
+A slow, gusting current, as from the filter, leans every plant the same
+way, and the leaves wave in it, a wave travelling up each leaf so the
+tips move most and lag the base.  The game applies the angles to the
+plant armatures' bones (tankful.game.scenery).
 """
 
 import math
+
+# The shares of the amplitude in the current's steady lean and in the
+# leaves' waving, their sum within 1.2 with the waving's peak of 1.5
+LEAN = 0.4
+WAVE = 0.5
 
 
 def current(t):
@@ -36,6 +42,6 @@ def chain_angles(t, bones, phase, amplitude, frequency, leaf=0):
     lag = 0.55 * i
     side = math.sin(w * t + p - lag) + 0.5 * math.sin(1.9 * w * t + 2 * p - lag)
     fore = math.sin(0.8 * w * t + p + 0.9 - lag)
-    out.append((share * gust * fore * (2 / 3.0),
-                share * gust * side * (2 / 3.0) + share * 0.5 * (gust - 0.675)))
+    out.append((share * gust * fore * WAVE,
+                share * gust * (side * WAVE + LEAN)))
   return out

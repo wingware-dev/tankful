@@ -111,6 +111,29 @@ class SwayTests(unittest.TestCase):
   def test_no_bones(self):
     self.assertEqual(sway.chain_angles(1.0, 0, 0.0, 0.1, 0.3), [])
 
+  def tip_lean(self, plant, t):
+    bones = env.PLANT_BONES[plant.kind]
+    angles = sway.chain_angles(t, bones, plant.phase, plant.amplitude,
+                               plant.frequency)
+    return sum(a[1] for a in angles)
+
+  def test_leaves_sway_visibly_and_slowly(self):
+    # The vallisneria and the swords, the plants a viewer watches, swing
+    # their tips through 6 degrees or more, taking 5 s or more each way
+    for plant in env.plants():
+      if plant.kind == 'moss':
+        continue
+      leans = [self.tip_lean(plant, i * 0.1) for i in range(600)]
+      self.assertGreater(max(leans) - min(leans), math.radians(6),
+                         plant.name)
+      self.assertLessEqual(plant.frequency, 0.2, plant.name)
+
+  def test_current_leans_every_plant_one_way(self):
+    for plant in env.plants():
+      leans = [self.tip_lean(plant, i * 0.25) for i in range(2400)]
+      self.assertGreater(sum(leans) / len(leans), 0.2 * plant.amplitude,
+                         plant.name)
+
 
 class ObstacleTests(unittest.TestCase):
 
