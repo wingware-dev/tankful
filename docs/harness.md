@@ -406,6 +406,15 @@ the game's posing of the fish, which grew from about 2 ms at step 5 to
 3.7 ms with all 35 fish.  The pleco, the corydoras,
 the guppies and the shrimp cost 0-2 fps each, near the readings' spread.
 
+The caustic group lights upright faces at a quarter strength, as light
+scattered in the water would reach a fish's side.  The sand's skirts
+down the glass get none: the light from the surface cannot reach them,
+and the pattern, which varies only across the tank, drew vertical
+streaks down the front face.  `build_sand` marks the skirt faces with a
+`skirt` face attribute, which `sand_material` reads to drop them from
+the caustics (`docs/shots/19-sand-front.png`, before and after).  An
+attribute is the mesh's own data, so it costs nothing per frame.
+
 Timed inside the game, `Logic` with every species was the sim's step
 (3.0 ms), the scenery (0.35 ms) and the posing (`tankful.game.fishes`,
 0.25 ms for all 35 fish).  The tetras cost the most of the step because

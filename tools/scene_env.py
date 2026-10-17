@@ -39,6 +39,8 @@ PROJECTOR_SPACE = 'ProjectorSpace'
 # Added to the projector's drift in that color, to keep it positive
 # (tankful.game.scenery.CAUSTIC_BIAS)
 CAUSTIC_BIAS = 1.0
+# The sand's face attribute marking its skirts down the glass (build_sand)
+SAND_SKIRT = 'skirt'
 
 
 def build_environment(scene, tank, mats):
@@ -411,7 +413,13 @@ def sand_material(caustic):
   color = t.mix(0.6, color, dark, blend='MULTIPLY')
   height = t.math('ADD', grain.outputs['Fac'],
                   t.math('MULTIPLY', pebbles.outputs['Distance'], 2.0))
-  lit_surface(t, out, color, caustic_node(t, caustic), roughness=0.85,
+  # No caustics on the skirts down the glass, which the light from the
+  # surface does not reach, though the caustic group lights upright faces
+  # a little
+  skirt = t.add('ShaderNodeAttribute', {'attribute_name': SAND_SKIRT})
+  lit = t.math('MULTIPLY', caustic_node(t, caustic),
+               t.math('SUBTRACT', 1.0, skirt.outputs['Fac']))
+  lit_surface(t, out, color, lit, roughness=0.85,
               normal=bump(t, height, 0.2, 0.002))
   return mat
 
@@ -439,9 +447,11 @@ def build_sand(scene, tank, caustic):
           [grid[j][0] for j in range(ny - 1, 0, -1)])
   floor = env.GLASS
   bottom = [bm.verts.new((v.co.x, v.co.y, floor)) for v in edge]
+  # Marks the skirts, which sand_material keeps out of the caustics
+  skirt = bm.faces.layers.float.new(SAND_SKIRT)
   for k in range(len(edge)):
     k1 = (k + 1) % len(edge)
-    bm.faces.new((edge[k1], edge[k], bottom[k], bottom[k1]))
+    bm.faces.new((edge[k1], edge[k], bottom[k], bottom[k1]))[skirt] = 1.0
   bm.normal_update()
   link_object(scene, 'Sand', finish_mesh(bm, 'Sand', sand_material(caustic)),
               tank)
