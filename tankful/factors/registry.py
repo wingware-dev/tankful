@@ -6,7 +6,9 @@ Each factor but None is a module tankful/factors/<key>.py exposing:
   effects_for(reading) -> effects.Effects for a base.Reading
 
 and may expose light_for(reading) -> bool, whether the tank's light
-should be on, for a factor that works the light switch (moon.py).
+should be on, for a factor that works the light switch (moon.py), and
+CREDIT, a line crediting its data's source that the HUD shows while the
+factor is picked, for data whose license asks for one (weather.py).
 
 The modules import lazily, on first use, so one that is missing or fails
 to import only makes its own factor unavailable (and neutral).
@@ -46,6 +48,12 @@ class Factor:
   @property
   def available(self):
     return self.module is None or self.load() is not None
+
+  @property
+  def credit(self):
+    """The module's CREDIT for its data's source, or ''."""
+    credit = getattr(self.load(), 'CREDIT', '')
+    return credit if isinstance(credit, str) else ''
 
   def make_source(self, settings):
     """The factor's Source for these settings, or None (logged on error)."""

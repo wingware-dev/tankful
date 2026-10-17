@@ -34,6 +34,10 @@ FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
 CURRENT = ('weather_code,temperature_2m,cloud_cover,precipitation,is_day,'
            'wind_speed_10m')
 
+# Open-Meteo's data is CC BY 4.0, which asks for this credit where it is
+# shown: the HUD shows it while Weather is picked (Factor.credit)
+CREDIT = 'Weather data by Open-Meteo.com'
+
 CONDITIONS = ('clear', 'cloudy', 'fog', 'drizzle', 'rain', 'snow', 'storm')
 
 

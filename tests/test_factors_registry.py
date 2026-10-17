@@ -92,6 +92,18 @@ class FactorTests(unittest.TestCase):
     self.assertIsNone(f.make_source({}))
     self.assertIs(f.effects_for(Reading(1)), effects.NEUTRAL)
 
+  def test_credit_is_the_modules_or_empty(self):
+    module = sys.modules[FAKE] = fake_module()
+    f = self.factor()
+    self.assertEqual(f.credit, '')
+    module.CREDIT = 'Data by Example.com'
+    self.assertEqual(f.credit, 'Data by Example.com')
+    self.assertEqual(registry.get('none').credit, '')
+    self.assertEqual(registry.get('weather').credit,
+                     'Weather data by Open-Meteo.com')
+    for key in ('moon', 'battery', 'stock'):
+      self.assertEqual(registry.get(key).credit, '', key)
+
   def test_make_source_passes_settings(self):
     source = ScriptedSource([Reading(1)])
     sys.modules[FAKE] = module = fake_module(source)

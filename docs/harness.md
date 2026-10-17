@@ -78,6 +78,14 @@ The storm's lightning is seeded and steps with the sim,
 so under the harness it strikes at the same game time every run (the
 first about 12.2 s into a script that picks Weather at 1 s).
 
+The "Click a fish to select it" hint (`tankful/game/hint.py`), which a
+viewer sees 3 s into a run until they first select a fish, is off under
+the harness, so shots of an unselected tank stay as they were.
+`TANKFUL_CLICK_HINT=1` turns it on, as `17-click-hint.json` expects:
+
+    TANKFUL_CLICK_HINT=1 TANKFUL_CONFIG_DIR=$(mktemp -d) TANKFUL_FACTOR_STANDINS=1 \
+      python tools/harness.py tools/scripts/17-click-hint.json
+
 ## Fixed timestep
 
 Under `--harness` the sim does not step with real frame time, which
@@ -95,7 +103,10 @@ Two consequences:
 
 - Game time no longer follows the clock.  Where the game runs below
   60 fps, as in the docker backend, `wait 10` takes longer than 10 s
-  (about 160 s at 3.8 fps).
+  (about 160 s at 3.8 fps).  The harness allows a wait 60 s plus its
+  frames at 60 fps before giving up on the game, or at 2 fps under the
+  docker backend (`MIN_FPS` and `DOCKER_MIN_FPS` in
+  `tankful/harness_client.py`).
 - Clicks and keys reach the game on the frame they arrive, but the sim
   only moves during a wait, so follow them with one (`key down left`,
   `wait 1`, `key up left`).
@@ -129,6 +140,10 @@ not to the pixel.
   label).  Mesa's shader cache is kept in `build/docker-cache/mesa/`,
   so only the first run after a shader change compiles EEVEE's shaders
   on llvmpipe (about a minute); delete that directory to start cold.
+  `TANKFUL_WINDOW`, `TANKFUL_FACTOR_STANDINS` and the
+  `TANKFUL_STANDIN_*` variables are passed into the container, and
+  `TANKFUL_CONFIG_DIR` is mounted there, so the factor scripts run in it
+  as they do on the host, without the live services.
 - **`window`**: an ordinary window, for use by hand.
 
 `TANKFUL_WINDOW=WIDTHxHEIGHT` (at least 320x200) changes the window
@@ -164,6 +179,37 @@ The `offscreen` backend has two known blemishes on macOS:
 
 Neither could be checked from the sandbox this work ran in, which cannot
 read the window list.
+
+### Linux
+
+The whole game was run on Linux in the docker backend (step 16,
+2026-10-16), with `tools/scripts/16-linux-tour.json`: the tank, a click
+on a fish and steering it under the steering hint, a click on open
+water, the light switch to night and back, the factor menu, then
+Weather, Battery, Stock and Time & Moon in turn, and back to None, with
+a screenshot at each stage under `build/shots/linux/`:
+
+    TANKFUL_CONFIG_DIR=$(mktemp -d) TANKFUL_FACTOR_STANDINS=1 \
+      python tools/harness.py tools/scripts/16-linux-tour.json --backend docker
+
+Every command succeeded and the game exited 0, in 16 min 49 s for 51 s
+of game time.  All eight shots show what they should, checked by eye:
+the selected fish with its outline and the hint, the night tank, the
+open menu, the rain on the surface, each factor's label (`Battery:
+35%`, `S&P 500 -1.80%`, `night, waxing gibbous`) and the moonlit tank
+the Time & Moon stand-in switches to; `state` showed the light
+switching, the factor effects easing in, and the settings file in the
+mounted `TANKFUL_CONFIG_DIR` back at None at the end.  The game log had
+no Python errors; at exit Blender prints `Error: totblock: 21`, its
+report of 21 memory blocks not freed, which the macOS player prints too.
+
+That run needed two fixes: the docker backend now passes the factor
+stand-ins and the config directory into the container (before, its
+factors called the live services from inside it), and the harness
+allows waits under the docker backend 2 fps rather than 60 (before, any
+wait over about 3.5 s timed out there).  The Battery factor under the
+stand-ins reads no real battery; the Linux reader
+(`/sys/class/power_supply`) is covered only by its unit tests.
 
 ### Why the player first segfaulted in Docker
 
@@ -472,6 +518,12 @@ fps.  A lightning flash rewrites the lamp, the panel and the glass for
 the few frames it lasts, and never the room.  Its flashes are short
 enough that the frame accumulation leaves them a little grainy, which
 reads as a flash.
+
+While Weather is picked, the HUD credits Open-Meteo, whose data is
+CC BY 4.0, in a small dim line at the window's bottom left: "Weather
+data by Open-Meteo.com" (`docs/shots/18-weather-credit.png`, from
+`tools/scripts/18-weather-credit.json`; `state` gives it as the
+factor's `credit`).  No other factor shows one.
 
 The Time & Moon factor (`docs/shots/13-full-moon-night.png`) works the
 light switch (`AutoSwitch` in `tankful/game/factor_hud.py`), so its

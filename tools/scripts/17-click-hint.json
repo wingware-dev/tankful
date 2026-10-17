@@ -1,0 +1,15 @@
+{
+  "commands": [
+    "wait 60f",
+    "wait 2",
+    "state",
+    "wait 2",
+    "state",
+    "screenshot docs/shots/17-click-hint.png",
+    "click 705 364",
+    "wait 2f",
+    "state",
+    "screenshot build/shots/17-click-hint-steer.png",
+    "quit"
+  ]
+}

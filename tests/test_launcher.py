@@ -201,6 +201,20 @@ class SceneAndCommandTests(unittest.TestCase):
     self.assertEqual(cmd[i - 1], '-e')
     self.assertLess(i, cmd.index(launcher.DOCKER_IMAGE))
 
+  def test_docker_command_forwards_standins_and_config_dir(self):
+    cmd = launcher.docker_command('/proj', [], env={
+      'TANKFUL_FACTOR_STANDINS': '1', 'TANKFUL_STANDIN_MOON': 'full',
+      'TANKFUL_CONFIG_DIR': '/scratch/cfg'})
+    image = cmd.index(launcher.DOCKER_IMAGE)
+    for arg in ('TANKFUL_FACTOR_STANDINS=1', 'TANKFUL_STANDIN_MOON=full',
+                'TANKFUL_CONFIG_DIR=/tankful-config'):
+      i = cmd.index(arg)
+      self.assertEqual(cmd[i - 1], '-e')
+      self.assertLess(i, image)
+    i = cmd.index('/scratch/cfg:/tankful-config')
+    self.assertEqual(cmd[i - 1], '-v')
+    self.assertFalse([a for a in cmd if a.startswith('TANKFUL_STANDIN_STOCK')])
+
   def test_ensure_docker_image_rebuilds_on_dockerfile_change(self):
     digest = launcher.dockerfile_digest()
     calls = []

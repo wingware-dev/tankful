@@ -65,6 +65,13 @@ DOCKER_LABEL = 'tankful.dockerfile'
 # mounted project: compiling EEVEE's shaders on llvmpipe under emulation
 # is most of the container's startup time
 DOCKER_SHADER_CACHE = DOCKER_ROOT + '/build/docker-cache/mesa'
+# Passed into the container when set: the window size, and the factor
+# stand-ins, so a harness run there never calls the live services
+DOCKER_FORWARDED_ENV = ('TANKFUL_WINDOW', 'TANKFUL_FACTOR_STANDINS',
+                        'TANKFUL_STANDIN_STOCK', 'TANKFUL_STANDIN_WEATHER',
+                        'TANKFUL_STANDIN_MOON', 'TANKFUL_CLICK_HINT')
+# Where $TANKFUL_CONFIG_DIR is mounted in the container
+DOCKER_CONFIG_DIR = '/tankful-config'
 
 BACKENDS = ('window', 'offscreen', 'xvfb', 'docker')
 
@@ -298,8 +305,13 @@ def docker_command(root, argv, harness_port=None, image=DOCKER_IMAGE,
          '-v', '%s:%s' % (root, DOCKER_ROOT), '-w', DOCKER_ROOT,
          '-e', 'TANKFUL_HARNESS_HOST=0.0.0.0',
          '-e', 'MESA_SHADER_CACHE_DIR=' + DOCKER_SHADER_CACHE]
-  if env.get('TANKFUL_WINDOW'):
-    cmd += ['-e', 'TANKFUL_WINDOW=' + env['TANKFUL_WINDOW']]
+  for name in DOCKER_FORWARDED_ENV:
+    if env.get(name):
+      cmd += ['-e', '%s=%s' % (name, env[name])]
+  if env.get('TANKFUL_CONFIG_DIR'):
+    cmd += ['-v', '%s:%s' % (os.path.abspath(env['TANKFUL_CONFIG_DIR']),
+                             DOCKER_CONFIG_DIR),
+            '-e', 'TANKFUL_CONFIG_DIR=' + DOCKER_CONFIG_DIR]
   if harness_port is not None:
     cmd += ['-p', '127.0.0.1:%d:%d' % (harness_port, harness_port)]
   cmd += [image, 'python3', DOCKER_ROOT + '/run_tankful.py',

@@ -141,6 +141,11 @@ class MenuTests(unittest.TestCase):
     gear = self.menu.gear_rect(WINDOW)
     self.assertGreater(x, gear[2])
     self.assertEqual(y, center(gear)[1])
+    # The credit sits at the bottom left, below the open menu
+    x, y = self.menu.credit_pos(WINDOW)
+    self.assertEqual(x, gear[0])
+    self.assertGreater(y, big[3])
+    self.assertLess(y, WINDOW[1])
 
 
 class AdjustLookTests(unittest.TestCase):
@@ -284,6 +289,16 @@ class HudTests(unittest.TestCase):
     snap = self.hud.snapshot()
     self.assertEqual(snap['factor'], 'weather')
     json.dumps(snap)
+
+  def test_credit_shows_only_while_weather_is_picked(self):
+    self.frame()
+    self.assertEqual(self.hud.credit, '')
+    self.pick(2)
+    self.assertEqual(self.hud.credit, 'Weather data by Open-Meteo.com')
+    self.assertEqual(self.hud.snapshot()['credit'], self.hud.credit)
+    for number in (1, 3, 4, 5):
+      self.pick(number)
+      self.assertEqual(self.hud.credit, '', number)
 
   def test_eased_effects_settle(self):
     self.pick(2)

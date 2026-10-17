@@ -63,6 +63,22 @@ class ClientTests(unittest.TestCase):
       harness_client.Client(sock).request({'cmd': 'state'})
     self.assertIn('bad', str(cm.exception))
 
+  def test_wait_allows_its_frames_at_min_fps(self):
+    for min_fps, msg, want in (
+        (60.0, {'cmd': 'wait', 'seconds': 4}, 64.0),
+        (60.0, {'cmd': 'wait', 'frames': 600}, 70.0),
+        (2.0, {'cmd': 'wait', 'seconds': 4}, 180.0),
+        (2.0, {'cmd': 'wait', 'frames': 60}, 90.0),
+        (2.0, {'cmd': 'state'}, 60.0)):
+      client = harness_client.Client(FakeSocket(lambda m: []), min_fps=min_fps)
+      with mock.patch.object(client, '_reply') as reply:
+        client.request(msg)
+      self.assertEqual(reply.call_args[0][1], want, msg)
+    self.assertEqual(harness_client.min_fps('docker'),
+                     harness_client.DOCKER_MIN_FPS)
+    self.assertEqual(harness_client.min_fps('offscreen'),
+                     harness_client.MIN_FPS)
+
   def test_timeout(self):
     client = harness_client.Client(FakeSocket(lambda m: []), timeout=0.05)
     with self.assertRaises(harness_client.HarnessError):

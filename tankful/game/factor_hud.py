@@ -7,6 +7,9 @@ picks it; F, the gear or a click elsewhere closes the menu (not
 Escape, the player's exit key, tools/build_scene.py).  Beside the
 gear a small label shows the factor and its live value, marked offline
 when its source fails (tankful.factors.controller.FactorController.label).
+While a factor whose data's license asks for credit is picked (Weather's
+Open-Meteo data, CC BY 4.0), a small dim line at the bottom left gives
+it (tankful.factors.registry.Factor.credit).
 
 Each frame the controller's eased Effects go to the tank (the fishes'
 speed, depth band and skittishness, and the lightning,
@@ -55,6 +58,7 @@ MENU_GAP = 8
 MENU_WIDTH = 220
 ROW = 32
 TEXT = 15
+CREDIT_TEXT = 12
 TITLE = 'Tank mood'
 # Colors (rgba)
 PANEL_COLOR = (0.06, 0.08, 0.1, 0.82)
@@ -100,6 +104,13 @@ class FactorMenu:
     """Where the label's text starts: its left and its vertical center."""
     left, top, right, bottom = self.gear_rect(window)
     return (right + LABEL_GAP * self.scale(window), (top + bottom) / 2)
+
+  def credit_pos(self, window):
+    """Where the credit's text starts: its left and its vertical center,
+    at the window's bottom left, clear of the hint's pill at the bottom
+    center (tankful.game.hint)."""
+    s = self.scale(window)
+    return (MARGIN * s, window[1] - MARGIN * s)
 
   def panel_rect(self, window):
     s = self.scale(window)
@@ -357,6 +368,7 @@ class FactorHud:
     self.effects = effects_mod.NEUTRAL
     self.label = ''
     self.offline = False
+    self.credit = ''
     self.mouse = (0, 0)
     self._window = window
     self._moon_set = None
@@ -407,6 +419,7 @@ class FactorHud:
       self.tank.light.set_moon(moon)
       self._moon_set = moon
     self.label = self.controller.label
+    self.credit = self.controller.factor.credit
     self.offline = (self.controller.factor.module is not None
                     and (not self.controller.factor.available
                          or self.controller.status().offline))
@@ -420,6 +433,7 @@ class FactorHud:
       'factor': self.controller.key,
       'label': self.label,
       'offline': self.offline,
+      'credit': self.credit,
       'menu_open': self.menu.open,
       'effects': {
         'speed_scale': e.speed_scale, 'depth_shift': e.depth_shift,
@@ -455,6 +469,9 @@ class FactorHud:
         x, y = menu.label_pos(window)
         text(x, y, self.label, TEXT,
              OFFLINE_COLOR if self.offline else TEXT_COLOR)
+      if self.credit:
+        x, y = menu.credit_pos(window)
+        text(x, y, self.credit, CREDIT_TEXT, DIM_TEXT_COLOR)
       if menu.open:
         panel = menu.panel_rect(window)
         fill(rect_triangles(panel), PANEL_COLOR)

@@ -53,7 +53,8 @@ def main(argv=None):
   proc = harness_client.start_game(backend, port, args.rebuild, log_file)
   ok = False
   try:
-    client = harness_client.connect(port, proc)
+    client = harness_client.connect(port, proc,
+                                    min_fps=harness_client.min_fps(backend))
     try:
       results = harness_client.run_script(client, commands,
                                           add_shots=not args.no_git_add)

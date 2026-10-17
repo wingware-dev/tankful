@@ -19,6 +19,24 @@ from tankful import pngstats
 CONNECT_TIMEOUT = 180.0
 REPLY_TIMEOUT = 60.0
 SHOT_TIMEOUT = 15.0
+# The game's fixed step under the harness (tankful.game.main.HARNESS_DT)
+STEPS_PER_SECOND = 60
+# A wait's reply is allowed REPLY_TIMEOUT plus its frames at this frame
+# rate: real time, where the game holds 60 fps, but the docker backend
+# draws only about 4 fps (docs/harness.md), so it allows for 2
+MIN_FPS = 60.0
+DOCKER_MIN_FPS = 2.0
+
+
+def min_fps(backend):
+  return DOCKER_MIN_FPS if backend == 'docker' else MIN_FPS
+
+
+def wait_frames(msg):
+  """The frames a wait request steps the game."""
+  if 'frames' in msg:
+    return msg['frames']
+  return msg['seconds'] * STEPS_PER_SECOND
 
 
 class HarnessError(RuntimeError):
@@ -28,9 +46,12 @@ class HarnessError(RuntimeError):
 class Client:
   """Sends requests over a connected socket and waits for each reply."""
 
-  def __init__(self, sock, timeout=REPLY_TIMEOUT):
+  def __init__(self, sock, timeout=REPLY_TIMEOUT, min_fps=MIN_FPS):
+    """min_fps: the slowest frame rate the game is expected to draw at,
+    which sets how long a wait may take."""
     self.sock = sock
     self.timeout = timeout
+    self.min_fps = min_fps
     self._buffer = proto.LineBuffer()
     self._pending = []
     self._next_id = 1
@@ -41,7 +62,7 @@ class Client:
     msg['id'] = self._next_id
     self._next_id += 1
     self.sock.sendall(proto.encode(msg))
-    extra = msg.get('seconds', 0) if msg['cmd'] == 'wait' else 0
+    extra = wait_frames(msg) / self.min_fps if msg['cmd'] == 'wait' else 0
     return self._reply(msg['id'], (timeout or self.timeout) + extra)
 
   def _reply(self, want, timeout):
@@ -71,8 +92,10 @@ class Client:
     self.sock.close()
 
 
-def connect(port, proc=None, timeout=CONNECT_TIMEOUT, host='127.0.0.1'):
-  """Connect to the game, retrying while it starts up."""
+def connect(port, proc=None, timeout=CONNECT_TIMEOUT, host='127.0.0.1',
+            min_fps=MIN_FPS):
+  """Connect to the game, retrying while it starts up.  min_fps: as for
+  Client."""
   deadline = time.monotonic() + timeout
   while True:
     if proc is not None and proc.poll() is not None:
@@ -88,7 +111,7 @@ def connect(port, proc=None, timeout=CONNECT_TIMEOUT, host='127.0.0.1'):
       continue
     # Docker publishes the port before the game listens: the connection
     # opens and then closes at once.  A first request proves it is real.
-    client = Client(sock)
+    client = Client(sock, min_fps=min_fps)
     try:
       client.request({'cmd': 'state'}, timeout=10.0)
     except (HarnessError, OSError):
