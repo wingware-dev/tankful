@@ -11,6 +11,16 @@ Each step a fish blends what it wants into one desired direction:
 - the other fish: kept apart, and drawn together when far apart;
 - at night, the plants, for the species whose Night says so.
 
+When its body (a capsule along its spine, Fish.body) touches another
+fish's, it is startled: it gets a kick of speed and darts away for a
+moment, then is not startled again for a while (Fish._bump).  Fish of
+one group (a school, shoal or colony) keep apart by separation instead,
+and a fish the user steers is never startled: only the fish it bumps
+into flees, and gives way to it (Fish._keep_apart).  A pleco on the
+glass or a shrimp on the sand (anchored) holds on, and the fish that
+bumps into it darts off; bumping into a shrimp startles no fish, but a
+swimming shrimp darts off itself.
+
 At night (Fish.night, tankful.sim.daynight) the species' Night also
 changes its speed, depth band, hovering and how near the surface it may
 rest (by_night).
@@ -73,6 +83,23 @@ PLANT_NEAR = 0.03
 STEER_HOLD = 0.7
 STEER_HOLD_NEAR = 0.03
 STEER_CLIMB_RUN = 0.6
+# The body capsule (Fish.body), in lengths: from BODY_FRONT ahead of the
+# center to BODY_BACK behind it, BODY_RADIUS round.  The tail fin bends
+# and is left out, and the capsule is as thick as the body is from side
+# to side: as deep as an angelfish is, fish swimming side by side would
+# touch all the time
+BODY_FRONT, BODY_BACK, BODY_RADIUS = 0.42, 0.30, 0.09
+# How far a body reaches from the center, in lengths
+BODY_REACH = BODY_FRONT + BODY_RADIUS
+# Collisions (Fish._bump): bumped, a fish darts away for STARTLE_TIME
+# (s), its speed kicked up by STARTLE_KICK of its cruise and held up to
+# STARTLE_SPEED of its most, steering away with W_STARTLE; it is not
+# startled again until STARTLE_CALM (s) after the bump
+STARTLE_TIME = 0.8
+STARTLE_CALM = 2.5
+STARTLE_KICK = 0.8
+STARTLE_SPEED = 0.7
+W_STARTLE = 4.0
 
 
 class Fish:
@@ -89,6 +116,17 @@ class Fish:
   # depth (y) it keeps meanwhile
   steer = None
   _steer_y = None
+  # Whether bumping into it startles the other fish (Fish._bump): the
+  # little shrimp get out of the way themselves
+  startles_others = True
+  # How long a bump startles it (s)
+  startle_time = STARTLE_TIME
+  # When a bump last startled it (its own time), the way it darts off,
+  # and how many times one has
+  _startled_at = None
+  _startle_away = None
+  _kick = False
+  bumps = 0
 
   def __init__(self, name, species, size=1.0, seed=0, position=(0, 0, 0.25),
                heading=0.0):
@@ -172,6 +210,38 @@ class Fish:
     if mod is None or mod.surface_margin is None or not self.night:
       return top
     return daynight.blend(top, mod.surface_margin, self.night)
+
+  def body(self):
+    """The body capsule: (front, back, radius)."""
+    f = self.forward()
+    p = (self.x, self.y, self.z)
+    length = self.length
+    return (vec.add(p, vec.scale(f, BODY_FRONT * length)),
+            vec.sub(p, vec.scale(f, BODY_BACK * length)),
+            BODY_RADIUS * length)
+
+  # Who has a say in where it goes
+
+  @property
+  def user_steered(self):
+    """Whether the user steers it, on its own or with its school, the
+    steer on or blending out (tankful.sim.steering)."""
+    return (self.steer is not None
+            or getattr(self.school, 'steer', None) is not None)
+
+  @property
+  def anchored(self):
+    """Whether its own states, not swimming, hold it where it is now (a
+    pleco on the glass, a shrimp picking): it is not pushed about."""
+    return False
+
+  @property
+  def startled(self):
+    """How startled it is: 1 just bumped, easing to 0 over startle_time."""
+    if self._startled_at is None:
+      return 0.0
+    left = 1.0 - (self.time - self._startled_at) / self.startle_time
+    return left if left > 0 else 0.0
 
   def max_turn(self, speed=None):
     """The fastest heading change, in rad/s, at speed (default: now)."""
@@ -381,15 +451,20 @@ class Fish:
   def _mind_others(self, want, others, skip=()):
     """Add to want the pull apart from fish too near, and, for fish of
     its own species, together when far apart.  A much smaller fish of
-    another kind pushes less.
+    another kind pushes less.  A fish it bumps into startles it
+    (_bump), and while startled it darts away.
 
     Every fish checks every other each step, so the fish of other kinds
     that are a separation or more apart along any axis, which can only
-    be farther, are passed over before anything else is worked out."""
+    be farther, are passed over before anything else is worked out.
+    That is never near enough for their bodies to touch: two bodies
+    reach at most 2 BODY_REACH of the longer one's length, less than
+    SEPARATION."""
     fwd = self.forward()
     x, y, z = self.x, self.y, self.z
     species = self.species
     length = self.length
+    bumps = self.may_startle
     for other in others:
       if other is self or other in skip:
         continue
@@ -401,6 +476,9 @@ class Fish:
         continue
       off = (dx, dy, dz)
       d = math.sqrt(dx * dx + dy * dy + dz * dz)
+      if (bumps and d < BODY_REACH * (length + other_length)
+          and self._bump(other)):
+        bumps = False
       if d < sep:
         away = vec.normalized(off, (-fwd[0], -fwd[1], 0.0))
         w = (1.0 - d / sep) ** 2 * 3.0
@@ -412,6 +490,65 @@ class Fish:
         toward = vec.scale(vec.normalized(off), -0.12)
         for axis in range(3):
           want[axis] += toward[axis]
+    startle = self.startled
+    if startle:
+      for axis in range(3):
+        want[axis] += self._startle_away[axis] * W_STARTLE * startle
+
+  def _bump(self, other):
+    """If self's body touches other's, startle them both: each darts away
+    from the other.  Whether self was startled.  self is one that may be
+    (may_startle).
+
+    Both are startled here, by whichever steps first, since its step then
+    pushes them apart (_keep_apart) before the other's step looks.  Fish
+    of one group (a school, shoal or colony: Fish.school) keep apart by
+    their separation instead.  A fish the user steers, or held where it
+    is (anchored), is never startled, so only the fish that bumps it
+    flees.  Bumping into a fish whose startles_others is off (a shrimp)
+    doesn't startle the fish, only the shrimp, when it swims."""
+    mine = other.startles_others
+    theirs = self.startles_others and other.may_startle
+    if not (mine or theirs) or (
+        self.school is not None and other.school is self.school):
+      return False
+    a0, a1, ra = self.body()
+    b0, b1, rb = other.body()
+    p, q = vec.closest_between_segments(a0, a1, b0, b1)
+    off = vec.sub(p, q)
+    if vec.length(off) >= ra + rb:
+      return False
+    fwd = self.forward()
+    away = vec.normalized(off, vec.normalized(
+      (self.x - other.x, self.y - other.y, self.z - other.z),
+      (-fwd[1], fwd[0], 0.0)))
+    if mine:
+      self._startle(away)
+    if theirs:
+      other._startle(vec.scale(away, -1.0))
+    return mine
+
+  @property
+  def may_startle(self):
+    """Whether a bump would startle it now: not steered by the user, not
+    held where it is, and calm again since the last one (STARTLE_CALM)."""
+    return (not self.user_steered and not self.anchored
+            and (self._startled_at is None
+                 or self.time - self._startled_at >= STARTLE_CALM))
+
+  def _startle(self, away):
+    """Dart off along away (a unit vector): a kick of speed, and a while
+    swimming that way (startled)."""
+    fwd = self.forward()
+    # Mostly level: up or down is where the sand and surface are
+    self._startle_away = vec.normalized((away[0], away[1], away[2] * 0.5),
+                                        (-fwd[1], fwd[0], 0.0))
+    self._startled_at = self.time
+    self.bumps += 1
+    self.mode, self.mode_time = CRUISE, 0.0
+    # The kick of speed comes in its own step (_swim): the other fish of
+    # a bump may have stepped already, its gait set to its speed
+    self._kick = True
 
   def _turn(self, dt, want):
     s = self.species
@@ -460,6 +597,15 @@ class Fish:
       along = vec.dot(self.forward(), want)
       user = self.swim_speed * (0.55 + 0.45 * max(0.0, along))
       target += (user - target) * steer.weight
+    startle = self.startled
+    if startle:
+      # Bumped: away fast, from a kick
+      target = max(target, self.max_speed * STARTLE_SPEED * startle)
+      if self._kick:
+        self._kick = False
+        self.speed = min(self.max_speed,
+                         self.speed + STARTLE_KICK * self.cruise_speed)
+        self.stroking, self.stroke = True, 1.0
     # Burst and glide: stroke up past the target, then coast down below it
     if self.speed < target * 0.8:
       self.stroking = True
@@ -515,8 +661,14 @@ class Fish:
                       + 2 * math.pi * fin_freq * dt) % (2 * math.pi)
 
   def _keep_apart(self, others):
+    """Move apart from fish nearer than their MIN_GAP, by self's share
+    of the overlap; the other fish takes the rest on its own step.  A
+    fish held where it is (anchored) or that the user steers holds its
+    place, and the other takes the whole overlap: the user's fish goes
+    where it is steered, and only the fish in its way gives."""
     species = self.species
     length = self.length
+    steered = None
     for other in others:
       if other is self:
         continue
@@ -532,7 +684,14 @@ class Fish:
       off = (dx, dy, dz)
       d = math.sqrt(dx * dx + dy * dy + dz * dz)
       if d < gap:
-        if other.species is species:
+        if steered is None:
+          steered = self.user_steered
+        other_steered = other.user_steered
+        if other.anchored or (other_steered and not steered):
+          share = 1.0
+        elif steered and not other_steered:
+          continue
+        elif other.species is species:
           share = 0.5
         else:
           share = other_length / (length + other_length)
@@ -606,6 +765,8 @@ class Fish:
       'speed': round(self.speed, 4),
       'mode': self.mode,
       'stroke': round(self.stroke, 3),
+      'startled': round(self.startled, 3),
+      'bumps': self.bumps,
     }
 
 

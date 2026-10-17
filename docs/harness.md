@@ -452,6 +452,17 @@ tetra) is wiped out by the frame accumulation, so the shell is at least
 2.5 mm wide.  The `state` command's `steering.screen` gives each fish's
 window pixel, for scripts to click on.
 
+Collisions (`Fish._bump` in `tankful/sim/fish.py`) cost nothing
+measurable: the capsule check runs only for pairs `_mind_others`
+already looks at that are within two body reaches, and the sim's step
+for all 35 fish stayed at 1.9 ms outside the game (1.87-1.92 before).
+`tools/scripts/10-collisions.json` selects Angelfish.0 and steers it
+down into the tetra school (`docs/shots/10-collisions.png`): about
+5.6 s in it bumps NeonTetra.03, whose `state` at 5.7 s shows `bumps` 1,
+`startled` 0.38 (a school member darts only as long as a flick) and
+its speed up from 0.054 to 0.146 m/s, while the steered angelfish's
+`bumps` stays 0.  `Logic` read 3.4-3.5 ms through it.
+
 The Weather factor's rain (`docs/shots/12-weather-rain.png`) is one
 still sheet under the surface, `RainRipples` (`build_rain` in
 `tools/scene_env.py`), whose shader draws every drop and ring from its

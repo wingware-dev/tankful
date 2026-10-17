@@ -266,6 +266,12 @@ class Corydoras(Fish):
     if self.state == STEERED:
       super()._limit_position()
 
+  @property
+  def anchored(self):
+    # Its states hold it on the sand, or on its dash, but for swimming as
+    # it is steered
+    return self.state != STEERED
+
   def _set_state(self, state, length=0.0):
     self.state = state
     self.state_time = 0.0

@@ -293,6 +293,10 @@ class Colony:
 
 class Shrimp(Fish):
 
+  # Too small to startle a fish that bumps into it (tankful.sim.fish): on
+  # a surface it gets out of the way (_crowded), and swimming it darts off
+  startles_others = False
+
   def __init__(self, name, species, size=1.0, seed=0,
                start=(0.0, -0.12, 0.04, 0.0)):
     # Set before Fish.__init__, which places the fish (_limit_position)
@@ -356,6 +360,11 @@ class Shrimp(Fish):
     return Fish.orientation(self)
 
   # The state machine
+
+  @property
+  def anchored(self):
+    # On a surface, or on its path on or off it
+    return self.state != SWIMMING
 
   def _set_state(self, state):
     self.state = state

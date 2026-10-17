@@ -1,0 +1,18 @@
+{
+  "commands": [
+    "wait 60f",
+    "wait 4",
+    "state",
+    "click 618 338",
+    "key down down",
+    "wait 0.7",
+    "state",
+    "screenshot docs/shots/10-collisions.png",
+    "wait 0.6",
+    "key up down",
+    "state",
+    "wait 2",
+    "state",
+    "quit"
+  ]
+}

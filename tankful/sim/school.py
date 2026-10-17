@@ -40,7 +40,7 @@ import random
 from tankful.sim import daynight
 from tankful.sim import environment as env
 from tankful.sim import vec
-from tankful.sim.fish import MAX_STEP, Fish
+from tankful.sim.fish import BODY_REACH, MAX_STEP, Fish
 from tankful.sim.noise import SmoothNoise
 from tankful.sim.species.base import Resident
 
@@ -59,10 +59,6 @@ W_COHESION = 0.55
 W_GOAL = 1.0
 # How much of its own heading, and of its own wander, a member keeps
 W_INERTIA = 0.5
-# The body capsule, in lengths: from BODY_FRONT ahead of the center to
-# BODY_BACK behind it, BODY_RADIUS round; the tail fin bends and is left
-# out
-BODY_FRONT, BODY_BACK, BODY_RADIUS = 0.42, 0.30, 0.09
 # How long a flick lasts (s)
 FLICK_TIME = 0.35
 # The goal: its speed as a fraction of the members' cruise, its turn
@@ -324,6 +320,11 @@ class School:
 class Member(Fish):
   """A fish in a school."""
 
+  # Bumped by a fish outside the school (tankful.sim.fish), it darts off
+  # only as long as a flick, and the rules draw it back in: any longer and
+  # it is carried well clear of the rest
+  startle_time = FLICK_TIME
+
   def __init__(self, name, species, school, size=1.0, seed=0,
                position=(0, 0, 0.25), heading=0.0):
     self.flick_left = 0.0
@@ -336,19 +337,10 @@ class Member(Fish):
   def flicking(self):
     return self.flick_left > 0
 
-  def body(self):
-    """The body capsule: (front, back, radius)."""
-    f = self.forward()
-    p = (self.x, self.y, self.z)
-    length = self.length
-    return (vec.add(p, vec.scale(f, BODY_FRONT * length)),
-            vec.sub(p, vec.scale(f, BODY_BACK * length)),
-            BODY_RADIUS * length)
-
   def part_from(self, other, share):
-    """Move self away from other until their bodies no longer touch,
-    by share of the overlap.  Whether it moved."""
-    reach = (BODY_FRONT + BODY_RADIUS) * (self.length + other.length)
+    """Move self away from other until their bodies (Fish.body) no
+    longer touch, by share of the overlap.  Whether it moved."""
+    reach = BODY_REACH * (self.length + other.length)
     dx, dy, dz = self.x - other.x, self.y - other.y, self.z - other.z
     if dx * dx + dy * dy + dz * dz >= reach * reach:
       return False

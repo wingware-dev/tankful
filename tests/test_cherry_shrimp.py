@@ -480,7 +480,7 @@ class FishesTests(unittest.TestCase):
     fishes = Fishes(scene, tank.fish)
     self.assertEqual(fishes.snapshot(), {'rigs': [],
                                          'school_rigs': [rig.name],
-                                         'members': 4})
+                                         'members': 4, 'shadows': 0})
     for _ in steps(tank, 1):
       pass
     fishes.update()

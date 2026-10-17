@@ -31,6 +31,10 @@ its surface, and once DARTING swims where it is steered instead of to
 its spot, which it doesn't settle on meanwhile.  Let go, it picks a new
 spot from where it is.
 
+A fish that bumps into it while it is on a surface, or on its way on or
+off (Pleco.anchored), darts off while the pleco holds on; darting, it is
+startled as any fish (tankful.sim.fish).
+
 While it is on a surface the fish's frame is its own (Pleco.forward and
 orientation): forward along the surface, its back along the normal.
 """
@@ -316,6 +320,12 @@ class Pleco(Fish):
     return Fish.orientation(self)
 
   # The state machine
+
+  @property
+  def anchored(self):
+    # On a surface, or on its path on or off it: it holds on when bumped,
+    # and the fish that bumped it darts off (tankful.sim.fish)
+    return self.state != DARTING
 
   def _set_state(self, state):
     self.state = state

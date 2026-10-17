@@ -161,13 +161,15 @@ class MissingSpeciesTests(unittest.TestCase):
     ghost = types.SimpleNamespace(
       name='Ghost', school=None,
       species=angelfish.SPECIES._replace(name='no_such_fish'))
-    scene = types.SimpleNamespace(objects={})
+    # The shadow rig is there, so its absence isn't warned of either
+    shadows = types.SimpleNamespace(name='FishShadows.Rig', channels={})
+    scene = types.SimpleNamespace(objects={shadows.name: shadows})
     with mock.patch.object(species, 'NAMES', WRITTEN + ('no_such_fish',)), \
          self.assertLogs('tankful.species', 'INFO'):
       with self.assertNoLogs('tankful.fishes'):
         fishes = Fishes(scene, [ghost])
     self.assertEqual(fishes.snapshot(), {'rigs': [], 'school_rigs': [],
-                                         'members': 0})
+                                         'members': 0, 'shadows': 0})
 
 
 if __name__ == '__main__':
