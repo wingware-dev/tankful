@@ -288,6 +288,8 @@ without its `tools/species/<name>.py`), two runs of three readings each:
 | Every species, nothing reading the projector (now) | 54-57 | 3.8 / 3.9 / 4.2 |
 | The same again, measured alongside the next row | 55-56 | 3.8 / 3.6 / 4.1 |
 | Every species, the sim's neighbor checks trimmed (now, below) | 55-56 | 3.2 / 3.8 / 4.3 |
+| The same again, measured alongside the next row | 54-57 | 3.1 / 4.0 / 4.1 |
+| Every species, with blob shadows under the fish (now, below) | 52-56 | 3.4 / 4.3 / 4.3 |
 
 So the angelfish and the gouramis cost the most: about 2.5 ms of
 `Rasterizer` per pair, all of it from the caustic projection on their
@@ -333,6 +335,21 @@ sim moves exactly as before: every fish's place, heading and speed after
 tetras the step takes about 40% of what it does with them, still the
 pairwise checks and each tetra's decor checks.
 
+The fish's blob shadows (the last two rows, `docs/shots/08-shadows.png`)
+are two soft blended discs per fish on the sand under it, a dark core
+and a fainter halo, all 70 on the bones of one armature
+(`FishShadows.Rig`) and in one mesh (`build_shadows` in
+`tools/scene_fish.py`); each frame `tankful.game.fishes.shadow_pose`
+lays them on the sand's slope under their fish and scales them, the
+core shrinking away and the halo spreading, then shrinking, as the fish
+rises.  Their material reads nothing but its UVs.  Measured in eight
+alternating pairs of runs, with and without them, from two project
+copies outside the working copy (another task's harness runs at the
+same time pulled both down to 30 fps at times; those readings are left
+out), they cost about 0.3 ms of `Logic` (placing them), 0.25 ms of
+`Depsgraph` (the armature's 70 bones) and 0.2 ms of `Rasterizer`, about
+1 fps, within the readings' spread.
+
 So for more fish:
 
 - Small fish that come in numbers go in one object per group, as the
@@ -343,7 +360,8 @@ So for more fish:
   `ProjectorSpace`), and no material reads another object's space (a
   Texture Coordinate node's Object) while that object moves: it cost
   0.4-1 ms of the frame for each object reading it.
-- No fish casts a shadow.
+- No fish casts a shadow: each has a blob shadow on one shared rig and
+  mesh (`build_shadows`), which a new species gets with no work.
 - The sim's step for 17 fish takes about 1 ms (`Logic`), and for all 35
   about 2.5 ms (`Logic` 3.2 ms); each fish checks every other one, so
   that grows with the square of the fish, but it passes over fish of

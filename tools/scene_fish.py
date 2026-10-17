@@ -312,3 +312,89 @@ def build_fish(scene):
       # Blender's Python has no logging set up, so say it here
       print('scene_fish: skipping species %s, its modules not all written'
             % name)
+  build_shadows(scene)
+
+
+# The shadows
+
+# The fish cast no real shadows, which cost too much of the frame
+# (docs/harness.md), so each has a blob on the sand under it: a dark core
+# (Umbra) inside a fainter halo (Penumbra), each a disc on a bone of its
+# own in one armature, FishShadows.Rig, and all of them in one mesh,
+# FishShadows.  The game (tankful.game.fishes) puts each disc on the sand
+# under its fish and scales it: as the fish rises the core shrinks away
+# and the halo spreads, then shrinks too, so the shadow fades.  Nothing is read per frame but the
+# bones, and the whole lot moves one object.
+SHADOW_RIG = 'FishShadows.Rig'
+SHADOW_PARTS = ('Umbra', 'Penumbra')
+
+# Each disc's darkness at its center (it fades to nothing at its edge),
+# for fish SMALL_FISH long (m) or more, and less for smaller ones, which
+# block less light and come in schools whose shadows overlap
+SHADOW_ALPHA = {'Umbra': 0.7, 'Penumbra': 0.32}
+SMALL_SHADOW_ALPHA = {'Umbra': 0.5, 'Penumbra': 0.1}
+SMALL_FISH = 0.045
+
+
+def build_shadows(scene, sides=20):
+  """FishShadows.Rig and FishShadows: per fish in the tank, a disc of unit
+  diameter for each of SHADOW_PARTS, on its bone <fish>:<part>."""
+  from tankful.sim import tank as sim_tank
+  tank = sim_tank.Tank()
+  fish = sim_species.stock(tank)
+  data = bpy.data.armatures.new(SHADOW_RIG)
+  rig = link_object(scene, SHADOW_RIG, data, None, shadow=False)
+  bpy.context.view_layer.objects.active = rig
+  bpy.ops.object.mode_set(mode='EDIT')
+  for f in fish:
+    for part in SHADOW_PARTS:
+      # Along +y with no roll, so the bone's rest frame is the armature's
+      eb = data.edit_bones.new('%s:%s' % (f.name, part))
+      eb.head = Vector((0, 0, 0))
+      eb.tail = Vector((0, 0.05, 0))
+      eb.roll = 0.0
+  bpy.ops.object.mode_set(mode='OBJECT')
+  for pb in rig.pose.bones:
+    pb.rotation_mode = 'QUATERNION'
+  mats = [shadow_material('FishShadow.%s%s' % (part, suffix), alpha[part])
+          for suffix, alpha in (('', SHADOW_ALPHA),
+                                ('.Small', SMALL_SHADOW_ALPHA))
+          for part in SHADOW_PARTS]
+  mb = MeshBuilder(1.0)
+  for f in fish:
+    mb.prefix = f.name + ':'
+    first = len(SHADOW_PARTS) if f.length < SMALL_FISH else 0
+    for index, part in enumerate(SHADOW_PARTS, first):
+      # UV is the point's place on the disc, 1 at its edge
+      weights = {part: 1.0}
+      center = mb.vert((0, 0, 0), (0.0, 0.0), weights)
+      ring = []
+      for j in range(sides):
+        a = 2 * math.pi * j / sides
+        c, s = math.cos(a), math.sin(a)
+        ring.append(mb.vert((0.5 * c, 0.5 * s, 0), (c, s), weights))
+      for j in range(sides):
+        mb.face([center, ring[j], ring[(j + 1) % sides]], index)
+  obj = mb.finish('FishShadows', mats, scene, rig)
+  obj.visible_shadow = False
+  return rig
+
+
+def shadow_material(name, alpha):
+  """A blended black, alpha dark at the center of a build_shadows disc and
+  fading smoothly from a quarter of the way out to nothing at its edge."""
+  mat, t, out = new_material(name, blended=True)
+  uv = t.add('ShaderNodeUVMap', {'uv_map': 'UVMap'})
+  r = t.add('ShaderNodeVectorMath', {'operation': 'LENGTH'})
+  t.link(uv.outputs['UV'], r.inputs[0])
+  fade = t.add('ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'},
+               Value=r.outputs['Value'], From_Min=0.25, From_Max=0.95,
+               To_Min=alpha, To_Max=0.0).outputs[0]
+  black = t.add('ShaderNodeEmission', Strength=0.0)
+  black.inputs['Color'].default_value = (0.0, 0.0, 0.0, 1.0)
+  clear = t.add('ShaderNodeBsdfTransparent')
+  mix = t.add('ShaderNodeMixShader', Fac=fade)
+  t.link(clear.outputs[0], mix.inputs[1])
+  t.link(black.outputs[0], mix.inputs[2])
+  t.link(mix.outputs[0], out.inputs['Surface'])
+  return mat

@@ -81,6 +81,13 @@ A school is one armature for all its members instead, with each
 member's bones prefixed `<member>:` under a `<member>:Root` bone (as
 `neon_tetra.py`); the fish driver handles both kinds.
 
+Each fish's blob shadow on the sand comes for free: `build_shadows` in
+`tools/scene_fish.py` gives every stocked fish one, and
+`tankful.game.fishes.shadow_pose` sizes it from the fish's length and
+how wide its body is from above (`SHADOW_WIDTH`, by species
+name; add the new species there if from above it is much wider or
+slimmer than 0.3 of its length).
+
 The shared helpers are in `tools/scene_fish.py`: `Shape` for a body's
 profile and spine joints, `add_body` (lofting) and `add_eye`, `fin`,
 `spine_weights`, `MeshBuilder`, `eye_material` and `band`; and
