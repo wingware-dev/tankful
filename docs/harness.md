@@ -415,6 +415,23 @@ streaks down the front face.  `build_sand` marks the skirt faces with a
 the caustics (`docs/shots/19-sand-front.png`, before and after).  An
 attribute is the mesh's own data, so it costs nothing per frame.
 
+The hang-on-back filter at the middle of the back (`build_filter` in
+`tools/scene_env.py`, placed by `FILTER_X` in
+`tankful.sim.environment`) is static: its falling water and the plume of
+bubbles under it (`Filter.Outflow`) run on the projector's time axis,
+read through `ProjectorSpace` like the caustics, so the game's existing
+color writes animate them, and its intake tube shows the caustics the
+same way: 30 objects follow the projector instead of 28.  Its current
+(`environment.current_at`) leans each plant away from the outflow
+(`tankful.sim.sway`), and the intake is a hard obstacle for the fish.
+Measured alongside the commit before it, two runs each: 53.5-57.3 fps
+with it against 56.2-56.3 without, `Rasterizer` 4.4-4.7 ms either way.
+`docs/shots/20-filter.png` is `tools/scripts/20-filter.json`'s
+`build/shots/20-filter-full.png` cropped to the filter and doubled:
+
+    magick build/shots/20-filter-full.png -crop 640x360+320+70 +repage \
+      -resize 1280x720 docs/shots/20-filter.png
+
 Timed inside the game, `Logic` with every species was the sim's step
 (3.0 ms), the scenery (0.35 ms) and the posing (`tankful.game.fishes`,
 0.25 ms for all 35 fish).  The tetras cost the most of the step because

@@ -113,9 +113,9 @@ class SwayTests(unittest.TestCase):
 
   def tip_lean(self, plant, t):
     bones = env.PLANT_BONES[plant.kind]
-    angles = sway.chain_angles(t, bones, plant.phase, plant.amplitude,
-                               plant.frequency)
-    return sum(a[1] for a in angles)
+    return sway.tip_lean(sway.chain_angles(
+      t, bones, plant.phase, plant.amplitude, plant.frequency,
+      flow=env.current_at(plant.x, plant.y)))
 
   def test_leaves_sway_visibly_and_slowly(self):
     # The vallisneria and the swords, the plants a viewer watches, swing
@@ -123,16 +123,57 @@ class SwayTests(unittest.TestCase):
     for plant in env.plants():
       if plant.kind == 'moss':
         continue
-      leans = [self.tip_lean(plant, i * 0.1) for i in range(600)]
+      leans = [self.tip_lean(plant, i * 0.1)[0] for i in range(600)]
       self.assertGreater(max(leans) - min(leans), math.radians(6),
                          plant.name)
       self.assertLessEqual(plant.frequency, 0.2, plant.name)
 
-  def test_current_leans_every_plant_one_way(self):
+  def test_current_leans_every_plant_away_from_the_outflow(self):
+    ox, oy, _ = env.outflow_position()
     for plant in env.plants():
+      away = (plant.x - ox, plant.y - oy)
+      d = math.hypot(*away)
       leans = [self.tip_lean(plant, i * 0.25) for i in range(2400)]
-      self.assertGreater(sum(leans) / len(leans), 0.2 * plant.amplitude,
-                         plant.name)
+      mean = [sum(axis) / len(leans) for axis in zip(*leans)]
+      along = (mean[0] * away[0] + mean[1] * away[1]) / d
+      self.assertGreater(along, 0.1 * plant.amplitude, plant.name)
+
+  def test_still_water_does_not_lean(self):
+    leans = [sway.tip_lean(sway.chain_angles(i * 0.25, 4, 0.3, 0.2, 0.15))
+             for i in range(2400)]
+    for axis in zip(*leans):
+      self.assertLess(abs(sum(axis) / len(leans)), 0.01)
+
+
+class CurrentTests(unittest.TestCase):
+
+  def test_spreads_out_from_the_outflow(self):
+    ox, oy, _ = env.outflow_position()
+    for x, y in ((-0.45, 0.15), (0.4, 0.15), (ox, -0.15), (0.3, -0.1)):
+      fx, fy = env.current_at(x, y)
+      self.assertGreater(fx * (x - ox) + fy * (y - oy), 0.0, (x, y))
+
+  def test_weakens_with_distance_but_not_to_nothing(self):
+    ox, oy, _ = env.outflow_position()
+    near = math.hypot(*env.current_at(ox + 0.05, oy))
+    far = math.hypot(*env.current_at(ox + 0.7, oy))
+    self.assertLessEqual(near, 1.0)
+    self.assertGreater(near, far)
+    self.assertGreaterEqual(far, env.CURRENT_FLOOR)
+
+  def test_runs_forward_under_the_outflow(self):
+    ox, oy, _ = env.outflow_position()
+    self.assertEqual(env.current_at(ox, oy), (0.0, -1.0))
+
+  def test_filter_hangs_on_the_back_inside_the_glass(self):
+    ix, iy = env.intake_position()
+    ox, oy, oz = env.outflow_position()
+    self.assertTrue(env.inside(ix, iy, env.INTAKE_RADIUS))
+    self.assertTrue(env.inside(ox, oy))
+    self.assertEqual(oz, env.WATER_LEVEL)
+    half = env.FILTER_SIZE[0] / 2
+    for x in (ix, ox):
+      self.assertLess(abs(x - env.FILTER_X), half)
 
 
 class ObstacleTests(unittest.TestCase):
@@ -152,7 +193,14 @@ class ObstacleTests(unittest.TestCase):
         self.assertLess(z, env.WATER_LEVEL, o.name)
       self.assertGreater(o.radius, 0.0)
       # Only plants are soft
-      self.assertEqual(o.soft, not o.name.startswith(('Rock', 'Driftwood')))
+      self.assertEqual(o.soft, o.name in [p.name for p in env.plants()])
+
+  def test_wraps_the_filter_intake(self):
+    intake = [o for o in env.obstacles() if o.name == 'Filter.Intake']
+    self.assertEqual(len(intake), 1)
+    ix, iy = env.intake_position()
+    self.assertEqual(intake[0].a[:2], (ix, iy))
+    self.assertGreaterEqual(intake[0].radius, env.INTAKE_RADIUS)
 
 
 if __name__ == '__main__':

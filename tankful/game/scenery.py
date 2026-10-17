@@ -76,7 +76,8 @@ class Scenery:
       bones = env.PLANT_BONES[plant.kind]
       chains = [[rig.channels['L%d.%d' % (leaf, b)] for b in range(bones)]
                 for leaf in range(plant.count)]
-      self.plants.append((plant, rig, chains))
+      self.plants.append((plant, rig, chains,
+                          env.current_at(plant.x, plant.y)))
     self.pool = pool or sim_bubbles.BubblePool(env.airstone_position(),
                                                env.WATER_LEVEL)
     self.bubbles = []
@@ -157,10 +158,11 @@ class Scenery:
       obj.color = color
 
   def _sway(self, t):
-    for plant, rig, chains in self.plants:
+    for plant, rig, chains, flow in self.plants:
       for leaf, chain in enumerate(chains):
         angles = sway.chain_angles(t, len(chain), plant.phase,
-                                   plant.amplitude, plant.frequency, leaf)
+                                   plant.amplitude, plant.frequency, leaf,
+                                   flow)
         for channel, (bend_x, bend_y) in zip(chain, angles):
           channel.rotation_euler = (bend_x, 0.0, bend_y)
       rig.update()

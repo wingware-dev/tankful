@@ -57,6 +57,7 @@ def build_environment(scene, tank, mats):
   build_driftwood(scene, tank, caustic)
   build_plants(scene, tank, caustic)
   build_airstone(scene, tank)
+  build_filter(scene, tank, caustic, space)
   build_bubbles(scene, tank)
   build_ripples(scene, tank)
   build_rain(scene, tank)
@@ -870,6 +871,249 @@ def build_airstone(scene, tank):
   tube(bm, pts, [0.0025] * len(pts), sides=8)
   link_object(scene, 'AirLine', finish_mesh(bm, 'AirLine', tube_mat), tank,
               shadow=False)
+
+
+# The tank's top trim, which the filter's spillway and intake clear
+# (tools/build_scene.py, TRIM)
+RIM_TRIM = 0.012
+
+
+def loft(bm, path, profile):
+  """A closed profile, [(x, v)], swept along path, [Vector] in the y-z
+  plane: x along the tank's x, v up from the path, square to it.  Capped
+  at both ends."""
+  rings = []
+  n = len(path)
+  for i, p in enumerate(path):
+    a, b = path[max(0, i - 1)], path[min(n - 1, i + 1)]
+    along = (b - a).normalized()
+    up = Vector((0, -along.z, along.y))
+    if up.z < 0:
+      up = -up
+    rings.append([bm.verts.new(p + Vector((x, 0, 0)) + up * v)
+                  for x, v in profile])
+  m = len(profile)
+  for r0, r1 in zip(rings, rings[1:]):
+    for k in range(m):
+      bm.faces.new((r0[k], r1[k], r1[(k + 1) % m], r0[(k + 1) % m]))
+  bm.faces.new(rings[0])
+  bm.faces.new(list(reversed(rings[-1])))
+  bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+
+
+def filter_material():
+  """The filter's dark gray plastic, a little glossy."""
+  mat, t, out = new_material('Filter')
+  co = object_coords(t)
+  mottle = t.add('ShaderNodeTexNoise', Vector=co, Scale=40.0, Detail=2.0)
+  color = t.ramp(mottle.outputs['Fac'], [(0.3, (0.035, 0.038, 0.04)),
+                                          (0.7, (0.05, 0.053, 0.056))])
+  bsdf = t.add('ShaderNodeBsdfPrincipled', Roughness=0.65)
+  t.link(color, bsdf.inputs['Base Color'])
+  t.link(bsdf.outputs[0], out.inputs['Surface'])
+  return mat
+
+
+def intake_material(caustic):
+  """The intake tube and its strainer, in the water: dark plastic with the
+  caustics on it, and the strainer's slots ringing it."""
+  mat, t, out = new_material('FilterIntake')
+  geom = t.add('ShaderNodeNewGeometry')
+  pz = t.add('ShaderNodeSeparateXYZ')
+  t.link(geom.outputs['Position'], pz.inputs[0])
+  # Slots every 6 mm up the strainer, below its top
+  slot = t.math('SINE', t.math('MULTIPLY', pz.outputs['Z'],
+                               2 * math.pi / 0.006))
+  slot = t.add('ShaderNodeMapRange', Value=slot, From_Min=0.4, From_Max=0.7,
+               To_Min=1.0, To_Max=0.0)
+  below = t.add('ShaderNodeMapRange', Value=pz.outputs['Z'],
+                From_Min=env.INTAKE_FOOT + 0.052,
+                From_Max=env.INTAKE_FOOT + 0.054, To_Min=1.0, To_Max=0.0)
+  above = t.add('ShaderNodeMapRange', Value=pz.outputs['Z'],
+                From_Min=env.INTAKE_FOOT + 0.004,
+                From_Max=env.INTAKE_FOOT + 0.006, To_Min=0.0, To_Max=1.0)
+  slots = t.math('MULTIPLY', t.math('MULTIPLY', slot.outputs[0],
+                                    below.outputs[0]), above.outputs[0])
+  color = t.mix(slots, (0.06, 0.065, 0.065, 1.0), (0.004, 0.006, 0.006, 1.0))
+  lit_surface(t, out, color, caustic_node(t, caustic), roughness=0.35,
+              strength=2.0)
+  return mat
+
+
+def outflow_material(space):
+  """The water falling from the spillway (UV V 0 to 1, lip to surface)
+  and the plume of bubbly water it drives under the surface (V 1 to 2).
+  Both run on the projector's time axis, which the game sets in the
+  object's color (projector_space_group), so the object is static and
+  reads no moving object's space."""
+  mat, t, out = new_material('FilterOutflow', blended=True)
+  mat.use_transparent_shadow = False
+  uv = t.add('ShaderNodeUVMap')
+  uvs = t.add('ShaderNodeSeparateXYZ')
+  t.link(uv.outputs['UV'], uvs.inputs[0])
+  u, v = uvs.outputs['X'], uvs.outputs['Y']
+  # Time: the projector's sinking, CAUSTIC_SPEED m a second, is its space's
+  # z less the shaded point's (up to a constant)
+  proj = t.add('ShaderNodeSeparateXYZ')
+  t.link(projector_coords(t, space), proj.inputs[0])
+  geom = t.add('ShaderNodeSeparateXYZ')
+  t.link(t.add('ShaderNodeNewGeometry').outputs['Position'], geom.inputs[0])
+  clock = t.math('SUBTRACT', proj.outputs['Z'], geom.outputs['Z'])
+  # Fading in from both edges
+  edges = t.math('POWER', t.math('SINE', t.math('MULTIPLY', u, math.pi)), 0.6)
+
+  # The falling sheet: long streaks pouring down, about 0.15 m a second
+  fall = t.math('MULTIPLY_ADD', clock, -40.0)
+  t.link(v, fall.node.inputs[2])
+  streak_co = t.add('ShaderNodeCombineXYZ', X=t.math('MULTIPLY', u, 14.0),
+                    Y=t.math('MULTIPLY', fall, 1.2))
+  streaks = t.add('ShaderNodeTexNoise', Vector=streak_co.outputs[0],
+                  Scale=1.0, Detail=2.0)
+  sheet = t.add('ShaderNodeMapRange', Value=streaks.outputs['Fac'],
+                From_Min=0.42, From_Max=0.62, To_Min=0.08, To_Max=0.9)
+  in_sheet = t.add('ShaderNodeMapRange', Value=v, From_Min=0.98,
+                   From_Max=1.02, To_Min=1.0, To_Max=0.0)
+  sheet = t.math('MULTIPLY', sheet.outputs[0], in_sheet.outputs[0])
+
+  # The plume: bubbles sinking from the surface and spreading, fading as
+  # they go, about 3 cm a second
+  depth = t.math('SUBTRACT', v, 1.0)
+  sink = t.math('MULTIPLY_ADD', clock, -2.5)
+  t.link(depth, sink.node.inputs[2])
+  bubble_co = t.add('ShaderNodeCombineXYZ', X=t.math('MULTIPLY', u, 3.0),
+                    Y=t.math('MULTIPLY', sink, 2.5))
+  bubble_cells = t.add('ShaderNodeTexVoronoi', {'voronoi_dimensions': '4D'},
+                       Vector=bubble_co.outputs[0], Scale=3.0,
+                       W=t.math('MULTIPLY', clock, 2.0))
+  dots = t.add('ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'},
+               Value=bubble_cells.outputs['Distance'], From_Min=0.15,
+               From_Max=0.3, To_Min=1.0, To_Max=0.0)
+  haze = t.add('ShaderNodeTexNoise', Vector=bubble_co.outputs[0], Scale=2.0,
+               Detail=1.0)
+  cloud = t.math('MULTIPLY_ADD', haze.outputs['Fac'], 0.3)
+  cloud.node.inputs[2].default_value = -0.08
+  plume = t.math('ADD', t.math('MULTIPLY', dots.outputs[0], 0.95), cloud)
+  fade = t.add('ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'},
+               Value=v, From_Min=1.0, From_Max=2.0, To_Min=1.0, To_Max=0.0)
+  in_plume = t.add('ShaderNodeMapRange', Value=v, From_Min=0.98,
+                   From_Max=1.02, To_Min=0.0, To_Max=1.0)
+  plume = t.math('MULTIPLY', t.math('MULTIPLY', plume, fade.outputs[0]),
+                 in_plume.outputs[0])
+
+  fac = t.math('MULTIPLY', t.math('ADD', sheet, plume), edges, clamp=True)
+  clear = t.add('ShaderNodeBsdfTransparent')
+  # White water, lit from above and glowing a little, dimmed at night
+  # with the caustics (the space's Strength)
+  bsdf = t.add('ShaderNodeBsdfPrincipled', Roughness=0.2,
+               Base_Color=(0.85, 0.95, 1.0, 1.0),
+               Emission_Color=(0.8, 0.93, 1.0, 1.0))
+  t.link(t.math('MULTIPLY', projector_coords(t, space, 'Strength'), 0.5),
+         bsdf.inputs['Emission Strength'])
+  mix = t.add('ShaderNodeMixShader')
+  t.link(fac, mix.inputs[0])
+  t.link(clear.outputs[0], mix.inputs[1])
+  t.link(bsdf.outputs[0], mix.inputs[2])
+  t.link(mix.outputs[0], out.inputs['Surface'])
+  return mat
+
+
+def build_filter(scene, tank, caustic, space):
+  """A hang-on-back filter (tankful.sim.environment, FILTER_X): its body
+  behind the back glass, rising over the rim; the spillway over the rim
+  and the water pouring from it, with the plume it drives under the
+  surface, which sets up the current that sways the plants
+  (tankful.sim.sway); and the intake tube reaching down inside.  All
+  static: the water's motion is on the projector's time axis
+  (outflow_material)."""
+  fx = env.FILTER_X
+  w, d, h = env.FILTER_SIZE
+  back = env.TANK_D / 2
+  top = env.TANK_H + env.FILTER_TOP_ABOVE
+  plastic = filter_material()
+
+  bm = bmesh.new()
+  # The body, then the lid over it, a little wider
+  for size, z, bevel in (((w, d, h), 0.0, 0.006),
+                         ((w + 0.008, d + 0.008, 0.012), h / 2 + 0.004,
+                          0.003)):
+    verts = bmesh.ops.create_cube(bm, size=1.0)['verts']
+    bmesh.ops.scale(bm, vec=size, verts=verts)
+    bmesh.ops.translate(bm, vec=(0, 0, z), verts=verts)
+    edges = list({e for v in verts for e in v.link_edges})
+    bmesh.ops.bevel(bm, geom=edges, offset=bevel, segments=2,
+                    affect='EDGES', profile=0.5)
+  body = link_object(scene, 'Filter', finish_mesh(bm, 'Filter', plastic,
+                                                  False), tank, shadow=False)
+  body.location = (fx, back + 0.012 + d / 2, top - h / 2)
+
+  # The spillway: a channel from the body over the rim, sloping down to
+  # its lip inside the glass
+  sw = env.SPILLWAY_WIDTH
+  lip_y = env.INNER_Y - env.SPILLWAY_REACH
+  lip_z = env.WATER_LEVEL + 0.03
+  over = env.TANK_H + 0.004
+  path = [Vector((fx, back + 0.016, over + 0.002)),
+          Vector((fx, back - RIM_TRIM / 2 - 0.002, over)),
+          Vector((fx, lip_y, lip_z))]
+  wall, thick = 0.012, 0.003
+  profile = [(-sw / 2, wall), (-sw / 2, 0), (sw / 2, 0), (sw / 2, wall),
+             (sw / 2 - thick, wall), (sw / 2 - thick, thick),
+             (-sw / 2 + thick, thick), (-sw / 2 + thick, wall)]
+  bm = bmesh.new()
+  loft(bm, [p - Vector((fx, 0, 0)) for p in path], profile)
+  spill = link_object(scene, 'Filter.Spillway',
+                      finish_mesh(bm, 'Filter.Spillway', plastic, False),
+                      tank, shadow=False)
+  spill.location = (fx, 0, 0)
+
+  # The intake: over the rim from the body's end and down inside the
+  # glass, the strainer at its foot
+  ix, iy = env.intake_position()
+  r = env.INTAKE_RADIUS
+  foot = env.INTAKE_FOOT
+  pts = [Vector(p) for p in ((ix, back + 0.03, top - 0.02),
+                             (ix, back + 0.012, over + r + 0.01),
+                             (ix, back - 0.004, over + r + 0.008),
+                             (ix, iy + 0.003, over + r - 0.002),
+                             (ix, iy, over - 0.02), (ix, iy, foot + 0.06))]
+  bm = bmesh.new()
+  tube(bm, pts, [r * 0.8] * len(pts), sides=12)
+  tube(bm, [Vector((ix, iy, foot)), Vector((ix, iy, foot + 0.06))],
+       [r * 1.3, r * 1.3], sides=16)
+  link_object(scene, 'Filter.Intake',
+              finish_mesh(bm, 'Filter.Intake', intake_material(caustic)),
+              tank, shadow=False)
+
+  # The water: a sheet from the lip arcing down into the surface (V 0 to
+  # 1), then the plume below it (V 1 to 2), spreading and drifting
+  # toward the front as the current carries it
+  ox, oy, oz = env.outflow_position()
+  bm = bmesh.new()
+  uv_layer = bm.loops.layers.uv.new('UVMap')
+  rows = []
+  steps = 8
+  for k in range(steps + 1):
+    s = k / steps
+    rows.append((s, sw - 2 * thick - 0.004 * s,
+                 Vector((fx, lip_y - 0.003 - 0.010 * s,
+                         lip_z + thick - (lip_z + thick - oz + 0.004) * s * s))))
+  depth = 0.13
+  for k in range(1, steps + 1):
+    s = k / steps
+    rows.append((1 + s, sw * (0.95 + 0.5 * s),
+                 Vector((fx, oy - 0.004 - 0.05 * s * s,
+                         oz - 0.004 - depth * s))))
+  verts = [[bm.verts.new(c + Vector((side * width / 2, 0, 0)))
+            for side in (-1, 1)] for _, width, c in rows]
+  for k in range(len(rows) - 1):
+    f = bm.faces.new((verts[k][0], verts[k][1], verts[k + 1][1],
+                      verts[k + 1][0]))
+    for loop, uvv in zip(f.loops, ((0, rows[k][0]), (1, rows[k][0]),
+                                   (1, rows[k + 1][0]), (0, rows[k + 1][0]))):
+      loop[uv_layer].uv = uvv
+  link_object(scene, 'Filter.Outflow',
+              finish_mesh(bm, 'Filter.Outflow', outflow_material(space),
+                          False), tank, shadow=False)
 
 
 def build_bubbles(scene, tank):

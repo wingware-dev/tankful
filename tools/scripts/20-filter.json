@@ -1,0 +1,9 @@
+{
+  "commands": [
+    "wait 60f",
+    "wait 4",
+    "state",
+    "screenshot build/shots/20-filter-full.png",
+    "quit"
+  ]
+}

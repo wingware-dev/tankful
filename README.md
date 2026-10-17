@@ -5,8 +5,9 @@ a glass tank of fish that swim, school and react, with lighting that can
 follow the weather, the moon, your battery or the stock market.  It runs
 on macOS, Linux and Windows.
 
-The tank has a sloping sand bed, rocks and driftwood, swaying
-vallisneria, Amazon swords and moss, an airstone's bubble stream whose
+The tank has a sloping sand bed, rocks and driftwood, vallisneria,
+Amazon swords and moss swaying in the current of a hang-on-back filter
+pouring in at the back, an airstone's bubble stream whose
 bubbles pop in rings on the surface, moving caustics with a shimmering
 surface, soft god rays, and a light switch on the wall.  Thirty-five
 animals of seven kinds live in it:

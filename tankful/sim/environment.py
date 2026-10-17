@@ -1,4 +1,5 @@
-"""The tank's fixed scenery: sand, decor, plants and the airstone.
+"""The tank's fixed scenery: sand, decor, plants, the airstone and the
+filter, whose current sways the plants.
 
 Both tools/build_scene.py (which makes the meshes) and the game (which
 animates plants and bubbles, and later steers fish around the decor) read
@@ -115,6 +116,52 @@ SWITCH_SIZE = (0.08, 0.13)
 SWITCH_TILT = 0.3
 
 
+# The filter: a hang-on-back box behind the middle of the back glass, its
+# spillway over the rim pouring into the tank and its intake tube reaching
+# down inside (tools/scene_env.py, build_filter).  FILTER_X is its middle;
+# FILTER_SIZE its body's width, depth and height, the body's top
+# FILTER_TOP_ABOVE over the rim
+FILTER_X = 0.0
+FILTER_SIZE = (0.17, 0.09, 0.22)
+FILTER_TOP_ABOVE = 0.035
+# The spillway's width and how far its lip reaches in from the back glass
+SPILLWAY_WIDTH = 0.11
+SPILLWAY_REACH = 0.03
+# The intake tube: its x, its radius, and how high its strainer's foot is
+# above the tank floor
+INTAKE_X = FILTER_X + 0.072
+INTAKE_RADIUS = 0.009
+INTAKE_FOOT = 0.17
+# The current from the outflow (current_at): full strength out to about
+# CURRENT_REACH (m), and never weaker than CURRENT_FLOOR across the tank
+CURRENT_REACH = 0.3
+CURRENT_FLOOR = 0.4
+
+
+def outflow_position():
+  """Where the filter's water meets the surface: under its spillway's lip."""
+  return (FILTER_X, INNER_Y - SPILLWAY_REACH - 0.008, WATER_LEVEL)
+
+
+def intake_position():
+  """The intake tube's axis: (x, y)."""
+  return (INTAKE_X, INNER_Y - INTAKE_RADIUS - 0.004)
+
+
+def current_at(x, y):
+  """The filter's current at x, y across the tank floor: (fx, fy), which
+  way it pushes the plants and how hard, 1 at most.  It spreads out from
+  the outflow, weakening with distance."""
+  ox, oy, _ = outflow_position()
+  dx, dy = x - ox, y - oy
+  d = math.hypot(dx, dy)
+  if d < 1e-6:
+    # Under the outflow itself the water runs toward the front
+    return (0.0, -1.0)
+  s = CURRENT_FLOOR + (1 - CURRENT_FLOOR) / (1 + (d / CURRENT_REACH) ** 2)
+  return (s * dx / d, s * dy / d)
+
+
 def airstone_position():
   """The point bubbles leave the airstone from."""
   x, y = AIRSTONE_XY
@@ -186,4 +233,9 @@ def obstacles():
     r = max(0.012, _PLANT_SPREAD[plant.kind] * plant.height)
     out.append(Obstacle(plant.name, (plant.x, plant.y, z),
                         (plant.x, plant.y, z + plant.height * 0.95), r, True))
+  ix, iy = intake_position()
+  # The strainer is a little wider than the tube
+  out.append(Obstacle('Filter.Intake', (ix, iy, INTAKE_FOOT),
+                      (ix, iy, WATER_LEVEL - 0.01), INTAKE_RADIUS * 1.4,
+                      False))
   return out

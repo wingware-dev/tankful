@@ -5,6 +5,7 @@ import unittest
 
 from tankful.sim import daynight
 from tankful.sim import environment as env
+from tankful.sim import fish as sim_fish
 from tankful.sim import vec
 from tankful.sim.daynight import Light, Night
 from tankful.sim.species import (angelfish, cherry_shrimp, corydoras, guppy,
@@ -41,9 +42,14 @@ class Watch:
 
   WARM, SETTLE, SPAN = 20.0, 30.0, 60.0
 
-  def __init__(self, module, night):
+  def __init__(self, module, night, shift=0):
     tank = Tank()
-    module.stock(tank)
+    if shift:
+      # The same residents from other seeds
+      sim_fish.stock(tank, [r._replace(seed=r.seed + shift)
+                            for r in module.residents()])
+    else:
+      module.stock(tank)
     run(tank, self.WARM)
     if night:
       tank.light.set(False)
@@ -274,7 +280,13 @@ class NightBehaviorTests(unittest.TestCase):
   def test_angelfish_hover_near_the_plants(self):
     day, night = DayAndNight.get(angelfish)
     self.assertLess(night.mean('speeds'), 0.6 * day.mean('speeds'))
-    self.assertGreater(night.mean('hover'), 2 * day.mean('hover'))
+    # Hovering comes and goes by chance, and one pair of seeds can fall
+    # either side of twice as much, so it is pooled over three
+    days, nights = list(day.hover), list(night.hover)
+    for shift in (1, 2):
+      days += Watch(angelfish, False, shift).hover
+      nights += Watch(angelfish, True, shift).hover
+    self.assertGreater(statistics.mean(nights), 2 * statistics.mean(days))
     self.assertLessEqual(night.mean('gaps'), day.mean('gaps') + 0.005)
     self.assertLess(night.mean('gaps'), 0.09)
 
