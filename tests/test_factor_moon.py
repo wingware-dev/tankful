@@ -158,9 +158,12 @@ class ReadingTests(unittest.TestCase):
     self.assertEqual(morning.value['phase'], 'dusk')
     self.assertTrue(evening.label.startswith('Dusk, '))
     self.assertTrue(morning.label.startswith('Dawn, '))
-    # At sunset the tank is at full dusk: warm and dimmer
+    # At sunset the tank is at full dusk: warm and dimmer (and the moon's
+    # light comes up as the light goes off)
     dusk = moon.effects_for(evening)
     for name in effects.RANGES:
+      if name == 'night_light':
+        continue
       self.assertAlmostEqual(getattr(dusk, name), getattr(moon.DUSK, name),
                              places=4)
     for got, want in zip(dusk.tint, moon.DUSK.tint):
@@ -203,8 +206,42 @@ class EffectsTests(unittest.TestCase):
       above = moon.effects_for(reading(edge + 1e-9))
       below = moon.effects_for(reading(edge - 1e-9))
       for name in effects.RANGES:
+        if name == 'night_light' and edge == moon.HORIZON:
+          # The moon comes up as the light goes off (below)
+          continue
         self.assertAlmostEqual(getattr(above, name), getattr(below, name),
                                places=6)
+
+  def test_moonlight_holds_from_sunset(self):
+    for elevation in (moon.HORIZON - 1e-9, -3.0, moon.NIGHT_START, -40.0):
+      self.assertAlmostEqual(
+        moon.effects_for(reading(elevation, 1.0)).night_light,
+        moon.NIGHT_LIGHT_FULL)
+    for elevation in (moon.HORIZON + 1e-9, 3.0, 30.0):
+      self.assertEqual(moon.effects_for(reading(elevation, 1.0)).night_light,
+                       0.0)
+
+
+class LightForTests(unittest.TestCase):
+
+  def test_off_at_sunset_and_on_at_sunrise(self):
+    self.assertEqual(moon.LIGHTS_OUT, moon.HORIZON)
+    self.assertTrue(moon.light_for(reading(30)))
+    self.assertTrue(moon.light_for(reading(moon.HORIZON + 0.01)))
+    self.assertFalse(moon.light_for(reading(moon.HORIZON)))
+    self.assertFalse(moon.light_for(reading(-30)))
+
+  def test_follows_the_real_day(self):
+    rise, set_ = astro.sun_times(utc(2026, 10, 16, 17), *BOSTON)
+    for t, on in ((rise - 600, False), (rise + 600, True),
+                  (set_ - 600, True), (set_ + 600, False)):
+      self.assertEqual(moon.light_for(moon.reading_at(t, *BOSTON)), on)
+
+  def test_through_the_registry(self):
+    factor = registry.get('moon')
+    self.assertIs(factor.light_for(reading(30)), True)
+    self.assertIs(factor.light_for(reading(-30)), False)
+    self.assertIsNone(factor.light_for(None))
 
   def test_moon_sets_night_light(self):
     lights = [moon.effects_for(reading(-30, i / 10)).night_light

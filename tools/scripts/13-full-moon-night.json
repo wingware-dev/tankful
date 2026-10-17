@@ -1,0 +1,16 @@
+{
+  "commands": [
+    "wait 60f",
+    "state",
+    "key down f",
+    "wait 1f",
+    "key up f",
+    "key down 3",
+    "wait 1f",
+    "key up 3",
+    "wait 12",
+    "state",
+    "screenshot docs/shots/13-full-moon-night.png",
+    "quit"
+  ]
+}

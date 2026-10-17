@@ -9,6 +9,13 @@ guessed.
 The sun's elevation picks the phase of the day: day, dusk (or dawn) in
 civil twilight, and night, blending between them so the tank fades
 rather than snaps; at night the moon's illumination sets the night light.
+
+The factor also works the tank's light switch (light_for, taken by
+tankful.game.factor_hud): off at sunset, on at sunrise.  Its dimming,
+tint and soft caustics are for the lit tank, before sunset and after
+sunrise; once the switch has faded to night, the night look
+(tankful.sim.daynight.look) takes over, under the moon's night light,
+which holds from sunset on.
 """
 
 import json
@@ -30,17 +37,30 @@ DAY_START = 6.0
 HORIZON = astro.HORIZON
 NIGHT_START = astro.CIVIL_TWILIGHT
 
+# The sun's elevation at which the light goes off (setting) and on
+# (rising): sunset and sunrise, in the middle of dusk and dawn.  At the
+# end of dusk it would be too late: a lit tank cannot look like night,
+# as its panel and caustics glow of themselves
+LIGHTS_OUT = HORIZON
+
 # Latitude to assume with no location: the time zone gives only longitude
 DEFAULT_LAT = 40.0
 
 IP_LOOKUP_URL = 'http://ip-api.com/json/?fields=status,lat,lon'
 LOOKUP_RETRY = 3600.0
 
-# The tank at each phase.  Night's night_light is set by the moon.
+# The tank at each phase.  Night's night_light is set by the moon.  The
+# light fields (light_level, tint, caustic_sharpness) are for the lit
+# tank: the warm, dimming light of the sun's last degrees before the
+# switch goes off at sunset (LIGHTS_OUT), and its first after sunrise.
+# Once the switch has faded to night they no longer show (see the
+# module's doc), so it is the night look that darkens the tank, not
+# NIGHT's.  The back panel's glow and the glass's sheens take the tint
+# but not light_level, so DUSK's tint is a little dark as well as warm.
 DAY = effects.NEUTRAL
 DUSK = effects.Effects(
-  speed_scale=0.9, light_level=0.6, caustic_sharpness=0.6,
-  tint=(1.0, 0.8, 0.62))
+  speed_scale=0.9, light_level=0.7, caustic_sharpness=0.6,
+  tint=(1.0, 0.66, 0.4))
 NIGHT = effects.Effects(
   speed_scale=0.75, depth_shift=-0.2, light_level=0.2,
   caustic_sharpness=0.25, tint=(0.62, 0.72, 1.0))
@@ -165,6 +185,12 @@ def night_light(illumination):
   return NIGHT_LIGHT_NEW + (NIGHT_LIGHT_FULL - NIGHT_LIGHT_NEW) * illumination
 
 
+def light_for(reading):
+  """Whether the tank's light should be on for a reading: True while the
+  sun is above LIGHTS_OUT."""
+  return float(reading.value['sun_elevation']) > LIGHTS_OUT
+
+
 def make_source(settings):
   section = settings_mod.section(settings, 'moon')
   location = (_location(section)
@@ -182,6 +208,8 @@ def effects_for(reading):
     return effects.blend(DAY, DUSK,
                          (DAY_START - elevation) / (DAY_START - HORIZON))
   if elevation > NIGHT_START:
-    return effects.blend(DUSK, night,
-                         (HORIZON - elevation) / (HORIZON - NIGHT_START))
+    # The moon's light holds through twilight: the light is off by now
+    return effects.blend(
+      DUSK, night, (HORIZON - elevation) / (HORIZON - NIGHT_START)).replace(
+        night_light=night.night_light)
   return night

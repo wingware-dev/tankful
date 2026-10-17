@@ -63,7 +63,18 @@ day (-1.80%) unless `TANKFUL_STANDIN_STOCK=up` (+1.60%), as the
 
 The Weather stand-in rains (14°C, rain), as `12-weather-rain.json`
 expects, unless `TANKFUL_STANDIN_WEATHER` says `storm`, `snow`, `clear`
-or `cloudy`.  The storm's lightning is seeded and steps with the sim,
+or `cloudy`.  The Time & Moon stand-in is a canned waxing gibbous night unless
+`TANKFUL_STANDIN_MOON` fixes its clock: `full` for 2026-10-26 04:12 UTC,
+a full moon after midnight in Boston, as `13-full-moon-night.json`
+expects, or any UTC time as `2026-10-16T21:58`, for the sun and moon
+computed then, in Boston.  It never moves, so a script sees the light
+switch itself once, when the factor is picked; that sunset and sunrise
+flip it is in `tests/test_moon_visuals.py`:
+
+    TANKFUL_CONFIG_DIR=$(mktemp -d) TANKFUL_FACTOR_STANDINS=1 \
+      TANKFUL_STANDIN_MOON=full python tools/harness.py tools/scripts/13-full-moon-night.json
+
+The storm's lightning is seeded and steps with the sim,
 so under the harness it strikes at the same game time every run (the
 first about 12.2 s into a script that picks Weather at 1 s).
 
@@ -450,6 +461,26 @@ fps.  A lightning flash rewrites the lamp, the panel and the glass for
 the few frames it lasts, and never the room.  Its flashes are short
 enough that the frame accumulation leaves them a little grainy, which
 reads as a flash.
+
+The Time & Moon factor (`docs/shots/13-full-moon-night.png`) works the
+light switch (`AutoSwitch` in `tankful/game/factor_hud.py`), so its
+night is the switch's night look, and it adds one thing to it: the
+moon's glint, a patch under the surface left of center, `MoonGlint`
+(`build_moon_glint` in `tools/scene_env.py`), that draws pale specks
+from its object color (the sparkle's clock and the glint's brightness,
+`tankful.sim.daynight.glint`), hidden by day and under a new moon.  Its
+material reads nothing but its own coordinates.  In two pairs of runs at
+night with every species, full moon (glint on) against new moon (glint
+hidden), both ran 54-57 fps with `Logic` / `Depsgraph` / `Rasterizer`
+of about 3.6 / 2.0-3.9 / 4.0 ms: nothing measurable.  The specks are a
+few pixels tall on the far-off surface; finer ones washed out in the
+frame accumulation, as the caustics do.
+
+The factor's own dimming and warm tint show only while the light is
+on, before sunset and after sunrise: the back panel, the caustics and
+the god rays glow of themselves, so no dimming of a lit tank looks like
+night, and switching off at the end of dusk instead, as first tried,
+left the tank lit and blue through 25 minutes of twilight.
 
 So for more fish:
 

@@ -19,12 +19,17 @@ named after tankful.sim.environment's layout:
 - RainRipples: a sheet under the whole surface that draws the rain's
   drops and rings (tankful.sim.weather) from its color: the rain clock,
   the rain's strength and the rings' brightness.  Hidden when dry.
+- MoonGlint: a patch under the surface that draws the moon's glint from
+  its color: the sparkle's clock and the glint's brightness, which the
+  look gives (tankful.sim.daynight.look, by night and the moon's phase).
+  Hidden by day.
 """
 
 import logging
 import math
 
 from tankful.sim import bubbles as sim_bubbles
+from tankful.sim import daynight
 from tankful.sim import environment as env
 from tankful.sim import sway
 from tankful.sim import weather
@@ -46,6 +51,9 @@ CAUSTIC_BIAS = 1.0
 RIPPLES = 'Ripples'
 # The object that draws the rain (tools/scene_env.py, build_rain)
 RAIN = 'RainRipples'
+# The object that draws the moon's glint (tools/scene_env.py,
+# build_moon_glint)
+MOON_GLINT = 'MoonGlint'
 
 
 class Scenery:
@@ -94,6 +102,12 @@ class Scenery:
     else:
       self.rain_obj.visible = False
     self.rain = 0.0
+    self.glint_obj = objects.get(MOON_GLINT)
+    if self.glint_obj is None:
+      log.warning('no %s in the scene: no moon glint', MOON_GLINT)
+    else:
+      self.glint_obj.visible = False
+    self.glint = 0.0
     # The day's look until set_look says otherwise
     self._day_rate = self.pool.rate
     self.caustics = 1.0
@@ -109,6 +123,7 @@ class Scenery:
     self.glow = sum(look.bubbles) / 3.0
     self._bubble_color = tuple(look.bubbles) + (1.0,)
     self.pool.rate = self._day_rate * look.bubble_rate
+    self.glint = look.glint
 
   def set_rain(self, strength):
     """How hard it rains on the surface, 0 (dry) to 1 (a downpour)."""
@@ -124,6 +139,7 @@ class Scenery:
       self.ripple_pool.start(x, y)
     self._place_ripples()
     self._place_rain(t)
+    self._place_glint(t)
 
   def _move_projector(self, t):
     if self.projector is None:
@@ -197,6 +213,18 @@ class Scenery:
       # alpha the rings' brightness (tools/scene_env.py, build_rain)
       obj.color = (weather.rain_clock(t), self.rain, 0.0, self.glow)
 
+  def _place_glint(self, t):
+    obj = self.glint_obj
+    if obj is None:
+      return
+    shown = self.glint >= daynight.GLINT_MIN
+    if obj.visible != shown:
+      obj.visible = shown
+    if shown:
+      # Red is the sparkle's clock, alpha the glint's brightness
+      # (tools/scene_env.py, build_moon_glint)
+      obj.color = (daynight.glint_clock(t), 0.0, 0.0, self.glint)
+
   def snapshot(self):
     return {
       'bubbles': self.pool.snapshot(),
@@ -206,6 +234,7 @@ class Scenery:
       'caustics': round(self.caustics, 3),
       'bubble_rate': round(self.pool.rate, 3),
       'rain': round(self.rain, 3),
+      'glint': round(self.glint, 3),
       'projector': [round(v, 3) for v in self.projector.worldPosition]
       if self.projector is not None else None,
     }

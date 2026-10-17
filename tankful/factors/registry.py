@@ -5,6 +5,9 @@ Each factor but None is a module tankful/factors/<key>.py exposing:
   make_source(settings) -> base.Source, or None when it can't run here
   effects_for(reading) -> effects.Effects for a base.Reading
 
+and may expose light_for(reading) -> bool, whether the tank's light
+should be on, for a factor that works the light switch (moon.py).
+
 The modules import lazily, on first use, so one that is missing or fails
 to import only makes its own factor unavailable (and neutral).
 """
@@ -69,6 +72,20 @@ class Factor:
       log.error('Factor %s: effects_for returned %r', self.key, result)
       return effects.NEUTRAL
     return result.clamped()
+
+  def light_for(self, reading):
+    """Whether the tank's light should be on for a reading, for a factor
+    that works the light switch (its module's light_for); None for one
+    that doesn't, with no reading, or on error."""
+    module = self.load()
+    light_for = getattr(module, 'light_for', None)
+    if light_for is None or reading is None:
+      return None
+    try:
+      return bool(light_for(reading))
+    except Exception:
+      log.exception('Factor %s: light_for failed', self.key)
+      return None
 
 
 def _factor(key, label):

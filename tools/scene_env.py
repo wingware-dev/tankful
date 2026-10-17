@@ -58,6 +58,7 @@ def build_environment(scene, tank, mats):
   build_bubbles(scene, tank)
   build_ripples(scene, tank)
   build_rain(scene, tank)
+  build_moon_glint(scene, tank)
   build_water_surface(scene, tank, caustic)
   build_god_rays(scene, tank, space)
   mats['glass_front'] = glass_front_material()
@@ -1085,6 +1086,84 @@ def build_rain(scene, tank):
   # Just under the surface (build_water_surface) and the bubbles' ripples
   obj.location = (0, 0, env.WATER_LEVEL - 0.0015)
   obj.color = (0.0, 0.0, 0.0, 1.0)
+
+
+# The moon's glint: where on the surface (the middle of the patch, x and
+# y in m from the tank's center) and its half width and half depth
+GLINT_CENTER = (-0.22, 0.03)
+GLINT_RADII = (0.13, 0.16)
+# The sparkle's scale across and along the surface (per m): coarser
+# along y, which the viewer sees end on, so its specks stay a few pixels
+# tall (fine detail under changing light washes out, docs/harness.md)
+GLINT_SCALE = (60.0, 14.0)
+# How far the sparkle's pattern travels round its loop, in noise units
+GLINT_TRAVEL = 30.0
+
+
+def build_moon_glint(scene, tank):
+  """MoonGlint: a sheet just under the water surface, left of center,
+  that draws the full moon's glint on the surface seen from below: a soft
+  pool of pale light broken into slowly shifting specks.  The game sets
+  the sparkle's clock (tankful.sim.daynight.glint_clock, 0 to 1 round
+  its loop) as the object color's red and the glint's brightness as its
+  alpha, and hides it by day (tankful.game.scenery).  As for RainRipples,
+  nothing moves, the material reads no other object, and only its color
+  changes.  The pattern loops without a seam: the clock goes round a
+  circle in the noise's third and fourth dimensions."""
+  mat, t, out = new_material('MoonGlint', blended=True)
+  mat.use_transparent_shadow = False
+  info = t.add('ShaderNodeObjectInfo')
+  rgb = t.add('ShaderNodeSeparateColor')
+  t.link(info.outputs['Color'], rgb.inputs[0])
+  xyz = t.add('ShaderNodeSeparateXYZ')
+  t.link(object_coords(t), xyz.inputs[0])
+  x, y = xyz.outputs['X'], xyz.outputs['Y']
+  # The pool: 1 in the middle, soft out to its rim
+  rx, ry = GLINT_RADII
+  d = t.math('SQRT', t.math('ADD',
+                            t.math('POWER', t.math('DIVIDE', x, rx), 2.0),
+                            t.math('POWER', t.math('DIVIDE', y, ry), 2.0)))
+  pool = t.add('ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'},
+               Value=d, From_Min=0.1, From_Max=1.0, To_Min=1.0, To_Max=0.0)
+  # The specks: noise at a point going round a circle as the clock runs
+  angle = t.math('MULTIPLY', rgb.outputs['Red'], 2 * math.pi)
+  radius = GLINT_TRAVEL / (2 * math.pi)
+  where = t.add('ShaderNodeCombineXYZ',
+                X=t.math('MULTIPLY', x, GLINT_SCALE[0]),
+                Y=t.math('MULTIPLY', y, GLINT_SCALE[1]),
+                Z=t.math('MULTIPLY', t.math('COSINE', angle), radius))
+  noise = t.add('ShaderNodeTexNoise', {'noise_dimensions': '4D'},
+                Vector=where.outputs[0],
+                W=t.math('MULTIPLY', t.math('SINE', angle), radius),
+                Scale=1.0, Detail=1.0, Roughness=0.4)
+  speck = t.add('ShaderNodeMapRange', {'interpolation_type': 'SMOOTHSTEP'},
+                Value=noise.outputs['Fac'], From_Min=0.56, From_Max=0.68,
+                To_Min=0.0, To_Max=1.0)
+  # A faint glow over the whole pool, the specks bright on it
+  lit = t.math('MULTIPLY_ADD', speck.outputs[0], 0.94)
+  lit.node.inputs[2].default_value = 0.06
+  fac = t.math('MULTIPLY', t.math('MULTIPLY', pool.outputs[0], lit), 1.0,
+               clamp=True)
+  clear = t.add('ShaderNodeBsdfTransparent')
+  glow = t.add('ShaderNodeEmission', Color=(0.82, 0.9, 1.0, 1.0),
+               Strength=t.math('MULTIPLY', info.outputs['Alpha'], 6.0))
+  mix = t.add('ShaderNodeMixShader')
+  t.link(fac, mix.inputs[0])
+  t.link(clear.outputs[0], mix.inputs[1])
+  t.link(glow.outputs[0], mix.inputs[2])
+  t.link(mix.outputs[0], out.inputs['Surface'])
+
+  bm = bmesh.new()
+  bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=1.0)
+  bmesh.ops.scale(bm, vec=(rx, ry, 1), verts=bm.verts)
+  # Facing down, toward the viewer below the surface
+  bmesh.ops.reverse_faces(bm, faces=bm.faces)
+  obj = link_object(scene, 'MoonGlint',
+                    finish_mesh(bm, 'MoonGlint', mat, False), tank,
+                    shadow=False)
+  # Just under the surface (build_water_surface), above the rain's sheet
+  obj.location = GLINT_CENTER + (env.WATER_LEVEL - 0.0012,)
+  obj.color = (0.0, 0.0, 0.0, 0.0)
 
 
 # Light effects

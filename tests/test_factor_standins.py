@@ -42,6 +42,29 @@ class StandInTests(unittest.TestCase):
       self.assertIsNone(standins.make_source_offline(factor, {}).fetch())
 
 
+class MoonClockTests(unittest.TestCase):
+
+  def test_canned_night_by_default(self):
+    self.assertEqual(standins.reading('moon', {}), standins.READINGS['moon'])
+
+  def test_full_moon_in_boston(self):
+    value, label = standins.reading('moon', {standins.MOON_ENV: 'full'})
+    self.assertEqual(label, 'Night, full moon 100%')
+    self.assertEqual((value['lat'], value['lon']), standins.MOON_PLACE)
+    self.assertFalse(registry.get('moon').light_for(base.Reading(value)))
+
+  def test_any_utc_time(self):
+    env = {standins.MOON_ENV: '2026-10-16T17:00Z'}
+    value, label = standins.reading('moon', env)
+    self.assertTrue(label.startswith('Day, '))
+    self.assertEqual(standins.moon_time('2026-10-16T17:00'),
+                     standins.moon_time('2026-10-16T17:00Z'))
+
+  def test_bad_time_fails_at_start(self):
+    with self.assertRaises(ValueError):
+      standins.for_env({standins.ENV: '1', standins.MOON_ENV: 'blue'})
+
+
 class StockDayTests(unittest.TestCase):
 
   def depth_shift(self, day):

@@ -56,7 +56,12 @@ or the arrows and Enter).  A label beside the gear shows its live value,
 or offline when its source can't be reached; the choice is kept in a
 per-user settings file (`tankful/factors/settings.py`).  Under Weather,
 rain falls on the surface in drops and rings and the fish keep lower, a
-storm adds lightning that startles them, and snow cools the light.  Click a fish
+storm adds lightning that startles them, and snow cools the light.
+Under Time & Moon the tank follows the real day where you are: the
+light warms and dims as the sun goes down, switches itself off at
+sunset and on at sunrise (flip the switch yourself and it stays that
+way until the next one), and at night the moon's phase sets how bright
+the moonlight is, with the moon glinting on the surface.  Click a fish
 to make it current, drawn a little larger with a faint yellow outline (a
 school, the guppies, the corydoras or the shrimp are selected as a
 group), and steer it with the arrow keys across the tank and up and

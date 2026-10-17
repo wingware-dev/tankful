@@ -53,7 +53,7 @@ CAUSTIC = [(('CausticProjection', scenery.PROJECTOR_SPACE),)]
 
 
 def make_scenery(objects):
-  pool = mock.Mock(capacity=0)
+  pool = mock.Mock(capacity=0, rate=18.0)
   with mock.patch.object(scenery.log, 'warning'):
     return scenery.Scenery(mock.Mock(objects=FakeObjects(objects)), pool)
 
@@ -146,7 +146,7 @@ class RipplesTest(unittest.TestCase):
   def setUp(self):
     self.disc = FakeObject(scenery.RIPPLES)
     self.disc.color = (1.0, 1.0, 1.0, 1.0)
-    self.pool = mock.Mock(capacity=0, bubbles=[], pop_events=[])
+    self.pool = mock.Mock(capacity=0, bubbles=[], pop_events=[], rate=18.0)
     with mock.patch.object(scenery.log, 'warning'):
       self.scenery = scenery.Scenery(
         mock.Mock(objects=FakeObjects([self.disc])), self.pool)
@@ -179,7 +179,8 @@ class RipplesTest(unittest.TestCase):
     self.assertEqual(self.disc.color, 'untouched')
 
   def test_scene_without_the_disc(self):
-    pool = mock.Mock(capacity=0, bubbles=[], pop_events=[(0.3, 0.16, 0.004)])
+    pool = mock.Mock(capacity=0, bubbles=[], pop_events=[(0.3, 0.16, 0.004)],
+                     rate=18.0)
     with mock.patch.object(scenery.log, 'warning') as warning:
       s = scenery.Scenery(mock.Mock(objects=FakeObjects([])), pool)
     self.assertTrue(any(scenery.RIPPLES in str(c) for c in

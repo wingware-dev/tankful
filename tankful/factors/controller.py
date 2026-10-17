@@ -69,6 +69,11 @@ class FactorController:
     """The Effects the current reading calls for, before easing."""
     return self.factor.effects_for(self.status().reading)
 
+  def light_for(self):
+    """Whether the current reading wants the tank's light on, for a
+    factor that works the switch; None otherwise or with no reading."""
+    return self.factor.light_for(self.status().reading)
+
   def update(self, dt):
     """Ease toward the target over dt seconds; returns the Effects to use."""
     self.effects = effects.approach(self.effects, self.target(), dt,

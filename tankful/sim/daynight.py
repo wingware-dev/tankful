@@ -8,13 +8,14 @@ player's frame accumulation smears shading that changes fast, and the
 caustics wash out (docs/harness.md).
 
 Light.moon is how bright the moonlight is at night, from 0 (no moon,
-starlight) to 1 (full moon).  Nothing sets it yet; the Time & Moon factor
-(step 13, tankful.factors.moon, its Effects.night_light) is meant to.
+starlight) to 1 (full moon).  The external factor's Effects.night_light
+sets it (tankful.game.factor_hud), as the Time & Moon factor gives it
+from the moon's phase; with none it is MOON_DEFAULT.
 
 look(level, moon) is what the game shows for a light level: the lamp's
 energy and color, the room, the back panel, the sheens on the front
-glass, the caustics and god rays' strength, the bubbles' brightness and
-how fast the airstone runs.
+glass, the caustics and god rays' strength, the bubbles' brightness,
+how fast the airstone runs, and the moon's glint on the surface.
 
 Each species says how its fish behave at full night with a Night (its
 Species' night field; None changes nothing), and every modifier is
@@ -161,13 +162,23 @@ DAY_SHEEN, NIGHT_SHEEN = (1.0, 1.0, 1.0), (0.05, 0.06, 0.1)
 # to fall off as much as the lamp's light does, their strength goes as
 # the lamp's energy, and a little lower: the moon's caustics are faint
 NIGHT_CAUSTICS = (0.01, 0.045)
+# The moon's glint on the surface (tankful.game.scenery, MoonGlint): none
+# by day, and at night none for a moon of GLINT_FROM or less (a new moon
+# gives tankful.factors.moon.NIGHT_LIGHT_NEW), full at full moon
+GLINT_FROM = 0.15
+# The glint's sparkle loops every GLINT_LOOP seconds (the shader's clock,
+# glint_clock, goes 0 to 1 round it), changing at about the caustics'
+# slow pace: the player's frame accumulation smears faster shading
+GLINT_LOOP = 120.0
+# Below this the glint is not drawn at all (MoonGlint is hidden)
+GLINT_MIN = 0.01
 # A factor on the airstone's bubbles per second (the
 # tankful.sim.bubbles.BubblePool's rate): the pump runs low at night
 NIGHT_BUBBLE_RATE = 0.35
 
 Look = collections.namedtuple('Look', (
   'lamp', 'lamp_color', 'room', 'panel', 'sheen', 'caustics', 'bubbles',
-  'bubble_rate'))
+  'bubble_rate', 'glint'))
 
 
 def look(level, moon=MOON_DEFAULT):
@@ -188,4 +199,16 @@ def look(level, moon=MOON_DEFAULT):
               sheen=mix(DAY_SHEEN, NIGHT_SHEEN),
               caustics=mix(1.0, night_caustics),
               bubbles=mix(DAY_BUBBLES, NIGHT_BUBBLES),
-              bubble_rate=mix(1.0, NIGHT_BUBBLE_RATE))
+              bubble_rate=mix(1.0, NIGHT_BUBBLE_RATE),
+              glint=mix(0.0, glint(moon)))
+
+
+def glint_clock(time):
+  """The glint shader's clock for game time (s): 0 to 1 round its loop."""
+  return (time % GLINT_LOOP) / GLINT_LOOP
+
+
+def glint(moon):
+  """How bright the moon's glint is at full night under a moon (0 to
+  1): 0 up to GLINT_FROM, then rising to 1 at a full moon."""
+  return min(1.0, max(0.0, (moon - GLINT_FROM) / (1.0 - GLINT_FROM)))

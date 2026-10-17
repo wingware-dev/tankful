@@ -125,6 +125,34 @@ class FactorTests(unittest.TestCase):
       self.assertIs(self.factor().effects_for(Reading(1)), effects.NEUTRAL)
 
 
+class LightForTests(unittest.TestCase):
+
+  def setUp(self):
+    patcher = mock.patch.dict(sys.modules)
+    patcher.start()
+    self.addCleanup(patcher.stop)
+    self.factor = registry.Factor('fake', 'Fake', FAKE)
+
+  def test_none_for_a_factor_that_leaves_the_switch(self):
+    sys.modules[FAKE] = fake_module()
+    self.assertIsNone(self.factor.light_for(Reading(1)))
+    self.assertIsNone(registry.get('none').light_for(Reading(1)))
+    self.assertIsNone(registry.get('weather').light_for(Reading({})))
+
+  def test_asks_the_module(self):
+    sys.modules[FAKE] = module = fake_module()
+    module.light_for = lambda reading: reading.value > 0
+    self.assertIs(self.factor.light_for(Reading(1)), True)
+    self.assertIs(self.factor.light_for(Reading(-1)), False)
+    self.assertIsNone(self.factor.light_for(None))
+
+  def test_error_is_logged_and_none(self):
+    sys.modules[FAKE] = module = fake_module()
+    module.light_for = lambda reading: 1 / 0
+    with self.assertLogs('tankful.factors', 'ERROR'):
+      self.assertIsNone(self.factor.light_for(Reading(1)))
+
+
 class ControllerTests(unittest.TestCase):
 
   def setUp(self):

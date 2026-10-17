@@ -11,8 +11,15 @@ default) or 'up', for shots of the fish sinking or rising.
 
 TANKFUL_STANDIN_WEATHER picks the Weather stand-in's sky: 'rain' (the
 default), 'storm', 'snow', 'clear' or 'cloudy'.
+
+TANKFUL_STANDIN_MOON fixes the Time & Moon stand-in's clock: 'full' for
+2026-10-26 04:12 UTC, a full moon past midnight in Boston, or any UTC
+time as 2026-10-16T21:30 (in Boston too), for the sun and moon computed
+at that time (tankful.factors.moon.reading_at).  Unset, it reads a canned
+waxing gibbous night.
 """
 
+import datetime
 import os
 
 from tankful.factors import base
@@ -50,6 +57,37 @@ WEATHER_SKIES = {
 }
 
 
+MOON_ENV = 'TANKFUL_STANDIN_MOON'
+MOON_PLACE = (42.36, -71.06)    # Boston
+MOON_TIMES = {
+  'full': '2026-10-26T04:12',
+}
+
+
+def moon_time(text):
+  """The unix time for a TANKFUL_STANDIN_MOON value: a name in MOON_TIMES
+  or a UTC time as 2026-10-16T21:30.  Raises ValueError for anything
+  else."""
+  text = MOON_TIMES.get(text, text)
+  try:
+    when = datetime.datetime.fromisoformat(text.rstrip('Zz'))
+  except ValueError:
+    raise ValueError('%s must be %s or a UTC time as 2026-10-16T21:30, not '
+                     '%r' % (MOON_ENV, ' or '.join(sorted(MOON_TIMES)), text))
+  if when.tzinfo is None:
+    when = when.replace(tzinfo=datetime.timezone.utc)
+  return when.timestamp()
+
+
+def _moon(env):
+  text = env.get(MOON_ENV, '').strip().lower()
+  if not text:
+    return READINGS['moon']
+  from tankful.factors import moon
+  r = moon.reading_at(moon_time(text), *MOON_PLACE)
+  return r.value, r.label
+
+
 def _choice(env, name, choices, default):
   value = env.get(name, '').strip().lower() or default
   if value not in choices:
@@ -69,6 +107,8 @@ def reading(key, env=None):
     return STOCK_DAYS[day]
   if key == 'weather':
     return _choice(env, WEATHER_ENV, WEATHER_SKIES, 'rain')
+  if key == 'moon':
+    return _moon(env)
   return READINGS.get(key)
 
 
@@ -105,5 +145,6 @@ def for_env(env=None):
   if which == 'on':
     reading('stock', env)   # a bad TANKFUL_STANDIN_STOCK fails here, at start
     reading('weather', env)  # and a bad TANKFUL_STANDIN_WEATHER
+    reading('moon', env)     # and a bad TANKFUL_STANDIN_MOON
   return {'': None, 'on': make_source,
           'offline': make_source_offline}[which]

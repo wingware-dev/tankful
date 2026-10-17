@@ -193,6 +193,29 @@ class LookTests(unittest.TestCase):
     self.assertEqual(daynight.look(2), day)
 
 
+class GlintTests(unittest.TestCase):
+
+  def test_none_by_day(self):
+    self.assertEqual(daynight.look(1.0, 1.0).glint, 0.0)
+
+  def test_at_night_by_the_moon(self):
+    self.assertEqual(daynight.look(0.0, 1.0).glint, 1.0)
+    self.assertEqual(daynight.look(0.0, 0.08).glint, 0.0)
+    self.assertEqual(daynight.look(0.0, daynight.GLINT_FROM).glint, 0.0)
+    half = daynight.look(0.0, daynight.MOON_DEFAULT).glint
+    self.assertGreater(half, 0.2)
+    self.assertLess(half, 0.8)
+    # Fading in with the night
+    self.assertAlmostEqual(daynight.look(0.5, 1.0).glint, 0.5)
+
+  def test_clock_loops(self):
+    self.assertEqual(daynight.glint_clock(0.0), 0.0)
+    self.assertAlmostEqual(daynight.glint_clock(daynight.GLINT_LOOP / 4), 0.25)
+    self.assertAlmostEqual(
+      daynight.glint_clock(daynight.GLINT_LOOP * 3 + 1.0),
+      daynight.glint_clock(1.0))
+
+
 class FactorTests(unittest.TestCase):
 
   def test_no_night_changes_nothing(self):
