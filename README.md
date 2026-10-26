@@ -43,8 +43,8 @@ taken by the test harness (below) with the script of the same name in
 You need:
 
 - **Python 3.11 or later** for the launcher and tools.  They use only
-  the standard library, so any Python works; this repository is also a
-  venv.  The game itself runs in UPBGE's own bundled Python 3.11.
+  the standard library, so any Python works.  The game itself runs in
+  UPBGE's own bundled Python 3.11.
 - **UPBGE 0.50**, which `tools/fetch_upbge.py` downloads (free, no
   account), about 650 MB on macOS, 400 MB on Linux and 300 MB on
   Windows.  It checks the archive against the size and sha256 published
@@ -237,7 +237,7 @@ Unit tests use unittest and need no UPBGE:
 ## Layout
 
 - `tankful/sim/`: the simulation, in plain standard-library Python that
-  runs under both the venv and UPBGE's Python 3.11.  `environment.py`
+  runs under both your Python and UPBGE's Python 3.11.  `environment.py`
   is the tank's layout, which the scene build and the game share;
   `bubbles.py` and `sway.py` drive the bubble stream and the plants.
   `fish.py` is the fish agent (wandering, avoiding the glass and decor,
@@ -276,3 +276,24 @@ Unit tests use unittest and need no UPBGE:
 - `tools/contact_sheet.py`: makes `docs/contact-sheet.png`.
 - `tools/docker/`: the headless Linux container.
 - `vendor/` and `build/`: downloads and generated files, not in git.
+- `run-trail/`: the record of how tankful was built (below).
+
+## How it was built
+
+AI agents wrote tankful, on October 16 and 17, 2026, as tasks queued
+and run by the Tasks Manager in [Wing Pro](https://wingware.com/).  Each
+task was a prompt, typed by a person or proposed by an agent; the agents
+asked questions, made judgement calls, took the screenshots in
+`docs/shots/` with the test harness, and each finished piece of work
+became a commit in this repository.
+
+[run-trail/RUN.md](run-trail/RUN.md) is that run's trail: every task
+with its prompt, the questions and who answered them, the judgement
+calls, the findings filed, the commits and screenshots, and the time,
+tokens and API-equivalent cost, followed by what went wrong along the
+way.  [run-trail/trail.json](run-trail/trail.json) has the same data.
+
+## License
+
+MIT; see [LICENSE](LICENSE).  UPBGE, which `tools/fetch_upbge.py`
+downloads and this repository does not include, has its own license.
