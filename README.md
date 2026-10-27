@@ -5,6 +5,64 @@ a glass tank of fish that swim, school and react, with lighting that can
 follow the weather, the moon, your battery or the stock market.  It runs
 on macOS, Linux and Windows.
 
+## How it was built
+
+AI agents (Claude Code) wrote all of tankful from one prompt, working
+inside Wing Pro 12.1, a Python IDE from [Wingware](https://wingware.com/).
+Wing's Tasks Manager is itself an AI agent: it turns a request into a
+queue of tasks, gives each to a separate coding agent, answers their
+questions, checks and commits their work, and starts the next.  Here it
+split the prompt into steps and ran them up to five at a time; the agents
+made their own judgement calls, filed the problems they found as new
+tasks, took the screenshots in `docs/shots/` with the test harness they
+built, and each finished piece of work became a commit here.  The run
+took about 11 hours: 10 hours on October 16, 2026, from 1:13 pm to
+11:08 pm, and an hour the next morning for three refinements.  It made
+68 tasks and 49 commits.
+
+This was the prompt that started it:
+
+> I want to create a desktop aquarium app called tankful in Python for
+> macOS, Linux, and Windows, using the UPBGE game engine. It shows a fish
+> tank with plants, sand, bubbles, and light playing through the water,
+> and several kinds of fish that look and move like real ones: a school
+> that swims together, a sucker that clings to the front glass, bottom
+> feeders that sift the sand, and a few others. A light switch turns the
+> tank to night, affecting fish behavior. I should be able to click a fish
+> or a school to make it current (about 10% larger with a faint yellow
+> outline) and steer it with the arrow keys. When no keys are down, it
+> returns to swimming normally. When fish collide they should swim away
+> from each other, in the case of one being steered by the user only the
+> other fish swims away. The tank can also reflect external factors, which
+> the viewer picks while it runs: the weather outside, the time of day and
+> moon phase, the computer's battery level (swimming speed), or whether
+> the stock market is up or down today (height of swimming). Once the main
+> entry point exists, set it up in Wing as the main entry point so I can
+> test/debug it.  Run all tasks to completion except small details and
+> ideas for future improvements.
+>
+> Commit a screenshot of each major visual change under docs/shots/ since
+> we'll be creating a publishable trace of this run later.
+
+The next morning, these three prompts refined it:
+
+> When I click on and steer a fish, it should move faster than it does
+> naturally.
+
+> The shadows of the light from the surface of the water show up also on
+> the front surface of the sand, which makes no sense because it would
+> not have the light from the top shining on it
+
+> The plants don't move at all, which doesn't look realistic since there
+> would be at least some slow currents in the water, particularly due to
+> any filter pumping water through.
+
+[run-trail/RUN.md](run-trail/RUN.md) is the run's full trail: every
+task with its prompt, the questions and who answered them, the judgement
+calls, the findings filed, the commits and screenshots, and the time
+and tokens each used, followed by what went wrong along the way.
+[run-trail/trail.json](run-trail/trail.json) has the same data.
+
 The tank has a sloping sand bed, rocks and driftwood, vallisneria,
 Amazon swords and moss swaying in the current of a hang-on-back filter
 pouring in at the back, an airstone's bubble stream whose
@@ -276,22 +334,8 @@ Unit tests use unittest and need no UPBGE:
 - `tools/contact_sheet.py`: makes `docs/contact-sheet.png`.
 - `tools/docker/`: the headless Linux container.
 - `vendor/` and `build/`: downloads and generated files, not in git.
-- `run-trail/`: the record of how tankful was built (below).
-
-## How it was built
-
-AI agents wrote tankful, on October 16 and 17, 2026, as tasks queued
-and run by the Tasks Manager in [Wing Pro](https://wingware.com/).  Each
-task was a prompt, typed by a person or proposed by an agent; the agents
-asked questions, made judgement calls, took the screenshots in
-`docs/shots/` with the test harness, and each finished piece of work
-became a commit in this repository.
-
-[run-trail/RUN.md](run-trail/RUN.md) is that run's trail: every task
-with its prompt, the questions and who answered them, the judgement
-calls, the findings filed, the commits and screenshots, and the time,
-tokens and API-equivalent cost, followed by what went wrong along the
-way.  [run-trail/trail.json](run-trail/trail.json) has the same data.
+- `run-trail/`: the record of how tankful was built (see
+  [How it was built](#how-it-was-built)).
 
 ## License
 
