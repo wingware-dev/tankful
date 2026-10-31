@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-26T20:26:09-04:00",
+ "generated_at": "2026-10-31T12:27:43-04:00",
  "window": {
   "start": "2026-10-16T13:12:38-04:00",
   "end": "2026-10-17T12:00:00-04:00"
@@ -11,6 +11,7 @@
   "until": "2026-10-17 12:00",
   "shots": "docs/shots"
  },
+ "preface": "",
  "tasks": [
   {
    "id": "8e77430e-d6bf-4463-b687-72c50314b129",
@@ -195,6 +196,73 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 19,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "WebFetch",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "WebSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "project_get",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 0,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 1
+     },
+     "changes": {
+      "wing": 0,
+      "own": 0
+     },
+     "commit": {
+      "wing": 0,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -387,6 +455,103 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 196,
+    "wing_calls": 46,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 76,
+      "errors": 7
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 50,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 31,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 11,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Write",
+      "calls": 11,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "project_set",
+      "calls": 7,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "project_get",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 14
+     },
+     "changes": {
+      "wing": 0,
+      "own": 3
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -587,6 +752,91 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 251,
+    "wing_calls": 16,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 97,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 76,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 59,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 27
+     },
+     "changes": {
+      "wing": 0,
+      "own": 6
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/02-environment.png",
@@ -709,6 +959,79 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 61,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 41,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 9,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 8
+     },
+     "changes": {
+      "wing": 0,
+      "own": 6
+     },
+     "commit": {
+      "wing": 0,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/03-angelfish.png",
@@ -750,6 +1073,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -907,6 +1231,97 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 97,
+    "wing_calls": 22,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 49,
+      "errors": 2
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 19,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 10,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "get_scope_code",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 14
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 2,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -1077,6 +1492,91 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 135,
+    "wing_calls": 14,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 104,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 14,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_list",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Write",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 3
+     },
+     "search": {
+      "wing": 0,
+      "own": 29
+     },
+     "changes": {
+      "wing": 0,
+      "own": 7
+     },
+     "commit": {
+      "wing": 2,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/04-school.png",
@@ -1230,6 +1730,73 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 33,
+    "wing_calls": 3,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 15,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 10,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 7
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/04-school.png",
@@ -1345,6 +1912,79 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 32,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 16,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 7,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 7
+     },
+     "changes": {
+      "wing": 0,
+      "own": 2
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -1504,6 +2144,79 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 105,
+    "wing_calls": 9,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 63,
+      "errors": 2
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 30,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 2
+     },
+     "search": {
+      "wing": 0,
+      "own": 22
+     },
+     "changes": {
+      "wing": 0,
+      "own": 5
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/04-school.png",
@@ -1550,6 +2263,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -1585,6 +2299,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -1620,6 +2335,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -1655,6 +2371,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -1690,6 +2407,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -1818,6 +2536,85 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 31,
+    "wing_calls": 16,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 9,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 7,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_list",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 2
+     },
+     "search": {
+      "wing": 0,
+      "own": 5
+     },
+     "changes": {
+      "wing": 0,
+      "own": 1
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -1980,6 +2777,97 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 145,
+    "wing_calls": 22,
+    "wing_errors": 1,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 71,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 34,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 14,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 7,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 2,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Write",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 12
+     },
+     "changes": {
+      "wing": 0,
+      "own": 5
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -2132,6 +3020,73 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 20,
+    "wing_calls": 10,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 2
+     },
+     "search": {
+      "wing": 0,
+      "own": 1
+     },
+     "changes": {
+      "wing": 0,
+      "own": 1
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -2290,6 +3245,73 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 12,
+    "wing_calls": 7,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 2
+     },
+     "changes": {
+      "wing": 0,
+      "own": 1
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -2461,6 +3483,79 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 16,
+    "wing_calls": 7,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 2
+     },
+     "changes": {
+      "wing": 0,
+      "own": 1
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -2587,6 +3682,79 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 28,
+    "wing_calls": 4,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 10,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 9,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Write",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 3
+     },
+     "changes": {
+      "wing": 0,
+      "own": 3
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -2721,6 +3889,85 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 31,
+    "wing_calls": 8,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 16,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_list",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 2
+     },
+     "search": {
+      "wing": 0,
+      "own": 2
+     },
+     "changes": {
+      "wing": 0,
+      "own": 1
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -2756,6 +4003,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -2870,6 +4118,79 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 34,
+    "wing_calls": 6,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 12,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 12,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "get_scope_code",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 8
+     },
+     "changes": {
+      "wing": 0,
+      "own": 0
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -3028,6 +4349,103 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 132,
+    "wing_calls": 15,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 59,
+      "errors": 3
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 35,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 19,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Write",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "get_scope_code",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 4,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 26
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/06-bottom-feeders.png",
@@ -3139,6 +4557,79 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 14,
+    "wing_calls": 6,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 3
+     },
+     "changes": {
+      "wing": 0,
+      "own": 0
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -3302,6 +4793,91 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 54,
+    "wing_calls": 11,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 31,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 7,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 12
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/07-guppies.png",
@@ -3452,6 +5028,85 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 54,
+    "wing_calls": 11,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 27,
+      "errors": 3
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 9,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 10
+     },
+     "changes": {
+      "wing": 0,
+      "own": 5
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -3643,6 +5298,91 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 95,
+    "wing_calls": 13,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 66,
+      "errors": 2
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 14,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 2
+     },
+     "search": {
+      "wing": 0,
+      "own": 26
+     },
+     "changes": {
+      "wing": 0,
+      "own": 6
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/07-shrimp.png",
@@ -3758,6 +5498,91 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 49,
+    "wing_calls": 15,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 15,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 15,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "get_scope_code",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_list",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 12
+     },
+     "changes": {
+      "wing": 0,
+      "own": 2
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -3793,6 +5618,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -3828,6 +5654,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -3939,6 +5766,73 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 29,
+    "wing_calls": 6,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 12,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 7
+     },
+     "changes": {
+      "wing": 0,
+      "own": 1
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -4039,6 +5933,67 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 18,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 11,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "get_scope_code",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 0,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 9
+     },
+     "changes": {
+      "wing": 0,
+      "own": 3
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -4168,6 +6123,73 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 17,
+    "wing_calls": 7,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 5
+     },
+     "changes": {
+      "wing": 0,
+      "own": 3
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -4283,6 +6305,73 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 30,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 12,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 11,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 9
+     },
+     "changes": {
+      "wing": 0,
+      "own": 2
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -4401,6 +6490,91 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 83,
+    "wing_calls": 9,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 51,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 11,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 10,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 25
+     },
+     "changes": {
+      "wing": 0,
+      "own": 9
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/06-bottom-feeders.png",
@@ -4515,6 +6689,73 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 30,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 10,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 9,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "get_scope_code",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 6
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 0,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -4639,6 +6880,79 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 55,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 29,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 14,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 10
+     },
+     "changes": {
+      "wing": 0,
+      "own": 5
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -4785,6 +7099,79 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 62,
+    "wing_calls": 7,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 31,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 14,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 10,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 22
+     },
+     "changes": {
+      "wing": 0,
+      "own": 6
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/08-bubble-pop.png",
@@ -4928,6 +7315,85 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 82,
+    "wing_calls": 11,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 50,
+      "errors": 2
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 13,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 5,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 24
+     },
+     "changes": {
+      "wing": 0,
+      "own": 9
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -5148,6 +7614,91 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 214,
+    "wing_calls": 13,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 114,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 72,
+      "errors": 3
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 13,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 25
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/07-community.png",
@@ -5324,6 +7875,85 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 78,
+    "wing_calls": 10,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 50,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 13,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 20
+     },
+     "changes": {
+      "wing": 0,
+      "own": 9
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -5542,6 +8172,85 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 59,
+    "wing_calls": 11,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 38,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Write",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 22
+     },
+     "changes": {
+      "wing": 0,
+      "own": 7
+     },
+     "commit": {
+      "wing": 0,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/09-selected.png",
@@ -5739,6 +8448,109 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 121,
+    "wing_calls": 19,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 44,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 43,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 11,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_list",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "TaskStop",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "get_scope_code",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 6,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 20
+     },
+     "changes": {
+      "wing": 0,
+      "own": 6
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/10-collisions.png",
@@ -5857,6 +8669,79 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 38,
+    "wing_calls": 6,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 26,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 14
+     },
+     "changes": {
+      "wing": 0,
+      "own": 2
+     },
+     "commit": {
+      "wing": 0,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -6069,6 +8954,85 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 51,
+    "wing_calls": 8,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 33,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 16
+     },
+     "changes": {
+      "wing": 0,
+      "own": 5
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/12-weather-rain.png",
@@ -6206,6 +9170,91 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 26,
+    "wing_calls": 6,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 16,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 5
+     },
+     "search": {
+      "wing": 0,
+      "own": 9
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -6408,6 +9457,91 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 85,
+    "wing_calls": 12,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 55,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 13,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 8
+     },
+     "search": {
+      "wing": 0,
+      "own": 22
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/13-full-moon-night.png",
@@ -6524,6 +9658,73 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 19,
+    "wing_calls": 6,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 0,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 6
+     },
+     "changes": {
+      "wing": 0,
+      "own": 2
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -6643,6 +9844,79 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 10,
+    "wing_calls": 4,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 2
+     },
+     "changes": {
+      "wing": 0,
+      "own": 0
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/10-collisions.png",
@@ -6684,6 +9958,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": []
   },
   {
@@ -6734,6 +10009,7 @@
     "models": {},
     "unpriced": []
    },
+   "tool_use": null,
    "shots": [
     {
      "path": "docs/shots/13-full-moon-night.png",
@@ -6864,6 +10140,79 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 46,
+    "wing_calls": 6,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 28,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 12
+     },
+     "changes": {
+      "wing": 0,
+      "own": 3
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -7003,6 +10352,85 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 33,
+    "wing_calls": 9,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 12,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 10
+     },
+     "changes": {
+      "wing": 0,
+      "own": 2
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -7174,6 +10602,97 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 88,
+    "wing_calls": 10,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 45,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 23,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 7,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Write",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 18
+     },
+     "changes": {
+      "wing": 0,
+      "own": 7
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/11-factor-picker.png",
@@ -7338,6 +10857,73 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 40,
+    "wing_calls": 7,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 27,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "get_scope_code",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 11
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -7493,6 +11079,79 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 64,
+    "wing_calls": 9,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 36,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 9,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 15
+     },
+     "changes": {
+      "wing": 0,
+      "own": 6
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -7659,6 +11318,73 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 18,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Write",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 3
+     },
+     "changes": {
+      "wing": 0,
+      "own": 2
+     },
+     "commit": {
+      "wing": 0,
+      "own": 0
+     }
+    }
    },
    "shots": [
     {
@@ -7831,6 +11557,79 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 39,
+    "wing_calls": 7,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 17,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 13,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 8
+     },
+     "changes": {
+      "wing": 0,
+      "own": 4
+     },
+     "commit": {
+      "wing": 0,
+      "own": 0
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/11-factor-picker.png",
@@ -7960,6 +11759,49 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 14,
+    "wing_calls": 1,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 10,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 0,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 2
+     },
+     "changes": {
+      "wing": 0,
+      "own": 1
+     },
+     "commit": {
+      "wing": 0,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -8068,6 +11910,73 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 28,
+    "wing_calls": 4,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 16,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 7,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "edit_scope",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 5
+     },
+     "changes": {
+      "wing": 0,
+      "own": 3
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -8175,6 +12084,85 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 35,
+    "wing_calls": 7,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 20,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 5,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-analysis",
+      "tool": "get_scope_code",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 1
+     },
+     "search": {
+      "wing": 0,
+      "own": 11
+     },
+     "changes": {
+      "wing": 0,
+      "own": 2
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -8314,6 +12302,73 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 55,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 31,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 10,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 0,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 17
+     },
+     "changes": {
+      "wing": 0,
+      "own": 5
+     },
+     "commit": {
+      "wing": 1,
+      "own": 1
+     }
+    }
    },
    "shots": [
     {
@@ -8539,6 +12594,79 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 44,
+    "wing_calls": 5,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 26,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 9,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 2,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 13
+     },
+     "changes": {
+      "wing": 0,
+      "own": 0
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
+   },
    "shots": []
   },
   {
@@ -8673,6 +12801,73 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 41,
+    "wing_calls": 6,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 26,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 4,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 3,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 11
+     },
+     "changes": {
+      "wing": 0,
+      "own": 2
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   },
@@ -8951,6 +13146,79 @@
     },
     "unpriced": []
    },
+   "tool_use": {
+    "calls": 93,
+    "wing_calls": 12,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 43,
+      "errors": 1
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 30,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 8,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 6,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 3,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "create_tracked_file",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "report_finding",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 6,
+      "own": 3
+     },
+     "search": {
+      "wing": 0,
+      "own": 18
+     },
+     "changes": {
+      "wing": 0,
+      "own": 8
+     },
+     "commit": {
+      "wing": 1,
+      "own": 2
+     }
+    }
+   },
    "shots": [
     {
      "path": "docs/shots/05-sucker.png",
@@ -9152,6 +13420,79 @@
      }
     },
     "unpriced": []
+   },
+   "tool_use": {
+    "calls": 10,
+    "wing_calls": 4,
+    "wing_errors": 0,
+    "tools": [
+     {
+      "server": "",
+      "tool": "Bash",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "ToolSearch",
+      "calls": 2,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Edit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "",
+      "tool": "Read",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "task_report",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "vcs_commit",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-review",
+      "tool": "wing_guide",
+      "calls": 1,
+      "errors": 0
+     },
+     {
+      "server": "wing-testing",
+      "tool": "test_run",
+      "calls": 1,
+      "errors": 0
+     }
+    ],
+    "jobs": {
+     "tests": {
+      "wing": 1,
+      "own": 0
+     },
+     "search": {
+      "wing": 0,
+      "own": 1
+     },
+     "changes": {
+      "wing": 0,
+      "own": 1
+     },
+     "commit": {
+      "wing": 1,
+      "own": 0
+     }
+    }
    },
    "shots": []
   }
@@ -10694,7 +15035,206 @@
     "task": "T82 visible-filter-current",
     "text": "From the manager: the TankFactorTests.test_snapshot_shows_the_factor failure you found is fixed and committed as 6d9da92 (T83 fix-tank-factor-snapshot-test). Don't change tests/test_tank.py for it."
    }
-  ]
+  ],
+  "tool_use": {
+   "calls": 899,
+   "wing_calls": 837,
+   "wing_errors": 35,
+   "tools": [
+    {
+     "server": "wing-review",
+     "tool": "tasks_events",
+     "calls": 171,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "task_detail",
+     "calls": 124,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "task_note",
+     "calls": 103,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "status_note",
+     "calls": 75,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "commit_queue",
+     "calls": 72,
+     "errors": 21
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_assign",
+     "calls": 60,
+     "errors": 1
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_start",
+     "calls": 60,
+     "errors": 2
+    },
+    {
+     "server": "wing-review",
+     "tool": "annotate_task",
+     "calls": 56,
+     "errors": 4
+    },
+    {
+     "server": "wing-review",
+     "tool": "propose_tasks",
+     "calls": 34,
+     "errors": 1
+    },
+    {
+     "server": "",
+     "tool": "Bash",
+     "calls": 25,
+     "errors": 2
+    },
+    {
+     "server": "",
+     "tool": "Read",
+     "calls": 21,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_create",
+     "calls": 20,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "tell_worker",
+     "calls": 18,
+     "errors": 1
+    },
+    {
+     "server": "",
+     "tool": "ToolSearch",
+     "calls": 16,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "mark_ready",
+     "calls": 9,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "split_task",
+     "calls": 5,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "tasks_overview",
+     "calls": 5,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "move_task",
+     "calls": 4,
+     "errors": 3
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_remove",
+     "calls": 3,
+     "errors": 2
+    },
+    {
+     "server": "wing-review",
+     "tool": "vcs_status",
+     "calls": 3,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "merge_findings",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_rename",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "set_obsolete",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "submit_bug_report",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "vcs_diff",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "wing_guide",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "ask_user",
+     "calls": 1,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_unassign",
+     "calls": 1,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "record_decision",
+     "calls": 1,
+     "errors": 0
+    }
+   ],
+   "jobs": {
+    "tests": {
+     "wing": 0,
+     "own": 0
+    },
+    "search": {
+     "wing": 0,
+     "own": 3
+    },
+    "changes": {
+     "wing": 5,
+     "own": 4
+    },
+    "commit": {
+     "wing": 72,
+     "own": 0
+    }
+   }
+  }
  },
  "other_commits": [
   {
@@ -10725,7 +15265,7 @@
   "manager_questions": 1,
   "manager_decisions": 190,
   "wall_time_secs": 48641.0,
-  "span_secs": 82042.0,
+  "span_secs": 77113.0,
   "workers": {
    "input": 170694,
    "output": 2194065,
@@ -10801,6 +15341,392 @@
    },
    "unpriced": []
   }
+ },
+ "tool_use": {
+  "workers": {
+   "calls": 3399,
+   "wing_calls": 528,
+   "wing_errors": 1,
+   "tools": [
+    {
+     "server": "",
+     "tool": "Bash",
+     "calls": 1632,
+     "errors": 42,
+     "tasks": 57
+    },
+    {
+     "server": "",
+     "tool": "Edit",
+     "calls": 733,
+     "errors": 2,
+     "tasks": 48
+    },
+    {
+     "server": "",
+     "tool": "Read",
+     "calls": 389,
+     "errors": 0,
+     "tasks": 46
+    },
+    {
+     "server": "wing-review",
+     "tool": "create_tracked_file",
+     "calls": 141,
+     "errors": 0,
+     "tasks": 35
+    },
+    {
+     "server": "wing-testing",
+     "tool": "test_run",
+     "calls": 109,
+     "errors": 0,
+     "tasks": 52
+    },
+    {
+     "server": "",
+     "tool": "ToolSearch",
+     "calls": 89,
+     "errors": 0,
+     "tasks": 46
+    },
+    {
+     "server": "wing-review",
+     "tool": "wing_guide",
+     "calls": 88,
+     "errors": 0,
+     "tasks": 43
+    },
+    {
+     "server": "wing-review",
+     "tool": "task_report",
+     "calls": 68,
+     "errors": 1,
+     "tasks": 57
+    },
+    {
+     "server": "wing-review",
+     "tool": "vcs_commit",
+     "calls": 51,
+     "errors": 0,
+     "tasks": 49
+    },
+    {
+     "server": "wing-analysis",
+     "tool": "edit_scope",
+     "calls": 30,
+     "errors": 0,
+     "tasks": 11
+    },
+    {
+     "server": "",
+     "tool": "Write",
+     "calls": 20,
+     "errors": 0,
+     "tasks": 8
+    },
+    {
+     "server": "wing-review",
+     "tool": "report_finding",
+     "calls": 14,
+     "errors": 0,
+     "tasks": 12
+    },
+    {
+     "server": "wing-analysis",
+     "tool": "get_scope_code",
+     "calls": 11,
+     "errors": 0,
+     "tasks": 9
+    },
+    {
+     "server": "wing-review",
+     "tool": "project_set",
+     "calls": 7,
+     "errors": 0,
+     "tasks": 1
+    },
+    {
+     "server": "wing-testing",
+     "tool": "test_list",
+     "calls": 7,
+     "errors": 0,
+     "tasks": 5
+    },
+    {
+     "server": "",
+     "tool": "WebFetch",
+     "calls": 5,
+     "errors": 0,
+     "tasks": 1
+    },
+    {
+     "server": "",
+     "tool": "WebSearch",
+     "calls": 2,
+     "errors": 0,
+     "tasks": 1
+    },
+    {
+     "server": "wing-review",
+     "tool": "project_get",
+     "calls": 2,
+     "errors": 0,
+     "tasks": 2
+    },
+    {
+     "server": "",
+     "tool": "TaskStop",
+     "calls": 1,
+     "errors": 0,
+     "tasks": 1
+    }
+   ],
+   "jobs": {
+    "tests": {
+     "wing": 109,
+     "own": 44
+    },
+    "search": {
+     "wing": 0,
+     "own": 681
+    },
+    "changes": {
+     "wing": 0,
+     "own": 206
+    },
+    "commit": {
+     "wing": 51,
+     "own": 3
+    }
+   }
+  },
+  "tasks_with_transcript": 57,
+  "manager": {
+   "calls": 899,
+   "wing_calls": 837,
+   "wing_errors": 35,
+   "tools": [
+    {
+     "server": "wing-review",
+     "tool": "tasks_events",
+     "calls": 171,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "task_detail",
+     "calls": 124,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "task_note",
+     "calls": 103,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "status_note",
+     "calls": 75,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "commit_queue",
+     "calls": 72,
+     "errors": 21
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_assign",
+     "calls": 60,
+     "errors": 1
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_start",
+     "calls": 60,
+     "errors": 2
+    },
+    {
+     "server": "wing-review",
+     "tool": "annotate_task",
+     "calls": 56,
+     "errors": 4
+    },
+    {
+     "server": "wing-review",
+     "tool": "propose_tasks",
+     "calls": 34,
+     "errors": 1
+    },
+    {
+     "server": "",
+     "tool": "Bash",
+     "calls": 25,
+     "errors": 2
+    },
+    {
+     "server": "",
+     "tool": "Read",
+     "calls": 21,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_create",
+     "calls": 20,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "tell_worker",
+     "calls": 18,
+     "errors": 1
+    },
+    {
+     "server": "",
+     "tool": "ToolSearch",
+     "calls": 16,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "mark_ready",
+     "calls": 9,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "split_task",
+     "calls": 5,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "tasks_overview",
+     "calls": 5,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "move_task",
+     "calls": 4,
+     "errors": 3
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_remove",
+     "calls": 3,
+     "errors": 2
+    },
+    {
+     "server": "wing-review",
+     "tool": "vcs_status",
+     "calls": 3,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "merge_findings",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_rename",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "set_obsolete",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "submit_bug_report",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "vcs_diff",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "wing_guide",
+     "calls": 2,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "ask_user",
+     "calls": 1,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "queue_unassign",
+     "calls": 1,
+     "errors": 0
+    },
+    {
+     "server": "wing-review",
+     "tool": "record_decision",
+     "calls": 1,
+     "errors": 0
+    }
+   ],
+   "jobs": {
+    "tests": {
+     "wing": 0,
+     "own": 0
+    },
+    "search": {
+     "wing": 0,
+     "own": 3
+    },
+    "changes": {
+     "wing": 5,
+     "own": 4
+    },
+    "commit": {
+     "wing": 72,
+     "own": 0
+    }
+   }
+  },
+  "servers": [
+   {
+    "server": "wing-review",
+    "worker_calls": 371,
+    "tasks": 57,
+    "manager_calls": 837
+   },
+   {
+    "server": "wing-analysis",
+    "worker_calls": 41,
+    "tasks": 16,
+    "manager_calls": 0
+   },
+   {
+    "server": "wing-testing",
+    "worker_calls": 116,
+    "tasks": 52,
+    "manager_calls": 0
+   },
+   {
+    "server": "wing-debug",
+    "worker_calls": 0,
+    "tasks": 0,
+    "manager_calls": 0
+   }
+  ]
  },
  "what_went_wrong": [
   {

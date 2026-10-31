@@ -1,6 +1,6 @@
 # Run trail
 
-Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the agents' transcripts and the repository.  Times are local (-04:00).
+Generated 2026-10-31 12:27 from Wing's task store, the Tasks Manager's log, the agents' transcripts and the repository.  Times are local (-04:00).
 
 ## Totals
 
@@ -8,7 +8,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 |---|---|---|---|---|---|
 | Workers (68 tasks) | 13h 30m task time | 171k | 2.19M | 352.18M | 5.61M |
 | Tasks Manager (its sessions over the run) |  | 2,844 | 190k | 115.33M | 894k |
-| **Total** | 22h 47m elapsed | 174k | 2.38M | 467.51M | 6.51M |
+| **Total** | 21h 25m elapsed | 174k | 2.38M | 467.51M | 6.51M |
 
 - Questions from workers: 0 (answered by the user 0, by the Tasks Manager 0, unanswered 0)
 - Questions the Tasks Manager passed to the user, Wing's included: 0
@@ -17,6 +17,80 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - Findings filed: 14
 - Commits: 49
 - Tasks Manager decisions: 190
+
+## Use of Wing's MCP tools
+
+Wing gives the agents its IDE's features as tools on its MCP servers.  These are the calls the agents' transcripts record, their subagents' included; an error is a call its tool answered with one, refusals included.
+
+| | Tool calls | To Wing's MCP tools | Errors |
+|---|---|---|---|
+| Workers (the 57 of 68 tasks with a transcript) | 3,399 | 528 (16%) | 1 |
+| Tasks Manager | 899 | 837 (93%) | 35 |
+| **Total** | 4,298 | 1,365 (32%) | 36 |
+
+### By server
+
+| Server | What it gives the agents | Calls by workers | Tasks using it | Calls by the Tasks Manager |
+|---|---|---|---|---|
+| wing-review | tasks, review, version control and project files | 371 | 57 | 837 |
+| wing-analysis | Python code navigation and editing by scope | 41 | 16 | 0 |
+| wing-testing | running tests and reading their results | 116 | 52 | 0 |
+| wing-debug | the debugger: breakpoints, stack and values | 0 | 0 | 0 |
+
+### Wing's tools
+
+| Tool | Server | Calls by workers | Tasks using it | Calls by the Tasks Manager | Errors |
+|---|---|---|---|---|---|
+| tasks_events | wing-review | 0 | 0 | 171 | 0 |
+| create_tracked_file | wing-review | 141 | 35 | 0 | 0 |
+| task_detail | wing-review | 0 | 0 | 124 | 0 |
+| test_run | wing-testing | 109 | 52 | 0 | 0 |
+| task_note | wing-review | 0 | 0 | 103 | 0 |
+| wing_guide | wing-review | 88 | 43 | 2 | 0 |
+| status_note | wing-review | 0 | 0 | 75 | 0 |
+| commit_queue | wing-review | 0 | 0 | 72 | 21 |
+| task_report | wing-review | 68 | 57 | 0 | 1 |
+| queue_assign | wing-review | 0 | 0 | 60 | 1 |
+| queue_start | wing-review | 0 | 0 | 60 | 2 |
+| annotate_task | wing-review | 0 | 0 | 56 | 4 |
+| vcs_commit | wing-review | 51 | 49 | 0 | 0 |
+| propose_tasks | wing-review | 0 | 0 | 34 | 1 |
+| edit_scope | wing-analysis | 30 | 11 | 0 | 0 |
+| queue_create | wing-review | 0 | 0 | 20 | 0 |
+| tell_worker | wing-review | 0 | 0 | 18 | 1 |
+| report_finding | wing-review | 14 | 12 | 0 | 0 |
+| get_scope_code | wing-analysis | 11 | 9 | 0 | 0 |
+| mark_ready | wing-review | 0 | 0 | 9 | 0 |
+| project_set | wing-review | 7 | 1 | 0 | 0 |
+| test_list | wing-testing | 7 | 5 | 0 | 0 |
+| split_task | wing-review | 0 | 0 | 5 | 0 |
+| tasks_overview | wing-review | 0 | 0 | 5 | 0 |
+| move_task | wing-review | 0 | 0 | 4 | 3 |
+| queue_remove | wing-review | 0 | 0 | 3 | 2 |
+| vcs_status | wing-review | 0 | 0 | 3 | 0 |
+| merge_findings | wing-review | 0 | 0 | 2 | 0 |
+| project_get | wing-review | 2 | 2 | 0 | 0 |
+| queue_rename | wing-review | 0 | 0 | 2 | 0 |
+| set_obsolete | wing-review | 0 | 0 | 2 | 0 |
+| submit_bug_report | wing-review | 0 | 0 | 2 | 0 |
+| vcs_diff | wing-review | 0 | 0 | 2 | 0 |
+| ask_user | wing-review | 0 | 0 | 1 | 0 |
+| queue_unassign | wing-review | 0 | 0 | 1 | 0 |
+| record_decision | wing-review | 0 | 0 | 1 | 0 |
+
+### Same job, Wing's tools or the agents' own
+
+| Job | Wing's tools | Calls | The agents' own | Calls |
+|---|---|---|---|---|
+| Running tests | test_run, debug_test, debug_run_tests | 109 | pytest, unittest and the like in the shell | 44 |
+| Finding code | find_definition, find_usages, find_symbols, get_scope_at_line | 0 | Grep and Glob tools; grep, rg and find in the shell | 684 |
+| Looking at changes | vcs_status, vcs_diff, vcs_log | 5 | git and hg status, diff and log in the shell | 210 |
+| Committing | vcs_commit, commit_queue | 123 | git and hg commit in the shell | 3 |
+
+### The agents' own tools
+
+- Workers: Bash 1,632, Edit 733, Read 389, ToolSearch 89, Write 20, WebFetch 5, WebSearch 2, TaskStop 1
+- Tasks Manager: Bash 25, Read 21, ToolSearch 16
 
 ## Timeline
 
@@ -221,6 +295,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 13:13 to 2026-10-16 13:17 (3m 20s)
 - **Outcome:** done
 - **Usage:** 84k input, 23k output, 465k cache read, 49k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 19 calls, 5 to Wing's MCP tools (wing-review 5)
 
 **Prompt**
 
@@ -286,6 +361,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 13:17 to 2026-10-16 13:54 (36m 09s)
 - **Outcome:** done; committed [`50190ef40d69`](https://github.com/wingware-dev/tankful/commit/50190ef40d6949f25654644e70081c4b2de5aa0b)
 - **Usage:** 2,559 input, 127k output, 16.18M cache read, 216k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 196 calls, 46 to Wing's MCP tools (wing-review 43, wing-testing 3)
 
 **Prompt**
 
@@ -345,6 +421,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 13:54 to 2026-10-16 14:26 (30m 18s)
 - **Outcome:** done; committed [`0ea34c2d7381`](https://github.com/wingware-dev/tankful/commit/0ea34c2d738130c1ab9e6be1ed4831bbd5059ac7)
 - **Usage:** 2,384 input, 147k output, 29.42M cache read, 257k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 251 calls, 16 to Wing's MCP tools (wing-review 14, wing-testing 2)
 
 **Prompt**
 
@@ -410,6 +487,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 13:54 to 2026-10-16 14:54 (49m 19s)
 - **Outcome:** done; committed [`3938235d2ec2`](https://github.com/wingware-dev/tankful/commit/3938235d2ec20216ef8461c52ff5aefb86e6a338) (shared with T4 fish-framework-angelfish)
 - **Usage:** 118 input, 28k output, 3.95M cache read, 87k cache write (claude-opus-5-5)
+- **Tools:** 61 calls, 5 to Wing's MCP tools (wing-review 3, wing-analysis 1, wing-testing 1)
 
 **Prompt**
 
@@ -447,6 +525,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 14:23 ()
 - **Outcome:** obsolete
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -466,6 +545,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 14:26 to 2026-10-16 14:54 (27m 27s)
 - **Outcome:** done; committed [`3938235d2ec2`](https://github.com/wingware-dev/tankful/commit/3938235d2ec20216ef8461c52ff5aefb86e6a338) (shared with T18 docker-harness-apple-silicon)
 - **Usage:** 2,215 input, 104k output, 12.04M cache read, 201k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 97 calls, 22 to Wing's MCP tools (wing-review 16, wing-analysis 3, wing-testing 3)
 
 **Prompt**
 
@@ -516,6 +596,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 14:54 to 2026-10-16 15:39 (44m 50s)
 - **Outcome:** done; committed [`7c796a0ba9f9`](https://github.com/wingware-dev/tankful/commit/7c796a0ba9f917dfbd8601f27548244341fd2656) (shared with T23 speed-up-docker-backend)
 - **Usage:** 2,283 input, 134k output, 23.58M cache read, 263k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 135 calls, 14 to Wing's MCP tools (wing-review 9, wing-testing 5)
 
 **Prompt**
 
@@ -566,6 +647,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 14:54 to 2026-10-16 15:03 (8m 41s)
 - **Outcome:** done; committed [`696469452756`](https://github.com/wingware-dev/tankful/commit/69646945275645a77246d988870f1623feff0569), [`7c796a0ba9f9`](https://github.com/wingware-dev/tankful/commit/7c796a0ba9f917dfbd8601f27548244341fd2656) (shared with T5 schooling-neon-tetras)
 - **Usage:** 1,832 input, 18k output, 3.25M cache read, 36k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 33 calls, 3 to Wing's MCP tools (wing-review 2, wing-testing 1)
 
 **Prompt**
 
@@ -607,6 +689,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 15:40 to 2026-10-16 15:43 (3m 35s)
 - **Outcome:** done; committed [`43a7cce3f145`](https://github.com/wingware-dev/tankful/commit/43a7cce3f1456d1116519780cae801ad9ead677e)
 - **Usage:** 56 input, 12k output, 1.44M cache read, 55k cache write (claude-opus-5-5)
+- **Tools:** 32 calls, 5 to Wing's MCP tools (wing-review 4, wing-testing 1)
 
 **Prompt**
 
@@ -639,6 +722,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 15:43 to 2026-10-16 16:25 (40m 48s)
 - **Outcome:** done; committed [`e3ae02a837ce`](https://github.com/wingware-dev/tankful/commit/e3ae02a837ce38e81c1f635c92bf381522392daa)
 - **Usage:** 1,828 input, 113k output, 18.99M cache read, 216k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 105 calls, 9 to Wing's MCP tools (wing-review 6, wing-testing 3)
 
 **Prompt**
 
@@ -691,6 +775,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 16:23 ()
 - **Outcome:** obsolete
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -711,6 +796,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 16:23 ()
 - **Outcome:** obsolete
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -730,6 +816,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 16:23 ()
 - **Outcome:** obsolete
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -749,6 +836,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 16:23 ()
 - **Outcome:** obsolete
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -768,6 +856,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 16:23 ()
 - **Outcome:** obsolete
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -788,6 +877,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:23 to 2026-10-16 16:58 (6m 16s)
 - **Outcome:** done
 - **Usage:** 54 input, 34k output, 1.43M cache read, 64k cache write (claude-opus-5-5)
+- **Tools:** 31 calls, 16 to Wing's MCP tools (wing-review 13, wing-testing 3)
 
 **Prompt**
 
@@ -838,6 +928,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:25 to 2026-10-16 16:58 (15m 22s)
 - **Outcome:** done
 - **Usage:** 150 input, 59k output, 9.25M cache read, 182k cache write (claude-opus-5-5)
+- **Tools:** 145 calls, 22 to Wing's MCP tools (wing-review 13, wing-analysis 8, wing-testing 1)
 
 **Prompt**
 
@@ -882,6 +973,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:41 to 2026-10-16 16:45 (3m 54s)
 - **Outcome:** done; committed [`e09a835487be`](https://github.com/wingware-dev/tankful/commit/e09a835487be339d14d72b9847be76346514b74b)
 - **Usage:** 2,101 input, 24k output, 1.03M cache read, 63k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 20 calls, 10 to Wing's MCP tools (wing-review 8, wing-testing 2)
 
 **Prompt**
 
@@ -931,6 +1023,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:41 to 2026-10-16 16:43 (1m 51s)
 - **Outcome:** done; committed [`99a24bea1f45`](https://github.com/wingware-dev/tankful/commit/99a24bea1f459f73fdf4f012f18f3b0271847750)
 - **Usage:** 2,137 input, 13k output, 535k cache read, 45k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 12 calls, 7 to Wing's MCP tools (wing-review 6, wing-testing 1)
 
 **Prompt**
 
@@ -982,6 +1075,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:41 to 2026-10-16 16:44 (2m 37s)
 - **Outcome:** done; committed [`fabfa827cb28`](https://github.com/wingware-dev/tankful/commit/fabfa827cb2820f96da0058f1713b59f4317de35)
 - **Usage:** 2,062 input, 17k output, 628k cache read, 50k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 16 calls, 7 to Wing's MCP tools (wing-review 6, wing-testing 1)
 
 **Prompt**
 
@@ -1034,6 +1128,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:41 to 2026-10-16 16:47 (4m 34s)
 - **Outcome:** done; committed [`17bd5aa460a2`](https://github.com/wingware-dev/tankful/commit/17bd5aa460a26c4dd8a11daed36166f0dd627e35)
 - **Usage:** 2,060 input, 16k output, 5.04M cache read, 25k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 28 calls, 4 to Wing's MCP tools (wing-review 3, wing-testing 1)
 
 **Prompt**
 
@@ -1077,6 +1172,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:42 to 2026-10-16 16:48 (5m 24s)
 - **Outcome:** done; committed [`d1f3f00bde6e`](https://github.com/wingware-dev/tankful/commit/d1f3f00bde6e09033a5a1b271d456708fca21161)
 - **Usage:** 42 input, 21k output, 1.97M cache read, 29k cache write (claude-opus-5-5)
+- **Tools:** 31 calls, 8 to Wing's MCP tools (wing-review 5, wing-testing 3)
 
 **Prompt**
 
@@ -1127,6 +1223,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 16:42 ()
 - **Outcome:** obsolete
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -1146,6 +1243,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:45 to 2026-10-16 16:47 (2m 11s)
 - **Outcome:** done; committed [`cd7d85121a53`](https://github.com/wingware-dev/tankful/commit/cd7d85121a539cb0ad6f57c3a34aae73110ffc48)
 - **Usage:** 48 input, 14k output, 1.84M cache read, 26k cache write (claude-opus-5-5)
+- **Tools:** 34 calls, 6 to Wing's MCP tools (wing-review 3, wing-testing 2, wing-analysis 1)
 
 **Prompt**
 
@@ -1186,6 +1284,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:47 to 2026-10-16 17:19 (30m 48s)
 - **Outcome:** done; committed [`89432d6766cc`](https://github.com/wingware-dev/tankful/commit/89432d6766ccb5a46534aa97ce7e576235bf7ad7) (shared with T35 guppies-task)
 - **Usage:** 2,241 input, 107k output, 17.26M cache read, 246k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 132 calls, 15 to Wing's MCP tools (wing-review 9, wing-testing 4, wing-analysis 2)
 
 **Prompt**
 
@@ -1245,6 +1344,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:47 to 2026-10-16 16:49 (0m 51s)
 - **Outcome:** done; committed [`fdf87dcd3604`](https://github.com/wingware-dev/tankful/commit/fdf87dcd36042e60c10d39409f163d66af19fdc5)
 - **Usage:** 1,861 input, 4,288 output, 452k cache read, 32k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 14 calls, 6 to Wing's MCP tools (wing-review 5, wing-testing 1)
 
 **Prompt**
 
@@ -1277,6 +1377,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:48 to 2026-10-16 17:03 (15m 47s)
 - **Outcome:** done; committed [`4b1a168af5c5`](https://github.com/wingware-dev/tankful/commit/4b1a168af5c533fd51d0668d7d43111cac5d7c7c), [`89432d6766cc`](https://github.com/wingware-dev/tankful/commit/89432d6766ccb5a46534aa97ce7e576235bf7ad7) (shared with T7 bottom-feeders-corydoras), [`e6a25e0d618a`](https://github.com/wingware-dev/tankful/commit/e6a25e0d618a8ec2d23a31eeb1805cad176dace4) (shared with T37 cherry-shrimp)
 - **Usage:** 1,995 input, 42k output, 5.31M cache read, 143k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 54 calls, 11 to Wing's MCP tools (wing-review 9, wing-testing 2)
 
 **Prompt**
 
@@ -1333,6 +1434,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:48 to 2026-10-16 17:01 (12m 45s)
 - **Outcome:** done; committed [`411e29e0219e`](https://github.com/wingware-dev/tankful/commit/411e29e0219eb758056aaf15935847494d024722)
 - **Usage:** 2,006 input, 49k output, 5.00M cache read, 138k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 54 calls, 11 to Wing's MCP tools (wing-review 8, wing-testing 3)
 
 **Prompt**
 
@@ -1382,6 +1484,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:48 to 2026-10-16 17:23 (35m 26s)
 - **Outcome:** done; committed [`e6a25e0d618a`](https://github.com/wingware-dev/tankful/commit/e6a25e0d618a8ec2d23a31eeb1805cad176dace4) (shared with T35 guppies-task)
 - **Usage:** 2,172 input, 96k output, 14.73M cache read, 229k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 95 calls, 13 to Wing's MCP tools (wing-review 10, wing-testing 2, wing-analysis 1)
 
 **Prompt**
 
@@ -1444,6 +1547,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 16:49 to 2026-10-16 16:53 (4m 18s)
 - **Outcome:** done; committed [`526072932526`](https://github.com/wingware-dev/tankful/commit/526072932526eb46726e62999a0cef6bfc2c2acf)
 - **Usage:** 2,301 input, 13k output, 3.77M cache read, 32k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 49 calls, 15 to Wing's MCP tools (wing-analysis 9, wing-review 4, wing-testing 2)
 
 **Prompt**
 
@@ -1472,6 +1576,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 17:18 ()
 - **Outcome:** dismissed
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -1491,6 +1596,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 17:23 ()
 - **Outcome:** dismissed
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -1510,6 +1616,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 19:11 to 2026-10-16 19:18 (6m 17s)
 - **Outcome:** done; committed [`7cb9f40bd4a3`](https://github.com/wingware-dev/tankful/commit/7cb9f40bd4a37a863f405828f60e4a74181c1889)
 - **Usage:** 1,776 input, 8,864 output, 1.02M cache read, 59k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 29 calls, 6 to Wing's MCP tools (wing-review 4, wing-testing 2)
 
 **Prompt**
 
@@ -1539,6 +1646,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 19:12 to 2026-10-16 19:14 (1m 46s)
 - **Outcome:** done; committed [`9a770adbc8ab`](https://github.com/wingware-dev/tankful/commit/9a770adbc8abb14b79c61379d03187e3b9365dde)
 - **Usage:** 1,717 input, 5,469 output, 630k cache read, 37k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 18 calls, 5 to Wing's MCP tools (wing-review 4, wing-analysis 1)
 
 **Prompt**
 
@@ -1566,6 +1674,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 19:12 to 2026-10-16 19:13 (1m 24s)
 - **Outcome:** done; committed [`a84d29f8e144`](https://github.com/wingware-dev/tankful/commit/a84d29f8e144e8255343ad8a35843489ac05eb04)
 - **Usage:** 1,816 input, 8,455 output, 732k cache read, 40k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 17 calls, 7 to Wing's MCP tools (wing-review 6, wing-testing 1)
 
 **Prompt**
 
@@ -1598,6 +1707,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 19:12 to 2026-10-16 19:15 (3m 21s)
 - **Outcome:** done; committed [`ec0ae8adb44c`](https://github.com/wingware-dev/tankful/commit/ec0ae8adb44cc552a1f5ae6c5a50f48d3632dd59)
 - **Usage:** 2,147 input, 11k output, 957k cache read, 52k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 30 calls, 5 to Wing's MCP tools (wing-review 4, wing-testing 1)
 
 **Prompt**
 
@@ -1635,6 +1745,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 19:18 to 2026-10-16 19:52 (33m 47s)
 - **Outcome:** done; committed [`96615070f08d`](https://github.com/wingware-dev/tankful/commit/96615070f08d5b7f9cf0bdf14b02d27311572386)
 - **Usage:** 152 input, 47k output, 7.11M cache read, 134k cache write (claude-opus-5-5)
+- **Tools:** 83 calls, 9 to Wing's MCP tools (wing-review 5, wing-analysis 2, wing-testing 2)
 
 **Prompt**
 
@@ -1688,6 +1799,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 19:53 to 2026-10-16 20:09 (8m 09s)
 - **Outcome:** done; committed [`11198506836a`](https://github.com/wingware-dev/tankful/commit/11198506836a997ac533d8f8119f98d221b00e29) (shared with T56 tetra-logic-cost)
 - **Usage:** 2,839 input, 18k output, 3.50M cache read, 34k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 30 calls, 5 to Wing's MCP tools (wing-analysis 2, wing-testing 2, wing-review 1)
 
 **Prompt**
 
@@ -1716,6 +1828,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 20:01 to 2026-10-16 20:09 (7m 27s)
 - **Outcome:** done; committed [`11198506836a`](https://github.com/wingware-dev/tankful/commit/11198506836a997ac533d8f8119f98d221b00e29) (shared with T55 scenery-caustics-off-projector)
 - **Usage:** 1,811 input, 29k output, 3.14M cache read, 101k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 55 calls, 5 to Wing's MCP tools (wing-review 4, wing-testing 1)
 
 **Prompt**
 
@@ -1749,6 +1862,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 20:09 to 2026-10-16 20:32 (22m 02s)
 - **Outcome:** done; committed [`37f2454ad5f2`](https://github.com/wingware-dev/tankful/commit/37f2454ad5f2cff03cc310eabe5bd9ee65a6f5b8)
 - **Usage:** 106 input, 43k output, 11.67M cache read, 73k cache write (claude-opus-5-5)
+- **Tools:** 62 calls, 7 to Wing's MCP tools (wing-review 3, wing-analysis 2, wing-testing 2)
 
 **Prompt**
 
@@ -1794,6 +1908,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 20:10 to 2026-10-16 20:28 (18m 03s)
 - **Outcome:** done; committed [`b29a974d1a28`](https://github.com/wingware-dev/tankful/commit/b29a974d1a285d606ca00ae5f0ef919233948c9e)
 - **Usage:** 2,150 input, 50k output, 8.09M cache read, 143k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 82 calls, 11 to Wing's MCP tools (wing-review 6, wing-testing 5)
 
 **Prompt**
 
@@ -1838,6 +1953,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 20:32 to 2026-10-16 21:01 (28m 33s)
 - **Outcome:** done; committed [`f7dcb1bf7bce`](https://github.com/wingware-dev/tankful/commit/f7dcb1bf7bce90e7ed7d7a5c7919bcd065b53e0f)
 - **Usage:** 2,558 input, 96k output, 23.41M cache read, 274k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 214 calls, 13 to Wing's MCP tools (wing-review 11, wing-testing 2)
 
 **Prompt**
 
@@ -1907,6 +2023,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 21:02 to 2026-10-16 21:19 (16m 12s)
 - **Outcome:** done; committed [`e968092b2ee4`](https://github.com/wingware-dev/tankful/commit/e968092b2ee40d8a93e6311b28cea91996bf5f0a) (shared with T28 factor-picker-hud)
 - **Usage:** 2,703 input, 78k output, 12.95M cache read, 236k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 78 calls, 10 to Wing's MCP tools (wing-review 8, wing-testing 2)
 
 **Prompt**
 
@@ -1967,6 +2084,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 21:02 to 2026-10-16 21:19 (8m 13s)
 - **Outcome:** done; committed [`e968092b2ee4`](https://github.com/wingware-dev/tankful/commit/e968092b2ee40d8a93e6311b28cea91996bf5f0a) (shared with T10 fish-selection-steering)
 - **Usage:** 110 input, 45k output, 5.61M cache read, 133k cache write (claude-opus-5-5)
+- **Tools:** 59 calls, 11 to Wing's MCP tools (wing-review 8, wing-testing 3)
 
 **Prompt**
 
@@ -2036,6 +2154,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 21:19 to 2026-10-16 22:00 (40m 07s)
 - **Outcome:** done; committed [`92c6b599850b`](https://github.com/wingware-dev/tankful/commit/92c6b599850bbf9857a81f36190192d9e1ee9aae) (shared with T65 scene-sources-miss-weather and T32 moon-visuals)
 - **Usage:** 2,358 input, 73k output, 13.73M cache read, 222k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 121 calls, 19 to Wing's MCP tools (wing-testing 8, wing-review 7, wing-analysis 4)
 
 **Prompt**
 
@@ -2094,6 +2213,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 21:19 to 2026-10-16 21:28 (6m 06s)
 - **Outcome:** done; committed [`cb3751e2df61`](https://github.com/wingware-dev/tankful/commit/cb3751e2df61f109910c2d7acd619d9fdee98423) (shared with T30 weather-visuals)
 - **Usage:** 66 input, 16k output, 1.88M cache read, 72k cache write (claude-opus-5-5)
+- **Tools:** 38 calls, 6 to Wing's MCP tools (wing-review 5, wing-testing 1)
 
 **Prompt**
 
@@ -2139,6 +2259,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 21:19 to 2026-10-16 21:28 (8m 14s)
 - **Outcome:** done; committed [`cb3751e2df61`](https://github.com/wingware-dev/tankful/commit/cb3751e2df61f109910c2d7acd619d9fdee98423) (shared with T34 stock-shots)
 - **Usage:** 2,477 input, 41k output, 9.04M cache read, 83k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 51 calls, 8 to Wing's MCP tools (wing-review 6, wing-testing 2)
 
 **Prompt**
 
@@ -2202,6 +2323,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 21:29 to 2026-10-16 21:35 (6m 09s)
 - **Outcome:** done; committed [`c3f0d8a33ead`](https://github.com/wingware-dev/tankful/commit/c3f0d8a33ead6ebe0267d892634122fb6c992504)
 - **Usage:** 1,970 input, 22k output, 2.46M cache read, 42k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 26 calls, 6 to Wing's MCP tools (wing-review 4, wing-analysis 1, wing-testing 1)
 
 **Prompt**
 
@@ -2242,6 +2364,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 21:29 to 2026-10-16 21:46 (17m 02s)
 - **Outcome:** done; committed [`11ef63985ae2`](https://github.com/wingware-dev/tankful/commit/11ef63985ae2a2ab2af3c1d6a637b5572c21be2a) (shared with time-moon-factor-work), [`92c6b599850b`](https://github.com/wingware-dev/tankful/commit/92c6b599850bbf9857a81f36190192d9e1ee9aae) (shared with T65 scene-sources-miss-weather and T11 fish-collisions)
 - **Usage:** 2,281 input, 58k output, 9.33M cache read, 171k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 85 calls, 12 to Wing's MCP tools (wing-review 9, wing-testing 3)
 
 **Prompt**
 
@@ -2299,6 +2422,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 21:29 to 2026-10-16 21:31 (1m 41s)
 - **Outcome:** done; committed [`bce7e944d30e`](https://github.com/wingware-dev/tankful/commit/bce7e944d30ee2b527aa2d6d5cf94e0a611f623b)
 - **Usage:** 1,796 input, 4,964 output, 595k cache read, 36k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 19 calls, 6 to Wing's MCP tools (wing-review 6)
 
 **Prompt**
 
@@ -2333,6 +2457,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 21:45 to 2026-10-16 21:45 (0m 32s)
 - **Outcome:** done; committed [`2eccef9f04c8`](https://github.com/wingware-dev/tankful/commit/2eccef9f04c8ebb8b8f7c5eccca86bdccc5ed919), [`92c6b599850b`](https://github.com/wingware-dev/tankful/commit/92c6b599850bbf9857a81f36190192d9e1ee9aae) (shared with T32 moon-visuals and T11 fish-collisions)
 - **Usage:** 1,935 input, 2,399 output, 280k cache read, 22k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 10 calls, 4 to Wing's MCP tools (wing-review 3, wing-testing 1)
 
 **Prompt**
 
@@ -2366,6 +2491,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 21:46 ()
 - **Outcome:** obsolete
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -2385,6 +2511,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:**  to 2026-10-16 21:46 ()
 - **Outcome:** finished; committed [`11ef63985ae2`](https://github.com/wingware-dev/tankful/commit/11ef63985ae2a2ab2af3c1d6a637b5572c21be2a) (shared with T32 moon-visuals)
 - **Usage:** 0 input, 0 output, 0 cache read, 0 cache write (model not recorded)
+- **Tools:** not recorded (no transcript)
 
 **Prompt**
 
@@ -2402,6 +2529,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:01 to 2026-10-16 22:13 (12m 01s)
 - **Outcome:** done; committed [`f1614b44dc6a`](https://github.com/wingware-dev/tankful/commit/f1614b44dc6ae02c65dbb054f01afff2c590a5c3)
 - **Usage:** 80 input, 24k output, 2.52M cache read, 78k cache write (claude-opus-5-5)
+- **Tools:** 46 calls, 6 to Wing's MCP tools (wing-review 5, wing-testing 1)
 
 **Prompt**
 
@@ -2443,6 +2571,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:03 to 2026-10-16 22:07 (3m 23s)
 - **Outcome:** done; committed [`b3d2b28d3b49`](https://github.com/wingware-dev/tankful/commit/b3d2b28d3b490ddb81cd2f3aa7e2e4f1c7bec454)
 - **Usage:** 50 input, 14k output, 1.36M cache read, 60k cache write (claude-opus-5-5)
+- **Tools:** 33 calls, 9 to Wing's MCP tools (wing-review 7, wing-testing 2)
 
 **Prompt**
 
@@ -2487,6 +2616,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:14 to 2026-10-16 22:38 (24m 09s)
 - **Outcome:** done; committed [`0a94462b00b8`](https://github.com/wingware-dev/tankful/commit/0a94462b00b8b7ff428f5728f50052ffb60e4217) (shared with T71 click-a-fish-hint and T74 credit-open-meteo-in-app)
 - **Usage:** 2,056 input, 36k output, 6.15M cache read, 130k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 88 calls, 10 to Wing's MCP tools (wing-review 7, wing-testing 3)
 
 **Prompt**
 
@@ -2550,6 +2680,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:14 to 2026-10-16 22:39 (24m 27s)
 - **Outcome:** done; committed [`da5b0645770a`](https://github.com/wingware-dev/tankful/commit/da5b0645770ad2516a0266523cb767260c2272af)
 - **Usage:** 80 input, 29k output, 4.71M cache read, 54k cache write (claude-opus-5-5)
+- **Tools:** 40 calls, 7 to Wing's MCP tools (wing-review 3, wing-analysis 2, wing-testing 2)
 
 **Prompt**
 
@@ -2589,6 +2720,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:15 to 2026-10-16 22:41 (25m 33s)
 - **Outcome:** done; committed [`449f28ff52d0`](https://github.com/wingware-dev/tankful/commit/449f28ff52d04fc4077d1f9f0534181fecb8be58)
 - **Usage:** 2,061 input, 37k output, 5.45M cache read, 116k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 64 calls, 9 to Wing's MCP tools (wing-review 6, wing-testing 3)
 
 **Prompt**
 
@@ -2632,6 +2764,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:16 to 2026-10-16 22:38 (2m 32s)
 - **Outcome:** done; committed [`0a94462b00b8`](https://github.com/wingware-dev/tankful/commit/0a94462b00b8b7ff428f5728f50052ffb60e4217) (shared with T17 cross-platform-docs and T74 credit-open-meteo-in-app)
 - **Usage:** 1,819 input, 11k output, 1.24M cache read, 18k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 18 calls, 5 to Wing's MCP tools (wing-review 3, wing-testing 2)
 
 **Prompt**
 
@@ -2688,6 +2821,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:28 to 2026-10-16 22:38 (3m 27s)
 - **Outcome:** done; committed [`0a94462b00b8`](https://github.com/wingware-dev/tankful/commit/0a94462b00b8b7ff428f5728f50052ffb60e4217) (shared with T17 cross-platform-docs and T71 click-a-fish-hint)
 - **Usage:** 2,158 input, 10k output, 1.56M cache read, 65k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 39 calls, 7 to Wing's MCP tools (wing-review 5, wing-testing 2)
 
 **Prompt**
 
@@ -2744,6 +2878,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:40 to 2026-10-16 22:46 (6m 24s)
 - **Outcome:** done
 - **Usage:** 28 input, 15k output, 2.19M cache read, 29k cache write (claude-opus-5-5)
+- **Tools:** 14 calls, 1 to Wing's MCP tools (wing-review 1)
 
 **Prompt**
 
@@ -2780,6 +2915,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:46 to 2026-10-16 22:56 (9m 34s)
 - **Outcome:** done; committed [`3289926e9062`](https://github.com/wingware-dev/tankful/commit/3289926e90626b539c6b8d1b8322531fa9d8925e)
 - **Usage:** 2,501 input, 16k output, 4.82M cache read, 32k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 28 calls, 4 to Wing's MCP tools (wing-review 2, wing-analysis 1, wing-testing 1)
 
 **Prompt**
 
@@ -2812,6 +2948,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-16 22:57 to 2026-10-16 23:08 (10m 49s)
 - **Outcome:** done; committed [`69bd91ff474f`](https://github.com/wingware-dev/tankful/commit/69bd91ff474faeb0388a8f50a611d98eefe358a6)
 - **Usage:** 2,209 input, 14k output, 1.77M cache read, 59k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 35 calls, 7 to Wing's MCP tools (wing-review 4, wing-testing 2, wing-analysis 1)
 
 **Prompt**
 
@@ -2847,6 +2984,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-17 09:35 to 2026-10-17 09:49 (13m 16s)
 - **Outcome:** done; committed [`77f73bb2e98a`](https://github.com/wingware-dev/tankful/commit/77f73bb2e98a7282e362c5ecadbc41df82e4d098)
 - **Usage:** 102 input, 21k output, 3.17M cache read, 83k cache write (claude-opus-5-5)
+- **Tools:** 55 calls, 5 to Wing's MCP tools (wing-review 5)
 
 **Prompt**
 
@@ -2927,6 +3065,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-17 09:35 to 2026-10-17 09:45 (8m 50s)
 - **Outcome:** done; committed [`3b64bcee42c5`](https://github.com/wingware-dev/tankful/commit/3b64bcee42c59209d6b1300a2b323301a9c5690e)
 - **Usage:** 1,871 input, 15k output, 2.47M cache read, 70k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 44 calls, 5 to Wing's MCP tools (wing-review 3, wing-testing 2)
 
 **Prompt**
 
@@ -2956,6 +3095,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-17 09:49 to 2026-10-17 09:57 (6m 52s)
 - **Outcome:** done; committed [`d3b4addb48b3`](https://github.com/wingware-dev/tankful/commit/d3b4addb48b3836fc912c466a5eced619328b972)
 - **Usage:** 80 input, 19k output, 4.75M cache read, 42k cache write (claude-opus-5-5)
+- **Tools:** 41 calls, 6 to Wing's MCP tools (wing-review 3, wing-testing 3)
 
 **Prompt**
 
@@ -2992,6 +3132,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-17 10:01 to 2026-10-17 10:37 (35m 50s)
 - **Outcome:** done; committed [`c4c123886309`](https://github.com/wingware-dev/tankful/commit/c4c12388630907504716002ed6f161a2e87675d9)
 - **Usage:** 1,963 input, 58k output, 16.08M cache read, 106k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 93 calls, 12 to Wing's MCP tools (wing-review 6, wing-testing 6)
 
 **Prompt**
 
@@ -3103,6 +3244,7 @@ Generated 2026-10-26 20:26 from Wing's task store, the Tasks Manager's log, the 
 - **Ran:** 2026-10-17 10:29 to 2026-10-17 10:31 (1m 58s)
 - **Outcome:** done; committed [`6d9da9218cb4`](https://github.com/wingware-dev/tankful/commit/6d9da9218cb47e1fcf951b0ef028a64bff43d102)
 - **Usage:** 2,157 input, 2,506 output, 254k cache read, 23k cache write (claude-haiku-5-5, claude-opus-5-5)
+- **Tools:** 10 calls, 4 to Wing's MCP tools (wing-review 3, wing-testing 1)
 
 **Prompt**
 
