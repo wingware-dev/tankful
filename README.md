@@ -7,18 +7,19 @@ on macOS, Linux and Windows.
 
 ## How it was built
 
-AI agents (Claude Code) wrote all of tankful from one prompt, working
-inside Wing Pro 12.1, a Python IDE from [Wingware](https://wingware.com/).
-Wing's Tasks Manager is itself an AI agent: it turns a request into a
-queue of tasks, gives each to a separate coding agent, answers their
-questions, checks and commits their work, and starts the next.  Here it
-split the prompt into steps and ran them up to five at a time; the agents
-made their own judgement calls, filed the problems they found as new
-tasks, took the screenshots in `docs/shots/` with the test harness they
-built, and each finished piece of work became a commit here.  The run
-took about 11 hours: 10 hours on October 16, 2026, from 1:13 pm to
-11:08 pm, and an hour the next morning for three refinements.  It made
-68 tasks and 49 commits.
+tankful is a test of the autonomous development features in Wing Pro
+12.1, a Python IDE from [Wingware](https://wingware.com/).  AI agents
+(Claude Code) wrote all of it from one prompt, with Wing's Tasks Manager
+queueing and running the work.  The Tasks Manager is itself an AI agent:
+it turns a request into a queue of tasks, gives each to a separate
+coding agent, answers their questions, checks and commits their work,
+and starts the next.  Here it split the prompt into steps and ran them up
+to five at a time; the agents made their own judgement calls, filed the
+problems they found as new tasks, took the screenshots in `docs/shots/`
+with the test harness they built, and each finished piece of work became
+a commit here.  The run took about 11 hours: 10 hours on October 16,
+2026, from 1:13 pm to 11:08 pm, and an hour the next morning for three
+refinements.  It made 68 tasks and 49 commits.
 
 This was the prompt that started it:
 
